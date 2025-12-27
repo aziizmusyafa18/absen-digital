@@ -1,8 +1,11 @@
 {
   "name": "absen-digital",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Sistem absensi digital untuk SMK",
+  "main": "backend/server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js",
