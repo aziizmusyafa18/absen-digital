@@ -1,0 +1,2945 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Data - Absen Digital</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --secondary: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --sidebar-width: 280px;
+            --header-height: 70px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            padding: 1.5rem;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        .sidebar-brand-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .sidebar-brand-text {
+            color: white;
+        }
+
+        .sidebar-brand-text h5 {
+            font-weight: 700;
+            margin-bottom: 0.1rem;
+            font-size: 1.1rem;
+        }
+
+        .sidebar-brand-text span {
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-menu-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 0.75rem;
+            padding-left: 0.75rem;
+        }
+
+        .sidebar-menu-item {
+            margin-bottom: 0.25rem;
+        }
+
+        .sidebar-menu-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1rem;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            border-radius: 10px;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .sidebar-menu-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .sidebar-menu-link.active {
+            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+        }
+
+        .sidebar-menu-link i {
+            font-size: 1.25rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            height: var(--header-height);
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        /* Sidebar Toggle */
+        .sidebar-toggle {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: #f1f5f9;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: var(--secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-toggle:hover {
+            background: #e2e8f0;
+            color: var(--primary);
+        }
+
+        /* Sidebar Collapsed State */
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
+        .page-title h4 {
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .page-title p {
+            font-size: 0.85rem;
+            color: var(--secondary);
+            margin: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-dropdown {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 1rem;
+            background: #f8fafc;
+            border-radius: 50px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .user-dropdown:hover {
+            background: #f1f5f9;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Content Area */
+        .content-area {
+            padding: 2rem;
+        }
+
+        /* Data Tabs */
+        .data-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .data-tab {
+            padding: 0.75rem 1.25rem;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-weight: 600;
+            color: var(--secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .data-tab:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .data-tab.active {
+            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+            border-color: transparent;
+            color: white;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+        }
+
+        .data-tab i {
+            font-size: 1.1rem;
+        }
+
+        .data-tab .count {
+            background: rgba(255,255,255,0.2);
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+        }
+
+        .data-tab:not(.active) .count {
+            background: #f1f5f9;
+        }
+
+        /* Card Modern */
+        .card-modern {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+
+        .card-modern-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .card-modern-header h5 {
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-modern-header h5 i {
+            color: var(--primary);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--secondary);
+        }
+
+        .search-box input {
+            padding: 0.625rem 1rem 0.625rem 2.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            width: 250px;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            border: none;
+            color: white;
+            padding: 0.625rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .btn-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+            color: white;
+        }
+
+        .btn-import {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            border: none;
+            color: white;
+            padding: 0.625rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .btn-import:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.4);
+            color: white;
+        }
+
+        /* Import Modal Styles */
+        .import-step {
+            display: none;
+        }
+
+        .import-step.active {
+            display: block;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .step-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            transition: all 0.3s;
+        }
+
+        .step-dot.active {
+            background: var(--primary);
+            transform: scale(1.2);
+        }
+
+        .step-dot.completed {
+            background: var(--success);
+        }
+
+        .upload-zone {
+            border: 2px dashed #e2e8f0;
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            background: #f8fafc;
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--primary);
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .upload-zone i {
+            font-size: 3rem;
+            color: #94a3b8;
+            margin-bottom: 1rem;
+        }
+
+        .upload-zone h5 {
+            color: #334155;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-zone p {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 0;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 10px;
+            margin-top: 1rem;
+        }
+
+        .file-info i {
+            font-size: 2rem;
+            color: var(--success);
+        }
+
+        .mapping-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            background: #f8fafc;
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+        }
+
+        .mapping-row .field-label {
+            flex: 1;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .mapping-row .field-label .required {
+            color: var(--danger);
+        }
+
+        .mapping-row select {
+            flex: 1;
+            padding: 0.5rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+        }
+
+        .mapping-row .confidence {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .confidence.high {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .confidence.medium {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .preview-table {
+            font-size: 0.85rem;
+        }
+
+        .preview-table th {
+            background: #f1f5f9;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .preview-table td {
+            white-space: nowrap;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .import-options {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .import-options .form-check {
+            margin-bottom: 0.5rem;
+        }
+
+        .import-result {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .import-result .result-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .import-result .result-icon.success {
+            color: var(--success);
+        }
+
+        .import-result .result-icon.warning {
+            color: var(--warning);
+        }
+
+        .result-stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+
+        .result-stat {
+            text-align: center;
+        }
+
+        .result-stat .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .result-stat .label {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .result-stat.success .value { color: var(--success); }
+        .result-stat.warning .value { color: var(--warning); }
+        .result-stat.danger .value { color: var(--danger); }
+
+        /* Table Modern */
+        .table-modern {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table-modern thead {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .table-modern thead th {
+            padding: 1rem 1.25rem;
+            font-weight: 600;
+            color: #475569;
+            text-align: left;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .table-modern tbody td {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
+            font-size: 0.9rem;
+        }
+
+        .table-modern tbody tr {
+            transition: background 0.2s;
+        }
+
+        .table-modern tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .table-modern tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Badges */
+        .badge-modern {
+            padding: 0.375rem 0.75rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .badge-primary {
+            background: rgba(79, 70, 229, 0.1);
+            color: var(--primary);
+        }
+
+        .badge-secondary {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .badge-info {
+            background: rgba(6, 182, 212, 0.1);
+            color: #0891b2;
+        }
+
+        /* Action Buttons */
+        .btn-action {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-edit {
+            background: rgba(79, 70, 229, 0.1);
+            color: var(--primary);
+        }
+
+        .btn-edit:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-delete {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .btn-delete:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: #e2e8f0;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state h5 {
+            color: #64748b;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state p {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        /* Modal Styling */
+        .modal-content {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+            border-radius: 16px 16px 0 0;
+            padding: 1.25rem 1.5rem;
+            border: none;
+        }
+
+        .modal-header .modal-title {
+            color: white;
+            font-weight: 700;
+        }
+
+        .modal-header .btn-close {
+            filter: brightness(0) invert(1);
+            opacity: 0.8;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .form-control, .form-select {
+            padding: 0.75rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .modal-footer {
+            border-top: 1px solid #f1f5f9;
+            padding: 1rem 1.5rem;
+        }
+
+        .btn-modal-cancel {
+            background: #f1f5f9;
+            border: none;
+            color: #64748b;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .btn-modal-save {
+            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .btn-modal-save:hover {
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+            color: white;
+        }
+
+        /* Kelas List Item in Modal */
+        .kelas-list-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .kelas-list-item .kelas-info {
+            flex: 1;
+        }
+
+        .kelas-list-item .kelas-info h6 {
+            margin: 0 0 4px 0;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .kelas-list-item .kelas-info p {
+            margin: 0;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        /* Toast Custom */
+        .toast-custom {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            border: none;
+        }
+
+        .toast-custom.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .toast-custom.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        /* Tablet Responsive */
+        @media (max-width: 991px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .main-content.expanded {
+                margin-left: 0;
+            }
+
+            .search-box input {
+                width: 180px;
+            }
+
+            .header {
+                padding: 0 1rem;
+            }
+
+            .content-area {
+                padding: 1.5rem;
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 0.75rem 1rem;
+            }
+
+            .page-title h4 {
+                font-size: 1.1rem;
+            }
+
+            .page-title span {
+                font-size: 0.75rem;
+            }
+
+            .content-area {
+                padding: 1rem;
+            }
+
+            .card-modern-header {
+                padding: 1rem;
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .card-modern-header .header-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+
+            .search-box input {
+                width: 100%;
+            }
+
+            .btn-add, .btn-import {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .data-tabs {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+                padding-bottom: 0.5rem;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .data-tab {
+                flex-shrink: 0;
+                padding: 0.625rem 1rem;
+                font-size: 0.85rem;
+            }
+
+            .data-tab .count {
+                display: none;
+            }
+
+            .table-modern thead th {
+                padding: 0.75rem;
+                font-size: 0.7rem;
+            }
+
+            .table-modern tbody td {
+                padding: 0.75rem;
+                font-size: 0.8rem;
+            }
+
+            .user-dropdown span {
+                display: none;
+            }
+
+            .user-avatar {
+                width: 36px;
+                height: 36px;
+                font-size: 0.85rem;
+            }
+
+            .user-dropdown {
+                padding: 0.35rem;
+                gap: 0;
+            }
+
+            .btn-action {
+                width: 32px;
+                height: 32px;
+            }
+
+            .modal-dialog {
+                margin: 0.5rem;
+            }
+        }
+
+        /* Small Mobile */
+        @media (max-width: 576px) {
+            .header {
+                padding: 0.5rem 0.75rem;
+            }
+
+            .sidebar-toggle {
+                width: 36px;
+                height: 36px;
+                font-size: 1.1rem;
+            }
+
+            .page-title h4 {
+                font-size: 1rem;
+            }
+
+            .page-title span {
+                display: none;
+            }
+
+            .user-avatar {
+                width: 34px;
+                height: 34px;
+                font-size: 0.8rem;
+            }
+
+            .user-dropdown {
+                padding: 0.25rem;
+                background: transparent;
+            }
+
+            .content-area {
+                padding: 0.75rem;
+            }
+
+            .card-modern {
+                border-radius: 12px;
+            }
+
+            .card-modern-header {
+                padding: 0.875rem;
+            }
+
+            .card-modern-header h5 {
+                font-size: 0.95rem;
+            }
+
+            .data-tabs {
+                gap: 0.35rem;
+                margin-bottom: 1rem;
+            }
+
+            .data-tab {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.8rem;
+                border-radius: 8px;
+            }
+
+            .data-tab i {
+                font-size: 1rem;
+            }
+
+            .table-modern thead th,
+            .table-modern tbody td {
+                padding: 0.5rem;
+                font-size: 0.75rem;
+            }
+
+            .badge-modern {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.65rem;
+            }
+
+            .btn-action {
+                width: 28px;
+                height: 28px;
+            }
+
+            .empty-state {
+                padding: 2rem 1rem;
+            }
+
+            .empty-state i {
+                font-size: 3rem;
+            }
+
+            .modal-body {
+                padding: 1rem;
+            }
+
+            .modal-footer {
+                padding: 0.75rem 1rem;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .btn-modal-cancel,
+            .btn-modal-save {
+                flex: 1;
+                min-width: 100px;
+            }
+        }
+
+        /* Sidebar overlay for mobile */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-brand-icon">
+                <i class="bi bi-mortarboard-fill text-white"></i>
+            </div>
+            <div class="sidebar-brand-text">
+                <h5>Absen Digital</h5>
+                <span>Sistem Manajemen</span>
+            </div>
+        </div>
+
+        <ul class="sidebar-menu">
+            <li class="sidebar-menu-label">Menu Utama</li>
+            <li class="sidebar-menu-item">
+                <a href="admin.html" class="sidebar-menu-link">
+                    <i class="bi bi-grid-1x2-fill"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="sidebar-menu-item">
+                <a href="admin-master-data.html" class="sidebar-menu-link active">
+                    <i class="bi bi-database-fill"></i>
+                    <span>Master Data</span>
+                </a>
+            </li>
+            <li class="sidebar-menu-item">
+                <a href="admin-rekap.html" class="sidebar-menu-link">
+                    <i class="bi bi-clipboard-data-fill"></i>
+                    <span>Rekap Absensi</span>
+                </a>
+            </li>
+
+            <li class="sidebar-menu-label mt-4">Kelola Data</li>
+            <li class="sidebar-menu-item">
+                <a href="guru.html" class="sidebar-menu-link">
+                    <i class="bi bi-person-badge-fill"></i>
+                    <span>Panel Guru</span>
+                </a>
+            </li>
+
+            <li class="sidebar-menu-label mt-4">Akun</li>
+            <li class="sidebar-menu-item">
+                <a href="#" class="sidebar-menu-link" onclick="logout()">
+                    <i class="bi bi-box-arrow-left"></i>
+                    <span>Logout</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Header -->
+        <header class="header">
+            <div class="d-flex align-items-center gap-3">
+                <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">
+                    <i class="bi bi-list" id="toggle-icon"></i>
+                </button>
+                <div class="page-title">
+                    <h4>Master Data</h4>
+                    <span>Kelola data jurusan, kelas, siswa, dan guru</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="dropdown">
+                    <button class="user-dropdown dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <div class="user-avatar" id="user-avatar">A</div>
+                        <span id="user-name">Admin</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profil</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="#" onclick="logout()"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Data Tabs -->
+            <div class="data-tabs">
+                <button class="data-tab active" data-tab="jurusan" onclick="switchTab('jurusan')">
+                    <i class="bi bi-mortarboard"></i>
+                    <span>Jurusan</span>
+                    <span class="count" id="count-jurusan">0</span>
+                </button>
+                <button class="data-tab" data-tab="kelas" onclick="switchTab('kelas')">
+                    <i class="bi bi-building"></i>
+                    <span>Kelas</span>
+                    <span class="count" id="count-kelas">0</span>
+                </button>
+                <button class="data-tab" data-tab="siswa" onclick="switchTab('siswa')">
+                    <i class="bi bi-people"></i>
+                    <span>Siswa</span>
+                    <span class="count" id="count-siswa">0</span>
+                </button>
+                <button class="data-tab" data-tab="guru" onclick="switchTab('guru')">
+                    <i class="bi bi-person-badge"></i>
+                    <span>Guru</span>
+                    <span class="count" id="count-guru">0</span>
+                </button>
+            </div>
+
+            <!-- Tab Content: Jurusan -->
+            <div class="tab-content" id="tab-jurusan">
+                <div class="card-modern">
+                    <div class="card-modern-header">
+                        <h5><i class="bi bi-mortarboard-fill"></i> Data Jurusan</h5>
+                        <div class="header-actions">
+                            <div class="search-box">
+                                <i class="bi bi-search"></i>
+                                <input type="text" id="search-jurusan" placeholder="Cari jurusan..." onkeyup="searchJurusan()">
+                            </div>
+                            <button class="btn-add" onclick="openJurusanModal()">
+                                <i class="bi bi-plus-lg"></i>
+                                <span>Tambah</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table-modern">
+                            <thead>
+                                <tr>
+                                    <th style="width: 60px;">No</th>
+                                    <th>Nama Jurusan</th>
+                                    <th>Singkatan</th>
+                                    <th>Deskripsi</th>
+                                    <th style="width: 120px;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="jurusan-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Kelas -->
+            <div class="tab-content" id="tab-kelas" style="display: none;">
+                <div class="card-modern">
+                    <div class="card-modern-header">
+                        <h5><i class="bi bi-building-fill"></i> Data Kelas</h5>
+                        <div class="header-actions">
+                            <div class="search-box">
+                                <i class="bi bi-search"></i>
+                                <input type="text" id="search-kelas" placeholder="Cari kelas..." onkeyup="searchKelas()">
+                            </div>
+                            <button class="btn-add" onclick="openKelasModal()">
+                                <i class="bi bi-plus-lg"></i>
+                                <span>Tambah</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table-modern">
+                            <thead>
+                                <tr>
+                                    <th style="width: 60px;">No</th>
+                                    <th>Nama Kelas</th>
+                                    <th>Tingkat</th>
+                                    <th>Jurusan</th>
+                                    <th>Tahun Ajaran</th>
+                                    <th style="width: 120px;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kelas-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Siswa -->
+            <div class="tab-content" id="tab-siswa" style="display: none;">
+                <div class="card-modern">
+                    <div class="card-modern-header">
+                        <h5><i class="bi bi-people-fill"></i> Data Siswa</h5>
+                        <div class="header-actions">
+                            <div class="search-box">
+                                <i class="bi bi-search"></i>
+                                <input type="text" id="search-siswa" placeholder="Cari siswa..." onkeyup="searchSiswa()">
+                            </div>
+                            <button class="btn-import" onclick="openImportModal('siswa')">
+                                <i class="bi bi-file-earmark-excel"></i>
+                                <span>Import Excel</span>
+                            </button>
+                            <button class="btn-add" onclick="openSiswaModal()">
+                                <i class="bi bi-plus-lg"></i>
+                                <span>Tambah</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table-modern">
+                            <thead>
+                                <tr>
+                                    <th style="width: 60px;">No</th>
+                                    <th>Nama</th>
+                                    <th>NIS</th>
+                                    <th>Kelas</th>
+                                    <th style="width: 120px;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="siswa-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Guru -->
+            <div class="tab-content" id="tab-guru" style="display: none;">
+                <div class="card-modern">
+                    <div class="card-modern-header">
+                        <h5><i class="bi bi-person-badge-fill"></i> Data Guru</h5>
+                        <div class="header-actions">
+                            <div class="search-box">
+                                <i class="bi bi-search"></i>
+                                <input type="text" id="search-guru" placeholder="Cari guru..." onkeyup="searchGuru()">
+                            </div>
+                            <button class="btn-import" onclick="openImportModal('guru')">
+                                <i class="bi bi-file-earmark-excel"></i>
+                                <span>Import Excel</span>
+                            </button>
+                            <button class="btn-add" onclick="openGuruModal()">
+                                <i class="bi bi-plus-lg"></i>
+                                <span>Tambah</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table-modern">
+                            <thead>
+                                <tr>
+                                    <th style="width: 60px;">No</th>
+                                    <th>Nama</th>
+                                    <th>NIP</th>
+                                    <th>Mata Pelajaran</th>
+                                    <th>Role</th>
+                                    <th style="width: 120px;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="guru-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Jurusan -->
+    <div class="modal fade" id="jurusan-modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="jurusan-modal-title">Tambah Jurusan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="jurusan-form">
+                    <div class="modal-body">
+                        <input type="hidden" id="jurusan-id">
+                        <div class="mb-3">
+                            <label class="form-label">Nama Jurusan <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="jurusan-nama" required placeholder="Contoh: Teknik Jaringan Komputer">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Singkatan</label>
+                            <input type="text" class="form-control" id="jurusan-singkat" placeholder="Contoh: TJKT">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Deskripsi</label>
+                            <textarea class="form-control" id="jurusan-deskripsi" rows="3" placeholder="Deskripsi jurusan..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-modal-cancel" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-modal-save">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Kelas -->
+    <div class="modal fade" id="kelas-modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="kelas-modal-title">Tambah Kelas</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="kelas-form">
+                    <div class="modal-body">
+                        <input type="hidden" id="kelas-id">
+                        <div class="mb-3">
+                            <label class="form-label">Nama Kelas <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="kelas-nama" required placeholder="Contoh: XII TJKT A">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tingkat <span class="text-danger">*</span></label>
+                            <select class="form-select" id="kelas-tingkat" required>
+                                <option value="">-- Pilih Tingkat --</option>
+                                <option value="X">X</option>
+                                <option value="XI">XI</option>
+                                <option value="XII">XII</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Jurusan</label>
+                            <select class="form-select" id="kelas-jurusan">
+                                <option value="">-- Pilih Jurusan (Opsional) --</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tahun Ajaran <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="kelas-tahun" required placeholder="Contoh: 2024/2025">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-modal-cancel" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-modal-save">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Siswa -->
+    <div class="modal fade" id="siswa-modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="siswa-modal-title">Tambah Siswa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="siswa-form">
+                    <div class="modal-body">
+                        <input type="hidden" id="siswa-id">
+                        <div class="mb-3">
+                            <label class="form-label">NIS <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="siswa-nis" required placeholder="Nomor Induk Siswa">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="siswa-nama" required placeholder="Nama lengkap">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Kelas <span class="text-danger">*</span></label>
+                            <select class="form-select" id="siswa-kelas" required>
+                                <option value="">-- Pilih Kelas --</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="siswa-email" placeholder="email@example.com">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Phone</label>
+                            <input type="text" class="form-control" id="siswa-phone" placeholder="Nomor telepon">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-modal-cancel" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-modal-save">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Guru -->
+    <div class="modal fade" id="guru-modal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="guru-modal-title">Tambah Guru</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="guru-form">
+                    <div class="modal-body">
+                        <input type="hidden" id="guru-id">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Username <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="guru-username" required placeholder="Masukkan username">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Password <small id="password-hint" class="text-muted" style="display: none;">(kosongkan jika tidak diubah)</small></label>
+                                <input type="password" class="form-control" id="guru-password" placeholder="Masukkan password">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="guru-nama" required placeholder="Nama lengkap">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">NIP <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="guru-nip" required placeholder="Nomor Induk Pegawai">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Mata Pelajaran <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="guru-mapel" required placeholder="Contoh: Pemrograman Web">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Jam Mulai Wajib</label>
+                                <input type="time" class="form-control" id="guru-jam-mulai">
+                                <small class="text-muted">Jam wajib guru mulai mengajar</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Role <span class="text-danger">*</span></label>
+                                <select class="form-select" id="guru-role" required>
+                                    <option value="guru">Guru</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+                        <h6 class="mb-3 fw-bold"><i class="bi bi-book me-2"></i>Pengaturan Kelas Mengajar</h6>
+
+                        <div class="row g-2 mb-3 p-3 rounded" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                            <div class="col-md-5">
+                                <label class="form-label small">Pilih Kelas</label>
+                                <select class="form-select form-select-sm" id="guru-kelas-select">
+                                    <option value="">-- Pilih Kelas --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small">Mata Pelajaran (override)</label>
+                                <input type="text" class="form-control form-control-sm" id="guru-kelas-mapel" placeholder="Default dari profil">
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="button" class="btn btn-success btn-sm w-100" onclick="addGuruKelas()">
+                                    <i class="bi bi-plus"></i> Tambah
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="guru-kelas-list"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-modal-cancel" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-modal-save">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Import Excel -->
+    <div class="modal fade" id="import-modal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-file-earmark-excel me-2"></i>
+                        <span id="import-modal-title">Import Data dari Excel</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="cancelImport()"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Step Indicator -->
+                    <div class="step-indicator">
+                        <div class="step-dot active" id="step-dot-1"></div>
+                        <div class="step-dot" id="step-dot-2"></div>
+                        <div class="step-dot" id="step-dot-3"></div>
+                    </div>
+
+                    <!-- Step 1: Upload File -->
+                    <div class="import-step active" id="import-step-1">
+                        <h6 class="mb-3">Step 1: Upload File Excel</h6>
+
+                        <div class="mb-3">
+                            <a href="#" class="btn btn-outline-primary btn-sm" onclick="downloadTemplate()">
+                                <i class="bi bi-download me-1"></i>Download Template
+                            </a>
+                        </div>
+
+                        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+                            <i class="bi bi-cloud-upload"></i>
+                            <h5>Drag & Drop file di sini</h5>
+                            <p>atau klik untuk pilih file (.xlsx, .xls, .csv)</p>
+                            <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display: none;" onchange="handleFileSelect(event)">
+                        </div>
+
+                        <div class="file-info d-none" id="file-info">
+                            <i class="bi bi-file-earmark-excel-fill"></i>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold" id="file-name">filename.xlsx</div>
+                                <small class="text-muted" id="file-size">0 KB</small>
+                            </div>
+                            <button class="btn btn-outline-danger btn-sm" onclick="clearFile()">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Mapping Columns -->
+                    <div class="import-step" id="import-step-2">
+                        <h6 class="mb-3">Step 2: Mapping Kolom</h6>
+                        <p class="text-muted small mb-3">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Sistem telah mendeteksi kolom secara otomatis. Silakan sesuaikan jika diperlukan.
+                        </p>
+
+                        <div id="mapping-container"></div>
+
+                        <div class="import-options">
+                            <h6 class="mb-2"><i class="bi bi-gear me-1"></i>Opsi Import</h6>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="opt-skip-duplicate" checked>
+                                <label class="form-check-label" for="opt-skip-duplicate">
+                                    Lewati data yang sudah ada (berdasarkan NIS/NIP)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="opt-update-existing">
+                                <label class="form-check-label" for="opt-update-existing">
+                                    Update data yang sudah ada
+                                </label>
+                            </div>
+                        </div>
+
+                        <hr class="my-3">
+                        <h6 class="mb-2">Preview Data (10 baris pertama)</h6>
+                        <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                            <table class="table table-sm table-bordered preview-table" id="preview-table">
+                                <thead id="preview-thead"></thead>
+                                <tbody id="preview-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Result -->
+                    <div class="import-step" id="import-step-3">
+                        <div class="import-result">
+                            <i class="bi bi-check-circle-fill result-icon success" id="result-icon"></i>
+                            <h5 id="result-title">Import Berhasil!</h5>
+                            <p class="text-muted" id="result-message">Data telah berhasil diimport ke sistem.</p>
+
+                            <div class="result-stats">
+                                <div class="result-stat success">
+                                    <div class="value" id="result-success">0</div>
+                                    <div class="label">Berhasil</div>
+                                </div>
+                                <div class="result-stat warning">
+                                    <div class="value" id="result-skipped">0</div>
+                                    <div class="label">Dilewati</div>
+                                </div>
+                                <div class="result-stat warning">
+                                    <div class="value" id="result-updated">0</div>
+                                    <div class="label">Diupdate</div>
+                                </div>
+                                <div class="result-stat danger">
+                                    <div class="value" id="result-failed">0</div>
+                                    <div class="label">Gagal</div>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 d-none" id="error-details">
+                                <button class="btn btn-outline-danger btn-sm" onclick="showErrorDetails()">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>Lihat Detail Error
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loading Overlay -->
+                    <div class="d-none" id="import-loading">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary mb-3" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="text-muted" id="loading-text">Memproses file...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-modal-cancel" data-bs-dismiss="modal" onclick="cancelImport()">Batal</button>
+                    <button type="button" class="btn btn-outline-primary d-none" id="btn-prev" onclick="prevStep()">
+                        <i class="bi bi-arrow-left me-1"></i>Kembali
+                    </button>
+                    <button type="button" class="btn btn-modal-save" id="btn-next" onclick="nextStep()" disabled>
+                        Lanjut<i class="bi bi-arrow-right ms-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Error Details -->
+    <div class="modal fade" id="error-modal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2"></i>Detail Error Import</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive" style="max-height: 400px;">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-danger">
+                                <tr>
+                                    <th>Baris</th>
+                                    <th>Error</th>
+                                    <th>Data</th>
+                                </tr>
+                            </thead>
+                            <tbody id="error-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="notification" class="toast toast-custom" role="alert">
+            <div class="d-flex align-items-center p-3">
+                <i class="bi bi-check-circle-fill text-success me-2 fs-5" id="notification-icon"></i>
+                <span id="notification-message" class="flex-grow-1"></span>
+                <button type="button" class="btn-close ms-2" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+
+        if (!token || userData.role !== 'admin') {
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('user-name').textContent = userData.nama || 'Admin';
+        document.getElementById('user-avatar').textContent = (userData.nama || 'A').charAt(0).toUpperCase();
+
+        const toastEl = document.getElementById('notification');
+        const toast = new bootstrap.Toast(toastEl, { delay: 5000 });
+
+        const jurusanModal = new bootstrap.Modal(document.getElementById('jurusan-modal'));
+        const kelasModal = new bootstrap.Modal(document.getElementById('kelas-modal'));
+        const siswaModal = new bootstrap.Modal(document.getElementById('siswa-modal'));
+        const guruModal = new bootstrap.Modal(document.getElementById('guru-modal'));
+
+        const socket = io();
+        socket.emit('join-role', { role: 'admin', userId: userData.id });
+
+        let tempGuruKelas = [];
+        let allKelas = [];
+        let allJurusan = [];
+
+        // Toggle Sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.querySelector('.main-content');
+            const overlay = document.getElementById('sidebarOverlay');
+            const toggleIcon = document.getElementById('toggle-icon');
+            const isMobile = window.innerWidth <= 991;
+
+            if (isMobile) {
+                sidebar.classList.toggle('active');
+                overlay.classList.toggle('active');
+            } else {
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+            }
+
+            // Toggle icon
+            if (sidebar.classList.contains('collapsed')) {
+                toggleIcon.classList.remove('bi-list');
+                toggleIcon.classList.add('bi-layout-sidebar-inset');
+            } else {
+                toggleIcon.classList.remove('bi-layout-sidebar-inset');
+                toggleIcon.classList.add('bi-list');
+            }
+
+            // Save state to localStorage
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', isCollapsed);
+        }
+
+        // Restore sidebar state on page load
+        function restoreSidebarState() {
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            const isMobile = window.innerWidth <= 991;
+
+            if (!isMobile && isCollapsed) {
+                document.getElementById('sidebar').classList.add('collapsed');
+                document.querySelector('.main-content').classList.add('expanded');
+                document.getElementById('toggle-icon').classList.remove('bi-list');
+                document.getElementById('toggle-icon').classList.add('bi-layout-sidebar-inset');
+            }
+        }
+
+        // Call on page load
+        restoreSidebarState();
+
+        // Switch Tab
+        function switchTab(tabName) {
+            document.querySelectorAll('.data-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
+
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            document.getElementById(`tab-${tabName}`).style.display = 'block';
+
+            if (tabName === 'jurusan') loadJurusan();
+            else if (tabName === 'kelas') loadKelas();
+            else if (tabName === 'siswa') loadSiswa();
+            else if (tabName === 'guru') loadGuru();
+        }
+
+        // Load all data on page load
+        loadJurusan();
+        loadGuru();
+        loadSiswa();
+        loadKelas();
+        loadAllKelas();
+
+        // JURUSAN CRUD
+        async function loadJurusan() {
+            try {
+                const response = await fetch('/api/master-data/jurusan/all', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) throw new Error('Failed to load jurusan');
+                const jurusan = await response.json();
+                displayJurusan(jurusan);
+                window.allJurusan = jurusan;
+                document.getElementById('count-jurusan').textContent = jurusan.length;
+                loadJurusanForSelect();
+            } catch (error) {
+                showNotification('Error loading jurusan: ' + error.message, 'error');
+            }
+        }
+
+        function displayJurusan(jurusan) {
+            const tbody = document.getElementById('jurusan-tbody');
+            tbody.innerHTML = '';
+            if (jurusan.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <i class="bi bi-inbox"></i>
+                                <h5>Belum ada data jurusan</h5>
+                                <p>Klik tombol "Tambah" untuk menambahkan jurusan baru</p>
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+            jurusan.forEach((j, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td><strong>${j.nama}</strong></td>
+                    <td><span class="badge-modern badge-secondary">${j.singkatan || '-'}</span></td>
+                    <td class="text-muted">${j.deskripsi || '-'}</td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <button class="btn-action btn-edit" onclick="editJurusan(${j.id})" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn-action btn-delete" onclick="deleteJurusan(${j.id})" title="Hapus">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function searchJurusan() {
+            const search = document.getElementById('search-jurusan').value.toLowerCase();
+            const filtered = window.allJurusan.filter(j => j.nama.toLowerCase().includes(search) || (j.singkatan && j.singkatan.toLowerCase().includes(search)));
+            displayJurusan(filtered);
+        }
+
+        function openJurusanModal(id = null) {
+            document.getElementById('jurusan-modal-title').textContent = id ? 'Edit Jurusan' : 'Tambah Jurusan';
+            document.getElementById('jurusan-form').reset();
+            document.getElementById('jurusan-id').value = id || '';
+            if (id) {
+                const jurusan = window.allJurusan.find(j => j.id === id);
+                if (jurusan) {
+                    document.getElementById('jurusan-nama').value = jurusan.nama;
+                    document.getElementById('jurusan-singkat').value = jurusan.singkatan || '';
+                    document.getElementById('jurusan-deskripsi').value = jurusan.deskripsi || '';
+                }
+            }
+            jurusanModal.show();
+        }
+
+        function editJurusan(id) { openJurusanModal(id); }
+
+        async function deleteJurusan(id) {
+            if (!confirm('Apakah Anda yakin ingin menghapus jurusan ini?')) return;
+            try {
+                const response = await fetch(`/api/master-data/jurusan/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showNotification('Jurusan berhasil dihapus');
+                    loadJurusan();
+                } else {
+                    showNotification(data.error || 'Gagal menghapus jurusan', 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+
+        document.getElementById('jurusan-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('jurusan-id').value;
+            const data = {
+                nama: document.getElementById('jurusan-nama').value,
+                singkatan: document.getElementById('jurusan-singkat').value || null,
+                deskripsi: document.getElementById('jurusan-deskripsi').value || null
+            };
+            try {
+                const url = id ? `/api/master-data/jurusan/${id}` : '/api/master-data/jurusan';
+                const method = id ? 'PUT' : 'POST';
+                const response = await fetch(url, { method, headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                const result = await response.json();
+                if (result.success) {
+                    showNotification(result.message);
+                    jurusanModal.hide();
+                    loadJurusan();
+                } else {
+                    showNotification(result.error || 'Gagal menyimpan jurusan', 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+        });
+
+        async function loadJurusanForSelect() {
+            try {
+                const response = await fetch('/api/master-data/jurusan/all', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                allJurusan = await response.json();
+                const select = document.getElementById('kelas-jurusan');
+                select.innerHTML = '<option value="">-- Pilih Jurusan (Opsional) --</option>';
+                allJurusan.forEach(j => {
+                    const option = document.createElement('option');
+                    option.value = j.id;
+                    option.textContent = j.nama;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading jurusan for select:', error);
+            }
+        }
+
+        // KELAS CRUD
+        async function loadKelas() {
+            try {
+                const response = await fetch('/api/master-data/kelas/all', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) throw new Error('Failed to load kelas');
+                const kelas = await response.json();
+                displayKelas(kelas);
+                window.allKelas = kelas;
+                document.getElementById('count-kelas').textContent = kelas.length;
+            } catch (error) {
+                showNotification('Error loading kelas: ' + error.message, 'error');
+            }
+        }
+
+        function displayKelas(kelas) {
+            const tbody = document.getElementById('kelas-tbody');
+            tbody.innerHTML = '';
+            if (kelas.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <i class="bi bi-inbox"></i>
+                                <h5>Belum ada data kelas</h5>
+                                <p>Klik tombol "Tambah" untuk menambahkan kelas baru</p>
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+            kelas.forEach((k, index) => {
+                const row = document.createElement('tr');
+                const namaJurusan = k.Jurusan ? k.Jurusan.nama : '-';
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td><strong>${k.nama}</strong></td>
+                    <td><span class="badge-modern badge-primary">${k.tingkat}</span></td>
+                    <td>${namaJurusan}</td>
+                    <td><span class="badge-modern badge-info">${k.tahun_ajaran}</span></td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <button class="btn-action btn-edit" onclick="editKelas(${k.id})" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn-action btn-delete" onclick="deleteKelas(${k.id})" title="Hapus">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function searchKelas() {
+            const search = document.getElementById('search-kelas').value.toLowerCase();
+            const filtered = window.allKelas.filter(k => k.nama.toLowerCase().includes(search) || k.tingkat.toLowerCase().includes(search));
+            displayKelas(filtered);
+        }
+
+        function openKelasModal(id = null) {
+            document.getElementById('kelas-modal-title').textContent = id ? 'Edit Kelas' : 'Tambah Kelas';
+            document.getElementById('kelas-form').reset();
+            document.getElementById('kelas-id').value = id || '';
+            loadJurusanForSelect();
+            if (id) {
+                const kelas = window.allKelas.find(k => k.id === id);
+                if (kelas) {
+                    document.getElementById('kelas-nama').value = kelas.nama;
+                    document.getElementById('kelas-tingkat').value = kelas.tingkat;
+                    document.getElementById('kelas-tahun').value = kelas.tahun_ajaran;
+                    setTimeout(() => {
+                        document.getElementById('kelas-jurusan').value = kelas.jurusan_id || '';
+                    }, 100);
+                }
+            }
+            kelasModal.show();
+        }
+
+        function editKelas(id) { openKelasModal(id); }
+
+        async function deleteKelas(id) {
+            if (!confirm('Apakah Anda yakin ingin menghapus kelas ini?')) return;
+            try {
+                const response = await fetch(`/api/master-data/kelas/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showNotification('Kelas berhasil dihapus');
+                    loadKelas();
+                } else {
+                    showNotification(data.error || 'Gagal menghapus kelas', 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+
+        document.getElementById('kelas-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('kelas-id').value;
+            const data = {
+                nama: document.getElementById('kelas-nama').value,
+                tingkat: document.getElementById('kelas-tingkat').value,
+                tahun_ajaran: document.getElementById('kelas-tahun').value
+            };
+            try {
+                const url = id ? `/api/master-data/kelas/${id}` : '/api/master-data/kelas';
+                const method = id ? 'PUT' : 'POST';
+                const response = await fetch(url, { method, headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                const result = await response.json();
+                if (result.success) {
+                    showNotification(result.message);
+                    kelasModal.hide();
+                    loadKelas();
+                } else {
+                    showNotification(result.error || 'Gagal menyimpan kelas', 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+        });
+
+        // SISWA CRUD
+        async function loadSiswa() {
+            try {
+                const response = await fetch('/api/master-data/siswa/all', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) throw new Error('Failed to load siswa');
+                const siswa = await response.json();
+                displaySiswa(siswa);
+                window.allSiswa = siswa;
+                document.getElementById('count-siswa').textContent = siswa.length;
+                loadKelasForSelect();
+            } catch (error) {
+                showNotification('Error loading siswa: ' + error.message, 'error');
+            }
+        }
+
+        function displaySiswa(siswa) {
+            const tbody = document.getElementById('siswa-tbody');
+            tbody.innerHTML = '';
+            if (siswa.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <i class="bi bi-inbox"></i>
+                                <h5>Belum ada data siswa</h5>
+                                <p>Klik tombol "Tambah" untuk menambahkan siswa baru</p>
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+            siswa.forEach((s, index) => {
+                const kelasNama = s.Kelas ? s.Kelas.nama : (s.Kela ? s.Kela.nama : '-');
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td><strong>${s.nama}</strong></td>
+                    <td><code style="background: #f1f5f9; padding: 0.25rem 0.5rem; border-radius: 4px;">${s.nis}</code></td>
+                    <td><span class="badge-modern badge-secondary">${kelasNama}</span></td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <button class="btn-action btn-edit" onclick="editSiswa(${s.id})" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn-action btn-delete" onclick="deleteSiswa(${s.id})" title="Hapus">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function searchSiswa() {
+            const search = document.getElementById('search-siswa').value.toLowerCase();
+            const filtered = window.allSiswa.filter(s => s.nama.toLowerCase().includes(search) || s.nis.toLowerCase().includes(search));
+            displaySiswa(filtered);
+        }
+
+        function openSiswaModal(id = null) {
+            document.getElementById('siswa-modal-title').textContent = id ? 'Edit Siswa' : 'Tambah Siswa';
+            document.getElementById('siswa-form').reset();
+            document.getElementById('siswa-id').value = id || '';
+            if (id) {
+                const siswa = window.allSiswa.find(s => s.id === id);
+                document.getElementById('siswa-nis').value = siswa.nis;
+                document.getElementById('siswa-nama').value = siswa.nama;
+                document.getElementById('siswa-kelas').value = siswa.kelas_id;
+                document.getElementById('siswa-email').value = siswa.email || '';
+                document.getElementById('siswa-phone').value = siswa.phone || '';
+            }
+            siswaModal.show();
+        }
+
+        function editSiswa(id) { openSiswaModal(id); }
+
+        async function deleteSiswa(id) {
+            if (!confirm('Apakah Anda yakin ingin menghapus siswa ini?')) return;
+            try {
+                const response = await fetch(`/api/master-data/siswa/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showNotification('Siswa berhasil dihapus');
+                    loadSiswa();
+                } else {
+                    showNotification(data.error || 'Gagal menghapus siswa', 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+
+        document.getElementById('siswa-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('siswa-id').value;
+            const data = {
+                nis: document.getElementById('siswa-nis').value,
+                nama: document.getElementById('siswa-nama').value,
+                kelas_id: parseInt(document.getElementById('siswa-kelas').value),
+                email: document.getElementById('siswa-email').value,
+                phone: document.getElementById('siswa-phone').value
+            };
+            try {
+                const url = id ? `/api/master-data/siswa/${id}` : '/api/master-data/siswa';
+                const method = id ? 'PUT' : 'POST';
+                const response = await fetch(url, { method, headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                const result = await response.json();
+                if (result.success) {
+                    showNotification(result.message);
+                    siswaModal.hide();
+                    loadSiswa();
+                } else {
+                    showNotification(result.error || 'Gagal menyimpan siswa', 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+        });
+
+        async function loadKelasForSelect() {
+            try {
+                const response = await fetch('/api/master-data/kelas/all', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const kelas = await response.json();
+                const select = document.getElementById('siswa-kelas');
+                select.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+                kelas.forEach(k => {
+                    const option = document.createElement('option');
+                    option.value = k.id;
+                    option.textContent = k.nama;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading kelas for select:', error);
+            }
+        }
+
+        // GURU CRUD
+        async function loadGuru() {
+            try {
+                const response = await fetch('/api/master-data/guru/all', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) throw new Error('Failed to load guru');
+                const guru = await response.json();
+                displayGuru(guru);
+                window.allGuru = guru;
+                document.getElementById('count-guru').textContent = guru.length;
+            } catch (error) {
+                showNotification('Error loading guru: ' + error.message, 'error');
+            }
+        }
+
+        function displayGuru(guru) {
+            const tbody = document.getElementById('guru-tbody');
+            tbody.innerHTML = '';
+            if (guru.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <i class="bi bi-inbox"></i>
+                                <h5>Belum ada data guru</h5>
+                                <p>Klik tombol "Tambah" untuk menambahkan guru baru</p>
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+            guru.forEach((g, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td><strong>${g.nama}</strong></td>
+                    <td><code style="background: #f1f5f9; padding: 0.25rem 0.5rem; border-radius: 4px;">${g.nip}</code></td>
+                    <td>${g.mapel}</td>
+                    <td><span class="badge-modern ${g.role === 'admin' ? 'badge-danger' : 'badge-primary'}">${g.role === 'admin' ? 'Admin' : 'Guru'}</span></td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <button class="btn-action btn-edit" onclick="editGuru(${g.id})" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn-action btn-delete" onclick="deleteGuru(${g.id})" title="Hapus">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function searchGuru() {
+            const search = document.getElementById('search-guru').value.toLowerCase();
+            const filtered = window.allGuru.filter(g => g.nama.toLowerCase().includes(search) || g.nip.toLowerCase().includes(search));
+            displayGuru(filtered);
+        }
+
+        async function loadAllKelas() {
+            try {
+                const response = await fetch('/api/master-data/kelas/all', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                allKelas = await response.json();
+            } catch (error) {
+                console.error('Error loading all kelas:', error);
+            }
+        }
+
+        async function openGuruModal(id = null) {
+            document.getElementById('guru-modal-title').textContent = id ? 'Edit Guru' : 'Tambah Guru';
+            document.getElementById('guru-form').reset();
+            document.getElementById('guru-id').value = id || '';
+            document.getElementById('password-hint').style.display = id ? 'inline' : 'none';
+
+            tempGuruKelas = [];
+            renderGuruKelasList();
+
+            if (allKelas.length === 0) {
+                await loadAllKelas();
+            }
+
+            if (id) {
+                const guru = window.allGuru.find(g => g.id === id);
+                if (guru) {
+                    document.getElementById('guru-username').value = guru.username;
+                    document.getElementById('guru-nama').value = guru.nama;
+                    document.getElementById('guru-nip').value = guru.nip;
+                    document.getElementById('guru-mapel').value = guru.mapel;
+                    document.getElementById('guru-jam-mulai').value = guru.jam_mulai || '';
+                    document.getElementById('guru-role').value = guru.role;
+
+                    try {
+                        const response = await fetch(`/api/master-data/guru-kelas/guru/${id}`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        const data = await response.json();
+                        const guruKelas = Array.isArray(data) ? data : [];
+
+                        const kelasMap = {};
+                        allKelas.forEach(k => { kelasMap[k.id] = k.nama; });
+
+                        tempGuruKelas = guruKelas.map(gk => ({
+                            id: gk.id,
+                            kelas_id: gk.kelas_id,
+                            kelas_nama: kelasMap[gk.kelas_id] || `Kelas ${gk.kelas_id}`,
+                            mata_pelajaran: gk.mata_pelajaran
+                        }));
+                        renderGuruKelasList();
+                    } catch (error) {
+                        console.error('Error loading guru-kelas:', error);
+                    }
+                }
+            }
+
+            updateGuruKelasSelect();
+            guruModal.show();
+        }
+
+        function updateGuruKelasSelect() {
+            const select = document.getElementById('guru-kelas-select');
+            select.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+            allKelas.forEach(k => {
+                const alreadyAdded = tempGuruKelas.some(gk => gk.kelas_id === k.id);
+                if (!alreadyAdded) {
+                    const option = document.createElement('option');
+                    option.value = k.id;
+                    option.textContent = `${k.nama} (${k.tingkat})`;
+                    select.appendChild(option);
+                }
+            });
+        }
+
+        function addGuruKelas() {
+            const kelasId = document.getElementById('guru-kelas-select').value;
+            const mapelOverride = document.getElementById('guru-kelas-mapel').value;
+            const defaultMapel = document.getElementById('guru-mapel').value;
+
+            if (!kelasId) {
+                showNotification('Pilih kelas terlebih dahulu!', 'error');
+                return;
+            }
+
+            const kelas = allKelas.find(k => k.id == kelasId);
+            if (!kelas) return;
+
+            if (tempGuruKelas.some(gk => gk.kelas_id == kelasId)) {
+                showNotification('Kelas sudah ditambahkan!', 'error');
+                return;
+            }
+
+            tempGuruKelas.push({
+                id: null,
+                kelas_id: parseInt(kelasId),
+                kelas_nama: kelas.nama,
+                mata_pelajaran: mapelOverride || defaultMapel
+            });
+
+            renderGuruKelasList();
+            updateGuruKelasSelect();
+            document.getElementById('guru-kelas-mapel').value = '';
+        }
+
+        function removeGuruKelas(index) {
+            tempGuruKelas.splice(index, 1);
+            renderGuruKelasList();
+            updateGuruKelasSelect();
+        }
+
+        function editGuru(id) { openGuruModal(id); }
+
+        function renderGuruKelasList() {
+            const listDiv = document.getElementById('guru-kelas-list');
+            if (!listDiv) return;
+
+            if (tempGuruKelas.length === 0) {
+                listDiv.innerHTML = `
+                    <div class="text-center text-muted py-4" style="background: #f8fafc; border-radius: 10px;">
+                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                        <p class="mb-0">Belum ada kelas ditambahkan</p>
+                    </div>`;
+                return;
+            }
+
+            listDiv.innerHTML = '';
+            tempGuruKelas.forEach((gk, index) => {
+                const item = document.createElement('div');
+                item.className = 'kelas-list-item';
+                item.innerHTML = `
+                    <div class="kelas-info">
+                        <h6><i class="bi bi-building me-1"></i>${gk.kelas_nama}</h6>
+                        <p><i class="bi bi-book me-1"></i>Mata Pelajaran: ${gk.mata_pelajaran || 'Default (dari profil)'}</p>
+                    </div>
+                    <button type="button" class="btn-action btn-delete" onclick="removeGuruKelas(${index})">
+                        <i class="bi bi-x"></i>
+                    </button>
+                `;
+                listDiv.appendChild(item);
+            });
+        }
+
+        async function deleteGuru(id) {
+            if (!confirm('Apakah Anda yakin ingin menghapus guru ini?')) return;
+            try {
+                const response = await fetch(`/api/master-data/guru/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showNotification('Guru berhasil dihapus');
+                    loadGuru();
+                } else {
+                    showNotification(data.error || 'Gagal menghapus guru', 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+
+        document.getElementById('guru-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('guru-id').value;
+            const jamMulai = document.getElementById('guru-jam-mulai').value;
+
+            const data = {
+                username: document.getElementById('guru-username').value,
+                nama: document.getElementById('guru-nama').value,
+                nip: document.getElementById('guru-nip').value,
+                mapel: document.getElementById('guru-mapel').value,
+                jam_mulai: jamMulai || null,
+                role: document.getElementById('guru-role').value
+            };
+            const password = document.getElementById('guru-password').value;
+            if (password) data.password = password;
+
+            try {
+                const url = id ? `/api/master-data/guru/${id}` : '/api/master-data/guru';
+                const method = id ? 'PUT' : 'POST';
+                const response = await fetch(url, { method, headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                const result = await response.json();
+
+                if (result.success) {
+                    let guruId = id ? parseInt(id) : null;
+                    if (!guruId && result.data && result.data.id) {
+                        guruId = result.data.id;
+                    }
+
+                    if (guruId) {
+                        await saveGuruKelas(guruId);
+                    }
+
+                    showNotification(result.message);
+                    guruModal.hide();
+                    loadGuru();
+                } else {
+                    showNotification(result.error || 'Gagal menyimpan guru', 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+        });
+
+        async function saveGuruKelas(guruId) {
+            if (!guruId) return;
+
+            let existingRelations = [];
+            try {
+                const response = await fetch(`/api/master-data/guru-kelas/guru/${guruId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                existingRelations = Array.isArray(data) ? data : [];
+            } catch (error) {
+                console.error('Error fetching existing relations:', error);
+            }
+
+            const existingIds = existingRelations.map(r => r.id);
+            const existingKelasIds = existingRelations.map(r => r.kelas_id);
+
+            for (const existingId of existingIds) {
+                const stillExists = tempGuruKelas.some(gk => gk.id === existingId);
+                if (!stillExists) {
+                    try {
+                        await fetch(`/api/master-data/guru-kelas/${existingId}`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                    } catch (error) {
+                        console.error('Error deleting relation:', error);
+                    }
+                }
+            }
+
+            for (const gk of tempGuruKelas) {
+                const alreadyExists = existingKelasIds.includes(gk.kelas_id);
+                if (!alreadyExists) {
+                    try {
+                        await fetch('/api/master-data/guru-kelas', {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                guru_id: guruId,
+                                kelas_id: gk.kelas_id,
+                                mata_pelajaran: gk.mata_pelajaran
+                            })
+                        });
+                    } catch (error) {
+                        console.error('Error adding relation:', error);
+                    }
+                }
+            }
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        function showNotification(message, type = 'success') {
+            const notifIcon = document.getElementById('notification-icon');
+            const notifMsg = document.getElementById('notification-message');
+
+            notifMsg.textContent = message;
+            toastEl.classList.remove('success', 'error');
+
+            if (type === 'error') {
+                toastEl.classList.add('error');
+                notifIcon.className = 'bi bi-x-circle-fill text-danger me-2 fs-5';
+            } else {
+                toastEl.classList.add('success');
+                notifIcon.className = 'bi bi-check-circle-fill text-success me-2 fs-5';
+            }
+
+            toast.show();
+        }
+
+        // ==================== IMPORT EXCEL FUNCTIONS ====================
+        const importModal = new bootstrap.Modal(document.getElementById('import-modal'));
+        const errorModal = new bootstrap.Modal(document.getElementById('error-modal'));
+
+        let currentImportStep = 1;
+        let currentEntityType = 'siswa';
+        let importSession = null;
+        let importData = null;
+        let importErrors = [];
+
+        // Initialize drag & drop
+        const uploadZone = document.getElementById('upload-zone');
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, () => uploadZone.classList.add('dragover'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, () => uploadZone.classList.remove('dragover'), false);
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('file-input').files = files;
+                handleFileSelect({ target: { files: files } });
+            }
+        });
+
+        function openImportModal(entityType) {
+            currentEntityType = entityType;
+            currentImportStep = 1;
+            importSession = null;
+            importData = null;
+            importErrors = [];
+
+            const title = entityType === 'siswa' ? 'Import Data Siswa' : 'Import Data Guru';
+            document.getElementById('import-modal-title').textContent = title;
+
+            resetImportModal();
+            importModal.show();
+        }
+
+        function resetImportModal() {
+            // Reset steps
+            document.querySelectorAll('.import-step').forEach(step => step.classList.remove('active'));
+            document.getElementById('import-step-1').classList.add('active');
+
+            // Reset step dots
+            document.querySelectorAll('.step-dot').forEach(dot => {
+                dot.classList.remove('active', 'completed');
+            });
+            document.getElementById('step-dot-1').classList.add('active');
+
+            // Reset file input
+            document.getElementById('file-input').value = '';
+            document.getElementById('file-info').classList.add('d-none');
+            document.getElementById('upload-zone').style.display = 'block';
+
+            // Reset buttons
+            document.getElementById('btn-prev').classList.add('d-none');
+            document.getElementById('btn-next').disabled = true;
+            document.getElementById('btn-next').innerHTML = 'Lanjut<i class="bi bi-arrow-right ms-1"></i>';
+
+            // Reset loading
+            document.getElementById('import-loading').classList.add('d-none');
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Validate file type
+            const validTypes = ['.xlsx', '.xls', '.csv'];
+            const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+            if (!validTypes.includes(fileExt)) {
+                showNotification('File harus berformat Excel (.xlsx, .xls) atau CSV', 'error');
+                return;
+            }
+
+            // Show file info
+            document.getElementById('file-name').textContent = file.name;
+            document.getElementById('file-size').textContent = formatFileSize(file.size);
+            document.getElementById('file-info').classList.remove('d-none');
+            document.getElementById('upload-zone').style.display = 'none';
+
+            // Enable next button
+            document.getElementById('btn-next').disabled = false;
+        }
+
+        function clearFile() {
+            document.getElementById('file-input').value = '';
+            document.getElementById('file-info').classList.add('d-none');
+            document.getElementById('upload-zone').style.display = 'block';
+            document.getElementById('btn-next').disabled = true;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        async function nextStep() {
+            if (currentImportStep === 1) {
+                await parseExcelFile();
+            } else if (currentImportStep === 2) {
+                await processImport();
+            } else if (currentImportStep === 3) {
+                importModal.hide();
+                if (currentEntityType === 'siswa') loadSiswa();
+                else if (currentEntityType === 'guru') loadGuru();
+            }
+        }
+
+        function prevStep() {
+            if (currentImportStep > 1) {
+                currentImportStep--;
+                updateStepUI();
+            }
+        }
+
+        function updateStepUI() {
+            // Update steps
+            document.querySelectorAll('.import-step').forEach(step => step.classList.remove('active'));
+            document.getElementById(`import-step-${currentImportStep}`).classList.add('active');
+
+            // Update dots
+            for (let i = 1; i <= 3; i++) {
+                const dot = document.getElementById(`step-dot-${i}`);
+                dot.classList.remove('active', 'completed');
+                if (i < currentImportStep) dot.classList.add('completed');
+                else if (i === currentImportStep) dot.classList.add('active');
+            }
+
+            // Update buttons
+            document.getElementById('btn-prev').classList.toggle('d-none', currentImportStep === 1);
+
+            if (currentImportStep === 2) {
+                document.getElementById('btn-next').innerHTML = '<i class="bi bi-upload me-1"></i>Import Data';
+            } else if (currentImportStep === 3) {
+                document.getElementById('btn-next').innerHTML = 'Selesai<i class="bi bi-check-lg ms-1"></i>';
+                document.getElementById('btn-prev').classList.add('d-none');
+            }
+        }
+
+        async function parseExcelFile() {
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            showLoading('Membaca file Excel...');
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('entity_type', currentEntityType);
+
+            try {
+                const response = await fetch('/api/import/parse', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                const result = await response.json();
+                hideLoading();
+
+                if (result.success) {
+                    importSession = result.data.importSession;
+                    importData = result.data;
+
+                    // Build mapping UI
+                    buildMappingUI(result.data);
+
+                    // Build preview table
+                    buildPreviewTable(result.data);
+
+                    // Move to step 2
+                    currentImportStep = 2;
+                    updateStepUI();
+                } else {
+                    showNotification(result.error || 'Gagal membaca file', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+
+        function buildMappingUI(data) {
+            const container = document.getElementById('mapping-container');
+            container.innerHTML = '';
+
+            const { headers, autoMapping, availableFields } = data;
+
+            availableFields.forEach(field => {
+                const autoMapped = autoMapping[field.key];
+
+                const row = document.createElement('div');
+                row.className = 'mapping-row';
+                row.innerHTML = `
+                    <div class="field-label">
+                        ${field.label}
+                        ${field.required ? '<span class="required">*</span>' : ''}
+                    </div>
+                    <select class="form-select" id="map-${field.key}">
+                        <option value="">-- Pilih Kolom --</option>
+                        ${headers.map((h, i) => `
+                            <option value="${i}" ${autoMapped && autoMapped.columnIndex === i ? 'selected' : ''}>
+                                ${h}
+                            </option>
+                        `).join('')}
+                    </select>
+                    ${autoMapped ? `<span class="confidence ${autoMapped.confidence}">${autoMapped.confidence === 'high' ? 'Auto' : 'Saran'}</span>` : ''}
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function buildPreviewTable(data) {
+            const { headers, previewData } = data;
+
+            // Build thead
+            const thead = document.getElementById('preview-thead');
+            thead.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+
+            // Build tbody
+            const tbody = document.getElementById('preview-tbody');
+            tbody.innerHTML = '';
+
+            previewData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = headers.map(h => `<td>${row[h] || ''}</td>`).join('');
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function processImport() {
+            // Gather mapping from UI
+            const mapping = {};
+            importData.availableFields.forEach(field => {
+                const select = document.getElementById(`map-${field.key}`);
+                if (select && select.value !== '') {
+                    mapping[field.key] = {
+                        columnIndex: parseInt(select.value),
+                        columnName: importData.headers[parseInt(select.value)]
+                    };
+                }
+            });
+
+            // Validate required fields
+            const missingRequired = importData.availableFields
+                .filter(f => f.required && (!mapping[f.key] || mapping[f.key].columnIndex === undefined))
+                .map(f => f.label);
+
+            if (missingRequired.length > 0) {
+                showNotification(`Field wajib belum dipilih: ${missingRequired.join(', ')}`, 'error');
+                return;
+            }
+
+            showLoading('Mengimport data...');
+
+            const options = {
+                skipDuplicate: document.getElementById('opt-skip-duplicate').checked,
+                updateExisting: document.getElementById('opt-update-existing').checked
+            };
+
+            try {
+                const response = await fetch('/api/import/process', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        filePath: importSession.filePath,
+                        sheetName: importSession.sheetName,
+                        entityType: currentEntityType,
+                        mapping: mapping,
+                        options: options
+                    })
+                });
+
+                const result = await response.json();
+                hideLoading();
+
+                if (result.success) {
+                    importErrors = result.results.errors || [];
+
+                    // Update result UI
+                    document.getElementById('result-success').textContent = result.results.success;
+                    document.getElementById('result-skipped').textContent = result.results.skipped;
+                    document.getElementById('result-updated').textContent = result.results.updated;
+                    document.getElementById('result-failed').textContent = result.results.failed;
+
+                    // Update result message
+                    if (result.results.failed > 0) {
+                        document.getElementById('result-icon').className = 'bi bi-exclamation-triangle-fill result-icon warning';
+                        document.getElementById('result-title').textContent = 'Import Selesai dengan Warning';
+                        document.getElementById('error-details').classList.remove('d-none');
+                    } else {
+                        document.getElementById('result-icon').className = 'bi bi-check-circle-fill result-icon success';
+                        document.getElementById('result-title').textContent = 'Import Berhasil!';
+                        document.getElementById('error-details').classList.add('d-none');
+                    }
+
+                    document.getElementById('result-message').textContent = result.message;
+
+                    // Move to step 3
+                    currentImportStep = 3;
+                    updateStepUI();
+
+                    showNotification(result.message);
+                } else {
+                    showNotification(result.error || 'Gagal import data', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+
+        function showErrorDetails() {
+            const tbody = document.getElementById('error-tbody');
+            tbody.innerHTML = '';
+
+            importErrors.forEach(err => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${err.row}</td>
+                    <td>${err.error}</td>
+                    <td><code>${JSON.stringify(err.data).substring(0, 100)}...</code></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            errorModal.show();
+        }
+
+        function showLoading(text) {
+            document.getElementById('loading-text').textContent = text;
+            document.getElementById('import-loading').classList.remove('d-none');
+            document.querySelectorAll('.import-step').forEach(s => s.classList.add('d-none'));
+        }
+
+        function hideLoading() {
+            document.getElementById('import-loading').classList.add('d-none');
+            document.querySelectorAll('.import-step').forEach(s => s.classList.remove('d-none'));
+            document.getElementById(`import-step-${currentImportStep}`).classList.add('active');
+        }
+
+        async function cancelImport() {
+            if (importSession && importSession.filePath) {
+                try {
+                    await fetch('/api/import/cancel', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ filePath: importSession.filePath })
+                    });
+                } catch (e) {
+                    console.error('Cancel error:', e);
+                }
+            }
+            importSession = null;
+        }
+
+        function downloadTemplate() {
+            window.open(`/api/import/template/${currentEntityType}?token=${token}`, '_blank');
+        }
+    </script>
+</body>
+</html>

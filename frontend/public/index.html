@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absen Digital - SMK</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --glass-border: rgba(255, 255, 255, 0.2);
+        }
+
+        * {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--primary-gradient);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 200, 255, 0.2) 0%, transparent 40%);
+            animation: bgFloat 15s ease-in-out infinite;
+            z-index: 0;
+        }
+
+        @keyframes bgFloat {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(3deg); }
+        }
+
+        /* Floating Shapes */
+        .floating-shapes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .shape:nth-child(1) { width: 80px; height: 80px; left: 10%; top: 20%; animation-delay: 0s; }
+        .shape:nth-child(2) { width: 120px; height: 120px; right: 15%; top: 60%; animation-delay: -5s; }
+        .shape:nth-child(3) { width: 60px; height: 60px; left: 70%; top: 10%; animation-delay: -10s; }
+        .shape:nth-child(4) { width: 100px; height: 100px; left: 5%; bottom: 20%; animation-delay: -15s; }
+        .shape:nth-child(5) { width: 50px; height: 50px; right: 25%; bottom: 30%; animation-delay: -7s; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.5; }
+            50% { transform: translateY(-30px) rotate(180deg); opacity: 0.8; }
+        }
+
+        .login-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 440px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow:
+                0 25px 50px -12px rgba(0, 0, 0, 0.25),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            animation: cardAppear 0.6s ease-out;
+        }
+
+        @keyframes cardAppear {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .login-header {
+            background: var(--primary-gradient);
+            padding: 2.5rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+            animation: headerShine 8s infinite linear;
+        }
+
+        @keyframes headerShine {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .login-logo {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 2.5rem;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-header h1 {
+            color: white;
+            font-size: 1.75rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-header p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
+            margin: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-body {
+            padding: 2rem;
+        }
+
+        /* Custom Tabs */
+        .nav-tabs-custom {
+            display: flex;
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 1.5rem;
+        }
+
+        .nav-tabs-custom .nav-link {
+            flex: 1;
+            text-align: center;
+            padding: 0.75rem 1rem;
+            border: none;
+            background: transparent;
+            color: #64748b;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tabs-custom .nav-link:hover {
+            color: #6366f1;
+        }
+
+        .nav-tabs-custom .nav-link.active {
+            background: white;
+            color: #6366f1;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+        }
+
+        /* Form Styling - Custom Input Group */
+        .input-group-custom {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .input-group-custom .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 1.2rem;
+            z-index: 5;
+            transition: color 0.3s ease;
+        }
+
+        .input-group-custom:focus-within .input-icon {
+            color: #6366f1;
+        }
+
+        .input-group-custom .form-control {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem 1rem 1rem 3rem;
+            height: 54px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .input-group-custom .form-control:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+            outline: none;
+        }
+
+        .input-group-custom .form-control::placeholder {
+            color: #94a3b8;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary-gradient);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-login:hover::before {
+            left: 100%;
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        /* Demo Credentials */
+        .demo-section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 2px dashed #e2e8f0;
+        }
+
+        .demo-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 1rem;
+        }
+
+        .demo-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .demo-item:hover {
+            transform: translateX(4px);
+            border-color: #6366f1;
+        }
+
+        .demo-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .demo-badge.admin { background: linear-gradient(135deg, #ef4444, #f97316); color: white; }
+        .demo-badge.guru { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; }
+        .demo-badge.ortu { background: linear-gradient(135deg, #10b981, #34d399); color: white; }
+
+        .demo-code {
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.85rem;
+            color: #475569;
+            background: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+        }
+
+        /* Alert */
+        .alert-custom {
+            border: none;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: alertAppear 0.3s ease;
+        }
+
+        @keyframes alertAppear {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .alert-danger-custom {
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Shapes -->
+    <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+
+    <div class="login-wrapper">
+        <div class="login-card">
+            <!-- Header -->
+            <div class="login-header">
+                <div class="login-logo">🎓</div>
+                <h1>Absen Digital</h1>
+                <p>Sistem Absensi Terintegrasi SMK</p>
+            </div>
+
+            <!-- Body -->
+            <div class="login-body">
+                <!-- Tabs -->
+                <div class="nav-tabs-custom" role="tablist">
+                    <button class="nav-link active" id="guru-tab" data-bs-toggle="tab" data-bs-target="#form-guru" type="button" role="tab">
+                        <i class="bi bi-person-badge me-1"></i> Guru / Admin
+                    </button>
+                    <button class="nav-link" id="ortu-tab" data-bs-toggle="tab" data-bs-target="#form-ortu" type="button" role="tab">
+                        <i class="bi bi-people me-1"></i> Orang Tua
+                    </button>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="tab-content">
+                    <!-- Login Form Guru/Admin -->
+                    <div class="tab-pane fade show active" id="form-guru" role="tabpanel">
+                        <form onsubmit="loginGuru(event)">
+                            <div class="input-group-custom">
+                                <i class="bi bi-person input-icon"></i>
+                                <input type="text" class="form-control" id="guru-username" placeholder="Username" required>
+                            </div>
+                            <div class="input-group-custom">
+                                <i class="bi bi-lock input-icon"></i>
+                                <input type="password" class="form-control" id="guru-password" placeholder="Password" required>
+                            </div>
+                            <button type="submit" class="btn btn-login mt-2">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>Masuk
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Login Form Orang Tua -->
+                    <div class="tab-pane fade" id="form-ortu" role="tabpanel">
+                        <form onsubmit="loginOrtu(event)">
+                            <div class="input-group-custom">
+                                <i class="bi bi-person input-icon"></i>
+                                <input type="text" class="form-control" id="ortu-username" placeholder="Username" required>
+                            </div>
+                            <div class="input-group-custom">
+                                <i class="bi bi-lock input-icon"></i>
+                                <input type="password" class="form-control" id="ortu-password" placeholder="Password" required>
+                            </div>
+                            <button type="submit" class="btn btn-login mt-2">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>Masuk
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Error Message -->
+                <div id="error-message" class="alert alert-custom alert-danger-custom d-none" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                    <span id="error-text"></span>
+                </div>
+
+                <!-- Demo Credentials -->
+                <div class="demo-section">
+                    <div class="demo-title">
+                        <i class="bi bi-info-circle"></i>
+                        Akun Demo
+                    </div>
+                    <div class="demo-item">
+                        <span class="demo-badge admin">Admin</span>
+                        <code class="demo-code">admin / admin123</code>
+                    </div>
+                    <div class="demo-item">
+                        <span class="demo-badge guru">Guru</span>
+                        <code class="demo-code">sari / guru123</code>
+                    </div>
+                    <div class="demo-item">
+                        <span class="demo-badge ortu">Orang Tua</span>
+                        <code class="demo-code">ortu_ahmad / ortu123</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Check if already logged in
+        const token = localStorage.getItem('token');
+        const userRole = localStorage.getItem('userRole');
+
+        if (token && userRole) {
+            if (userRole === 'admin') {
+                window.location.href = 'admin.html';
+            } else if (userRole === 'guru') {
+                window.location.href = 'guru.html';
+            } else if (userRole === 'orang_tua') {
+                window.location.href = 'ortu.html';
+            }
+        }
+
+        async function loginGuru(event) {
+            event.preventDefault();
+            const username = document.getElementById('guru-username').value;
+            const password = document.getElementById('guru-password').value;
+
+            try {
+                const response = await fetch('/api/auth/login/guru', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('userRole', data.user.role);
+                    localStorage.setItem('userData', JSON.stringify(data.user));
+                    localStorage.setItem('userName', data.user.nama);
+
+                    if (data.user.role === 'admin') {
+                        window.location.href = 'admin.html';
+                    } else {
+                        window.location.href = 'guru.html';
+                    }
+                } else {
+                    showError(data.error || 'Login gagal');
+                }
+            } catch (error) {
+                showError('Terjadi kesalahan: ' + error.message);
+            }
+        }
+
+        async function loginOrtu(event) {
+            event.preventDefault();
+            const username = document.getElementById('ortu-username').value;
+            const password = document.getElementById('ortu-password').value;
+
+            try {
+                const response = await fetch('/api/auth/login/orang-tua', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('userRole', data.user.role);
+                    localStorage.setItem('userData', JSON.stringify(data.user));
+                    localStorage.setItem('userName', data.user.nama);
+                    window.location.href = 'ortu.html';
+                } else {
+                    showError(data.error || 'Login gagal');
+                }
+            } catch (error) {
+                showError('Terjadi kesalahan: ' + error.message);
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            errorText.textContent = message;
+            errorDiv.classList.remove('d-none');
+            setTimeout(() => {
+                errorDiv.classList.add('d-none');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

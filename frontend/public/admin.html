@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absen Digital - Admin Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/tab-sync.js"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --sidebar-width: 280px;
+            --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+        }
+
+        * {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background: #f1f5f9;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--dark);
+            color: white;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            background: rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .sidebar-logo {
+            width: 48px;
+            height: 48px;
+            background: var(--primary-gradient);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .sidebar-brand h5 {
+            margin: 0;
+            font-weight: 800;
+            font-size: 1.1rem;
+        }
+
+        .sidebar-brand small {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.75rem;
+        }
+
+        .sidebar-nav {
+            padding: 1rem;
+        }
+
+        .nav-section-title {
+            color: rgba(255,255,255,0.4);
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 1rem 0.75rem 0.5rem;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1rem;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            border-radius: 12px;
+            margin-bottom: 0.25rem;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .sidebar-link.active {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .sidebar-link i {
+            font-size: 1.25rem;
+            width: 24px;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        /* Top Header */
+        .top-header {
+            background: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-title h4 {
+            margin: 0;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .header-title p {
+            margin: 0;
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-dropdown {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 1rem;
+            background: #f8fafc;
+            border-radius: 50px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .user-dropdown:hover {
+            background: #f1f5f9;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+        }
+
+        .user-info {
+            text-align: left;
+        }
+
+        .user-info .name {
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 0.9rem;
+        }
+
+        .user-info .role {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        /* Page Content */
+        .page-content {
+            padding: 2rem;
+        }
+
+        /* Stats Cards */
+        .stat-card {
+            background: white;
+            border-radius: 20px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            transform: translate(30%, -30%);
+            opacity: 0.1;
+        }
+
+        .stat-card.primary::before { background: var(--primary); }
+        .stat-card.success::before { background: var(--success); }
+        .stat-card.warning::before { background: var(--warning); }
+        .stat-card.danger::before { background: var(--danger); }
+
+        .stat-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card.primary .stat-icon { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; }
+        .stat-card.success .stat-icon { background: linear-gradient(135deg, #10b981, #34d399); color: white; }
+        .stat-card.warning .stat-icon { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: white; }
+        .stat-card.danger .stat-icon { background: linear-gradient(135deg, #ef4444, #f87171); color: white; }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--dark);
+            line-height: 1;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        .stat-trend {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.8rem;
+            margin-top: 0.75rem;
+        }
+
+        .stat-trend.up { color: var(--success); }
+        .stat-trend.down { color: var(--danger); }
+
+        /* Content Cards */
+        .content-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .card-header-custom {
+            padding: 1.5rem;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header-custom h5 {
+            margin: 0;
+            font-weight: 700;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-header-custom h5 i {
+            color: var(--primary);
+        }
+
+        .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, #ef4444, #f87171);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .live-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        /* Table */
+        .table-modern {
+            margin: 0;
+        }
+
+        .table-modern thead {
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        }
+
+        .table-modern thead th {
+            border: none;
+            padding: 1rem 1.5rem;
+            font-weight: 700;
+            color: #475569;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .table-modern tbody td {
+            padding: 1rem 1.5rem;
+            vertical-align: middle;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
+        }
+
+        .table-modern tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .table-modern tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge-status {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .badge-status.tepat { background: #dcfce7; color: #16a34a; }
+        .badge-status.terlambat { background: #fee2e2; color: #dc2626; }
+        .badge-status.neutral { background: #f1f5f9; color: #64748b; }
+
+        .count-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.875rem;
+        }
+
+        .count-badge.success { background: #dcfce7; color: #16a34a; }
+        .count-badge.warning { background: #fef3c7; color: #d97706; }
+        .count-badge.danger { background: #fee2e2; color: #dc2626; }
+
+        /* Toast */
+        .toast-container {
+            z-index: 1100;
+        }
+
+        .toast-custom {
+            background: white;
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        }
+
+        .toast-custom .toast-body {
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .toast-custom.success { border-left: 4px solid var(--success); }
+        .toast-custom.error { border-left: 4px solid var(--danger); }
+
+        /* Button */
+        .btn-modern {
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary-gradient {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+        }
+
+        .btn-primary-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+            color: white;
+        }
+
+        .btn-outline-modern {
+            background: transparent;
+            border: 2px solid #e2e8f0;
+            color: #64748b;
+        }
+
+        .btn-outline-modern:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        /* New Row Animation */
+        .new-row {
+            animation: newRowHighlight 3s ease-out;
+        }
+
+        @keyframes newRowHighlight {
+            0% { background: #dcfce7; }
+            100% { background: transparent; }
+        }
+
+        /* Empty State */
+        .empty-state {
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: #cbd5e1;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state h6 {
+            color: #64748b;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state p {
+            color: #94a3b8;
+            font-size: 0.875rem;
+        }
+
+        /* Sidebar Toggle */
+        .sidebar-toggle {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: #f1f5f9;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: var(--dark);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-toggle:hover {
+            background: #e2e8f0;
+            color: var(--primary);
+        }
+
+        /* Sidebar Collapsed State */
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
+        /* Sidebar Overlay */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Tablet Responsive */
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .main-content.expanded {
+                margin-left: 0;
+            }
+
+            .top-header {
+                padding: 1rem;
+            }
+
+            .page-content {
+                padding: 1rem;
+            }
+
+            .stat-card {
+                padding: 1.25rem;
+            }
+
+            .stat-value {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .top-header {
+                padding: 0.75rem 1rem;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .header-title h4 {
+                font-size: 1.1rem;
+            }
+
+            .header-title p {
+                font-size: 0.75rem;
+            }
+
+            .page-content {
+                padding: 0.75rem;
+            }
+
+            .stat-card {
+                padding: 1rem;
+                border-radius: 12px;
+            }
+
+            .stat-icon {
+                width: 45px;
+                height: 45px;
+                border-radius: 12px;
+                font-size: 1.25rem;
+            }
+
+            .stat-value {
+                font-size: 1.25rem;
+            }
+
+            .stat-label {
+                font-size: 0.75rem;
+            }
+
+            .content-card {
+                border-radius: 12px;
+            }
+
+            .card-header-custom {
+                padding: 1rem;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .card-header-custom h5 {
+                font-size: 1rem;
+            }
+
+            .live-badge {
+                padding: 0.35rem 0.75rem;
+                font-size: 0.7rem;
+            }
+
+            .table-modern thead th {
+                padding: 0.75rem;
+                font-size: 0.7rem;
+            }
+
+            .table-modern tbody td {
+                padding: 0.75rem;
+                font-size: 0.8rem;
+            }
+
+            .user-avatar {
+                width: 36px;
+                height: 36px;
+                font-size: 0.85rem;
+            }
+
+            .user-dropdown {
+                padding: 0.4rem 0.6rem;
+                gap: 0.5rem;
+                border-radius: 12px;
+            }
+
+            .user-dropdown .bi-chevron-down {
+                display: none;
+            }
+
+            .user-info {
+                display: none;
+            }
+
+            .header-actions {
+                gap: 0.5rem;
+            }
+
+            .count-badge {
+                min-width: 28px;
+                height: 28px;
+                font-size: 0.75rem;
+            }
+
+            .badge-status {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.65rem;
+            }
+        }
+
+        /* Small Mobile */
+        @media (max-width: 480px) {
+            .top-header {
+                padding: 0.5rem 0.75rem;
+            }
+
+            .sidebar-toggle {
+                width: 36px;
+                height: 36px;
+                font-size: 1.1rem;
+            }
+
+            .header-title h4 {
+                font-size: 1rem;
+            }
+
+            .header-title p {
+                display: none;
+            }
+
+            .user-avatar {
+                width: 34px;
+                height: 34px;
+                font-size: 0.8rem;
+            }
+
+            .user-dropdown {
+                padding: 0.3rem;
+                background: transparent;
+            }
+
+            .page-content {
+                padding: 0.5rem;
+            }
+
+            .stat-card {
+                padding: 0.875rem;
+            }
+
+            .stat-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.1rem;
+                margin-bottom: 0.75rem;
+            }
+
+            .stat-value {
+                font-size: 1.1rem;
+            }
+
+            .card-header-custom {
+                padding: 0.875rem;
+            }
+
+            .table-modern thead th,
+            .table-modern tbody td {
+                padding: 0.5rem;
+            }
+
+            .btn-outline-modern {
+                padding: 0.35rem 0.75rem;
+                font-size: 0.75rem;
+            }
+
+            .empty-state {
+                padding: 2rem 1rem;
+            }
+
+            .empty-state i {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🎓</div>
+            <div class="sidebar-brand">
+                <h5>Absen Digital</h5>
+                <small>Admin Panel</small>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section-title">Menu Utama</div>
+            <a href="admin.html" class="sidebar-link active">
+                <i class="bi bi-grid-1x2"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="admin-master-data.html" class="sidebar-link">
+                <i class="bi bi-database"></i>
+                <span>Master Data</span>
+            </a>
+            <a href="admin-rekap.html" class="sidebar-link">
+                <i class="bi bi-clipboard-data"></i>
+                <span>Rekap Absensi</span>
+            </a>
+            <div class="nav-section-title">Akun</div>
+            <a href="#" class="sidebar-link" onclick="logout()">
+                <i class="bi bi-box-arrow-left"></i>
+                <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div class="d-flex align-items-center gap-3">
+                <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">
+                    <i class="bi bi-list" id="toggle-icon"></i>
+                </button>
+                <div class="header-title">
+                    <h4>Dashboard</h4>
+                    <p id="current-date">Loading...</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="dropdown">
+                    <button class="user-dropdown" data-bs-toggle="dropdown">
+                        <div class="user-avatar" id="user-avatar">A</div>
+                        <div class="user-info d-none d-sm-block">
+                            <div class="name" id="user-name">Admin</div>
+                            <div class="role">Administrator</div>
+                        </div>
+                        <i class="bi bi-chevron-down text-muted"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profil</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="#" onclick="logout()"><i class="bi bi-box-arrow-left me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <div class="page-content">
+            <!-- Stats Cards -->
+            <div class="row g-4 mb-4">
+                <div class="col-sm-6 col-xl-3">
+                    <div class="stat-card primary">
+                        <div class="stat-icon"><i class="bi bi-journal-check"></i></div>
+                        <div class="stat-value" id="total-jurnal">0</div>
+                        <div class="stat-label">Total Absen Hari Ini</div>
+                        <div class="stat-trend up">
+                            <i class="bi bi-arrow-up"></i>
+                            <span>Aktif</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-xl-3">
+                    <div class="stat-card success">
+                        <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+                        <div class="stat-value" id="total-siswa-hadir">0</div>
+                        <div class="stat-label">Siswa Hadir</div>
+                        <div class="stat-trend up">
+                            <i class="bi bi-check-circle"></i>
+                            <span>Terupdate</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-xl-3">
+                    <div class="stat-card warning">
+                        <div class="stat-icon"><i class="bi bi-person-workspace"></i></div>
+                        <div class="stat-value" id="total-guru">-</div>
+                        <div class="stat-label">Total Guru</div>
+                        <div class="stat-trend">
+                            <i class="bi bi-dash-circle text-muted"></i>
+                            <span class="text-muted">Stabil</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-xl-3">
+                    <div class="stat-card danger">
+                        <div class="stat-icon"><i class="bi bi-mortarboard-fill"></i></div>
+                        <div class="stat-value" id="total-siswa">-</div>
+                        <div class="stat-label">Total Siswa</div>
+                        <div class="stat-trend">
+                            <i class="bi bi-dash-circle text-muted"></i>
+                            <span class="text-muted">Stabil</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions & Table -->
+            <div class="row g-4">
+                <div class="col-12">
+                    <div class="content-card">
+                        <div class="card-header-custom">
+                            <h5><i class="bi bi-broadcast"></i> Absen Realtime Hari Ini</h5>
+                            <div class="d-flex gap-2">
+                                <div class="live-badge">LIVE</div>
+                                <button class="btn btn-outline-modern btn-sm" onclick="loadDashboard()">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                    Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-modern" id="absen-table">
+                                <thead>
+                                    <tr>
+                                        <th>Waktu</th>
+                                        <th>Guru</th>
+                                        <th>Kelas</th>
+                                        <th>Mata Pelajaran</th>
+                                        <th>Status</th>
+                                        <th class="text-center">Hadir</th>
+                                        <th class="text-center">Izin</th>
+                                        <th class="text-center">Alpha</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="absen-tbody">
+                                    <tr>
+                                        <td colspan="8">
+                                            <div class="empty-state">
+                                                <i class="bi bi-inbox"></i>
+                                                <h6>Belum Ada Data</h6>
+                                                <p>Belum ada absen yang tercatat hari ini</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="notification" class="toast toast-custom" role="alert">
+            <div class="toast-body">
+                <i class="bi bi-check-circle-fill fs-5" id="notification-icon"></i>
+                <span id="notification-message"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+
+        if (!token || userData.role !== 'admin') {
+            window.location.href = 'index.html';
+        }
+
+        // Set user info
+        document.getElementById('user-name').textContent = userData.nama || 'Admin';
+        document.getElementById('user-avatar').textContent = (userData.nama || 'A').charAt(0).toUpperCase();
+
+        // Set current date
+        const now = new Date();
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', options);
+
+        // Initialize Bootstrap Toast
+        const toastEl = document.getElementById('notification');
+        const toast = new bootstrap.Toast(toastEl, { delay: 5000 });
+
+        // Initialize Socket.io
+        const socket = io();
+        socket.emit('join-role', { role: 'admin', userId: userData.id });
+
+        // Initialize TabSync for cross-tab communication
+        TabSync.init('absen-digital');
+        initStorageSync();
+        setupAutoRefresh('admin', loadDashboard);
+
+        // Listen for new absen notifications
+        socket.on('new-absen', (data) => {
+            showNotification(`Guru ${data.guru_name} mengabsen kelas ${data.kelas_name}`, 'success');
+            addAbsenToTable(data);
+            updateStats(data);
+            notifyOtherTabs('admin', 'new-absen', data);
+        });
+
+        TabSync.on('new-absen', (data) => {
+            if (data && data.guru_name && !document.querySelector(`tr td:nth-child(2):contains("${data.guru_name}")`)) {
+                addAbsenToTable(data);
+                updateStats(data);
+            }
+        });
+
+        // Load initial data
+        loadDashboard();
+        loadCounts();
+
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/api/admin/dashboard', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) throw new Error('Failed to load dashboard');
+
+                const data = await response.json();
+                updateDashboard(data);
+                loadCounts();
+            } catch (error) {
+                showNotification('Error loading dashboard: ' + error.message, 'error');
+            }
+        }
+
+        async function loadCounts() {
+            try {
+                const [guruRes, siswaRes] = await Promise.all([
+                    fetch('/api/admin/guru', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('/api/admin/siswa', { headers: { 'Authorization': `Bearer ${token}` } })
+                ]);
+
+                const gurus = await guruRes.json();
+                const siswas = await siswaRes.json();
+
+                document.getElementById('total-guru').textContent = gurus.length;
+                document.getElementById('total-siswa').textContent = siswas.length;
+
+                window.allGurus = gurus;
+            } catch (error) {
+                console.error('Error loading counts:', error);
+            }
+        }
+
+        function updateDashboard(data) {
+            document.getElementById('total-jurnal').textContent = data.statistik.total_jurnal || 0;
+            document.getElementById('total-siswa-hadir').textContent = data.statistik.total_siswa_hadir || 0;
+
+            const tbody = document.getElementById('absen-tbody');
+            tbody.innerHTML = '';
+
+            if (!data.jurnal_hari_ini || data.jurnal_hari_ini.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8">
+                            <div class="empty-state">
+                                <i class="bi bi-inbox"></i>
+                                <h6>Belum Ada Data</h6>
+                                <p>Belum ada absen yang tercatat hari ini</p>
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            data.jurnal_hari_ini.forEach(jurnal => {
+                const hadir = jurnal.Absensis ? jurnal.Absensis.filter(a => a.status === 'hadir').length : 0;
+                const izin = jurnal.Absensis ? jurnal.Absensis.filter(a => a.status === 'izin').length : 0;
+                const alpha = jurnal.Absensis ? jurnal.Absensis.filter(a => a.status === 'tanpa_ket').length : 0;
+
+                const guruData = jurnal.Guru;
+                const kelasData = jurnal.Kelas;
+                const waktu = jurnal.createdAt ? new Date(jurnal.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
+
+                const jamMulaiGuru = guruData ? guruData.jam_mulai : null;
+                const jamMulaiAbsen = jurnal.jam_mulai;
+
+                let statusBadge = getStatusBadge(jamMulaiGuru, jamMulaiAbsen);
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><span class="fw-medium">${waktu}</span></td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="user-avatar" style="width:32px;height:32px;font-size:0.75rem;">${guruData ? guruData.nama.charAt(0) : 'N'}</div>
+                            <span>${guruData ? guruData.nama : 'N/A'}</span>
+                        </div>
+                    </td>
+                    <td><span class="badge bg-light text-dark">${kelasData ? kelasData.nama : 'N/A'}</span></td>
+                    <td>${jurnal.mata_pelajaran || 'N/A'}</td>
+                    <td>${statusBadge}</td>
+                    <td class="text-center"><span class="count-badge success">${hadir}</span></td>
+                    <td class="text-center"><span class="count-badge warning">${izin}</span></td>
+                    <td class="text-center"><span class="count-badge danger">${alpha}</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function getStatusBadge(jamMulaiGuru, jamMulaiAbsen) {
+            if (jamMulaiGuru && jamMulaiAbsen) {
+                if (jamMulaiAbsen > jamMulaiGuru) {
+                    return '<span class="badge-status terlambat"><i class="bi bi-x-circle me-1"></i>Terlambat</span>';
+                } else {
+                    return '<span class="badge-status tepat"><i class="bi bi-check-circle me-1"></i>Tepat Waktu</span>';
+                }
+            } else if (!jamMulaiGuru) {
+                return '<span class="badge-status neutral">-</span>';
+            } else {
+                return '<span class="badge-status tepat"><i class="bi bi-check-circle me-1"></i>Tepat Waktu</span>';
+            }
+        }
+
+        function addAbsenToTable(data) {
+            const tbody = document.getElementById('absen-tbody');
+            const emptyState = tbody.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.parentElement.parentElement.remove();
+            }
+
+            const guru = window.allGurus ? window.allGurus.find(g => g.nama === data.guru_name) : null;
+            const jamMulaiGuru = guru ? guru.jam_mulai : null;
+            const jamMulaiAbsen = data.jam_mulai;
+
+            let statusBadge = getStatusBadge(jamMulaiGuru, jamMulaiAbsen);
+
+            const row = document.createElement('tr');
+            row.className = 'new-row';
+            row.innerHTML = `
+                <td><span class="fw-medium">${new Date(data.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span></td>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="user-avatar" style="width:32px;height:32px;font-size:0.75rem;">${data.guru_name.charAt(0)}</div>
+                        <span>${data.guru_name}</span>
+                    </div>
+                </td>
+                <td><span class="badge bg-light text-dark">${data.kelas_name}</span></td>
+                <td>${data.mata_pelajaran}</td>
+                <td>${statusBadge}</td>
+                <td class="text-center"><span class="count-badge success">${data.total_hadir}</span></td>
+                <td class="text-center"><span class="count-badge warning">${data.total_izin}</span></td>
+                <td class="text-center"><span class="count-badge danger">${data.total_alpha}</span></td>
+            `;
+            tbody.insertBefore(row, tbody.firstChild);
+        }
+
+        function updateStats(data) {
+            const currentJurnal = parseInt(document.getElementById('total-jurnal').textContent);
+            document.getElementById('total-jurnal').textContent = currentJurnal + 1;
+
+            if (data && data.total_hadir) {
+                const currentHadir = parseInt(document.getElementById('total-siswa-hadir').textContent);
+                document.getElementById('total-siswa-hadir').textContent = currentHadir + data.total_hadir;
+            }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.querySelector('.main-content');
+            const overlay = document.getElementById('sidebar-overlay');
+            const toggleIcon = document.getElementById('toggle-icon');
+            const isMobile = window.innerWidth <= 992;
+
+            if (isMobile) {
+                sidebar.classList.toggle('show');
+                overlay.classList.toggle('show');
+            } else {
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+            }
+
+            // Toggle icon
+            if (sidebar.classList.contains('collapsed') || (!isMobile && !sidebar.classList.contains('show'))) {
+                toggleIcon.classList.remove('bi-list');
+                toggleIcon.classList.add('bi-layout-sidebar-inset');
+            } else {
+                toggleIcon.classList.remove('bi-layout-sidebar-inset');
+                toggleIcon.classList.add('bi-list');
+            }
+
+            // Save state to localStorage
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', isCollapsed);
+        }
+
+        // Restore sidebar state on page load
+        function restoreSidebarState() {
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            const isMobile = window.innerWidth <= 992;
+
+            if (!isMobile && isCollapsed) {
+                document.getElementById('sidebar').classList.add('collapsed');
+                document.querySelector('.main-content').classList.add('expanded');
+                document.getElementById('toggle-icon').classList.remove('bi-list');
+                document.getElementById('toggle-icon').classList.add('bi-layout-sidebar-inset');
+            }
+        }
+
+        // Call on page load
+        restoreSidebarState();
+
+        function logout() {
+            TabSync.broadcast('logout', { role: 'admin' });
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        function showNotification(message, type = 'success') {
+            const notifIcon = document.getElementById('notification-icon');
+            const notifMsg = document.getElementById('notification-message');
+
+            notifMsg.textContent = message;
+            toastEl.classList.remove('success', 'error');
+            toastEl.classList.add(type);
+
+            if (type === 'error') {
+                notifIcon.className = 'bi bi-x-circle-fill fs-5 text-danger';
+            } else {
+                notifIcon.className = 'bi bi-check-circle-fill fs-5 text-success';
+            }
+
+            toast.show();
+        }
+    </script>
+</body>
+</html>
