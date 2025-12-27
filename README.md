@@ -1,27 +1,45 @@
-# 🎓 Absen Digital - Sistem Absensi SMK
+# Absen Digital - Sistem Absensi SMK
 
 Sistem absensi digital untuk SMK dengan fitur realtime notification ke Admin dan Orang Tua.
 
-## ✨ Fitur Utama
+## Fitur Utama
 
-- 👨‍🏫 **Guru**: Absen siswa per kelas + isi jurnal pembelajaran
-- 👨‍💼 **Admin**:
-  - Monitoring realtime semua absen dari guru
-  - **Master Data**: Kelola data Guru, Siswa, dan Kelas (CRUD)
-- 👨‍👩‍👧‍👦 **Orang Tua**: Lihat riwayat absen anak realtime
-- ⚡ **Realtime**: Socket.io untuk notifikasi instan
-- 📊 **Laporan**: Export data untuk admin
+### Guru
+- Absen siswa per kelas
+- Isi jurnal pembelajaran (mata pelajaran, materi, jam)
+- Lihat riwayat absen yang sudah disubmit
 
-## 🛠 Teknologi
+### Admin
+- **Dashboard**: Monitoring realtime semua absen dari guru
+- **Master Data**: Kelola data Jurusan, Kelas, Siswa, dan Guru (CRUD)
+- **Import Data**: Import data siswa dan guru via Excel
+- **Rekap Absensi**:
+  - Rekap harian per kelas
+  - Rekap bulanan per siswa
+  - Export ke Excel dan PDF
+
+### Orang Tua
+- Lihat daftar anak yang terdaftar
+- Statistik kehadiran bulanan (Hadir/Izin/Alpha)
+- Riwayat kehadiran detail per tanggal
+- Notifikasi realtime saat anak diabsen
+
+### Fitur Umum
+- Realtime notification dengan Socket.io
+- Responsive design untuk semua perangkat
+- Sidebar yang bisa di-toggle (show/hide)
+- Export laporan ke Excel dan PDF
+
+## Teknologi
 
 - **Backend**: Node.js + Express.js
 - **Database**: MySQL + Sequelize ORM
 - **Realtime**: Socket.io
 - **Authentication**: JWT
-- **Frontend**: HTML + CSS + JavaScript (Vanilla)
-- **Password Hash**: bcrypt
+- **Frontend**: HTML + CSS + JavaScript + Bootstrap 5
+- **Export**: xlsx (Excel), pdfkit (PDF)
 
-## 🚀 Cara Install
+## Cara Install
 
 ### 1. Clone/Download Project
 ```bash
@@ -34,14 +52,15 @@ npm install
 ```
 
 ### 3. Setup Database MySQL
-- Buat database baru: `absen_digital`
-- Update credentials di file `.env`
+Buat database baru dan update credentials di file `.env`:
 
 ```env
 DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=your_password
 DB_NAME=absen_digital
+JWT_SECRET=your_secret_key
+PORT=3000
 ```
 
 ### 4. Seed Database (Data Demo)
@@ -60,7 +79,7 @@ npm start
 
 Server akan berjalan di: **http://localhost:3000**
 
-## 🔑 Login Credentials (Demo)
+## Login Credentials (Demo)
 
 ### Admin
 - Username: `admin`
@@ -74,212 +93,186 @@ Server akan berjalan di: **http://localhost:3000**
 - Username: `ortu_ahmad` | `ortu_budi` | `ortu_citra`
 - Password: `ortu123`
 
-## 📋 Cara Penggunaan
+## Panduan Penggunaan
 
-### 🎯 Untuk Guru
+### Untuk Guru
 
-1. **Login** dengan credentials guru
-2. **Pilih Kelas** dari dropdown
-3. **Lihat daftar siswa** yang muncul
-4. **Set status** hadir/izin/tanpa keterangan untuk setiap siswa
-5. **Isi Jurnal Pembelajaran**:
-   - Mata Pelajaran
-   - Materi yang disampaikan
-   - Jam mulai & selesai
-6. **Submit** - Sistem akan:
-   - Simpan ke database
-   - Kirim notifikasi realtime ke Admin
-   - Kirim notifikasi ke Orang Tua
+1. Login dengan credentials guru
+2. Pilih kelas dari dropdown
+3. Set status hadir/izin/tanpa keterangan untuk setiap siswa
+4. Isi jurnal pembelajaran (mata pelajaran, materi, jam)
+5. Submit - notifikasi akan terkirim ke Admin dan Orang Tua
 
-### 👨‍💼 Untuk Admin
+### Untuk Admin
 
-1. **Login** dengan credentials admin
-2. **Dashboard menampilkan**:
-   - Total absen hari ini
-   - Total siswa hadir
-   - Tabel realtime semua absen
-3. **Notifikasi realtime** saat guru submit absen
-4. **Filter data** berdasarkan tanggal/kelas/guru
+#### Dashboard
+- Melihat statistik absen hari ini
+- Monitoring realtime absen dari semua guru
+- Filter berdasarkan tanggal/kelas/guru
 
-#### 🔧 Master Data Admin
+#### Master Data
+- **Jurusan**: Tambah, edit, hapus jurusan
+- **Kelas**: Tambah, edit, hapus kelas (terhubung ke jurusan)
+- **Siswa**: Tambah, edit, hapus siswa + import Excel
+- **Guru**: Tambah, edit, hapus guru + import Excel
 
-1. **Klik "Master Data"** di dashboard
-2. **Kelola Data Guru**:
-   - ➕ Tambah guru baru
-   - ✏️ Edit data guru
-   - 🗑️ Hapus guru
-   - Search by nama/NIP
-3. **Kelola Data Siswa**:
-   - ➕ Tambah siswa per kelas
-   - ✏️ Edit data siswa
-   - 🗑️ Hapus siswa
-   - Search by nama/NIS
-4. **Kelola Data Kelas**:
-   - ➕ Tambah kelas baru
-   - ✏️ Edit data kelas
-   - 🗑️ Hapus kelas
-   - Search by nama/tingkat
+#### Rekap Absensi
+- **Rekap Harian**: Lihat absensi per tanggal, filter by jurusan/kelas
+- **Rekap Bulanan**: Lihat rekap per bulan per siswa
+- **Export**: Download laporan dalam format Excel atau PDF
 
-### 👨‍👩‍👧‍👦 Untuk Orang Tua
+### Untuk Orang Tua
 
-1. **Login** dengan credentials ortu
-2. **Lihat daftar anak** yang diasuh
-3. **Klik "Lihat Riwayat"** untuk melihat:
-   - Statistik kehadiran bulan ini (Hadir/Izin/Alpha)
-   - Riwayat detail per tanggal
-4. **Notifikasi realtime** saat anak absen
+1. Login dengan credentials orang tua
+2. Lihat daftar anak yang terdaftar
+3. Klik "Lihat Detail" untuk melihat:
+   - Statistik kehadiran bulan ini
+   - Riwayat kehadiran detail
+4. Terima notifikasi realtime saat anak diabsen
 
-## 🏗 Struktur Project
+## Struktur Project
 
 ```
 absen-digital/
 ├── backend/
 │   ├── config/
-│   │   └── database.js          # Koneksi MySQL
+│   │   └── database.js
 │   ├── models/
-│   │   ├── Guru.js              # Model Guru
-│   │   ├── Kelas.js             # Model Kelas
-│   │   ├── Siswa.js             # Model Siswa
-│   │   ├── OrangTua.js          # Model Orang Tua
-│   │   ├── Jurnal.js            # Model Jurnal
-│   │   ├── Absensi.js           # Model Absensi
-│   │   └── index.js             # Associations
+│   │   ├── Guru.js
+│   │   ├── Jurusan.js
+│   │   ├── Kelas.js
+│   │   ├── Siswa.js
+│   │   ├── OrangTua.js
+│   │   ├── Jurnal.js
+│   │   ├── Absensi.js
+│   │   └── index.js
 │   ├── routes/
-│   │   ├── auth.js              # Authentication
-│   │   ├── guru.js              # API Guru (absen, jurnal)
-│   │   ├── admin.js             # API Admin
-│   │   └── orangTua.js          # API Orang Tua
+│   │   ├── auth.js
+│   │   ├── guru.js
+│   │   ├── admin.js
+│   │   ├── adminCrud.js
+│   │   ├── import.js
+│   │   ├── rekap.js
+│   │   └── orangTua.js
 │   ├── middleware/
-│   │   └── auth.js              # JWT Middleware
+│   │   └── auth.js
 │   ├── socket/
-│   │   └── socketHandler.js     # Socket.io setup
-│   ├── app.js                   # Express app
-│   ├── server.js                # HTTP + Socket.io server
-│   └── seed.js                  # Database seeder
+│   │   └── socketHandler.js
+│   ├── app.js
+│   ├── server.js
+│   └── seed.js
 │
 ├── frontend/public/
-│   ├── index.html               # Login page
-│   ├── guru.html                # Dashboard Guru
-│   ├── admin.html               # Dashboard Admin
-│   ├── admin-master-data.html   # Master Data Admin (CRUD)
-│   ├── ortu.html                # Dashboard Orang Tua
-│   └── css/
-│       └── style.css            # Stylesheet
+│   ├── index.html
+│   ├── guru.html
+│   ├── admin.html
+│   ├── admin-master-data.html
+│   ├── admin-rekap.html
+│   └── ortu.html
 │
-├── .env                         # Environment variables
+├── .env
+├── .gitignore
 ├── package.json
 └── README.md
 ```
 
-## 📡 API Endpoints
+## API Endpoints
 
 ### Authentication
 - `POST /api/auth/login/guru` - Login Guru/Admin
 - `POST /api/auth/login/orang-tua` - Login Orang Tua
 
 ### Guru
-- `GET /api/guru/kelas` - Get all kelas
-- `GET /api/guru/kelas/:kelasId/siswa` - Get siswa in kelas
+- `GET /api/guru/kelas` - Get semua kelas
+- `GET /api/guru/kelas/:kelasId/siswa` - Get siswa dalam kelas
 - `POST /api/guru/absen` - Submit absen + jurnal
 - `GET /api/guru/riwayat` - Get riwayat absen guru
 
-### Admin
+### Admin Dashboard
 - `GET /api/admin/dashboard` - Dashboard overview
-- `GET /api/admin/jurnal` - Get all jurnal (with filters)
-- `GET /api/admin/export` - Export laporan
-- `GET /api/admin/guru` - Get all guru
-- `GET /api/admin/siswa` - Get all siswa
+- `GET /api/admin/jurnal` - Get semua jurnal (with filters)
 
-### Admin Master Data (CRUD)
-#### Guru
-- `GET /api/master-data/guru/all` - Get all guru
-- `GET /api/master-data/guru/:id` - Get single guru
-- `POST /api/master-data/guru` - Create new guru
-- `PUT /api/master-data/guru/:id` - Update guru
-- `DELETE /api/master-data/guru/:id` - Delete guru
+### Master Data
+- `GET/POST/PUT/DELETE /api/master-data/jurusan` - CRUD Jurusan
+- `GET/POST/PUT/DELETE /api/master-data/kelas` - CRUD Kelas
+- `GET/POST/PUT/DELETE /api/master-data/siswa` - CRUD Siswa
+- `GET/POST/PUT/DELETE /api/master-data/guru` - CRUD Guru
 
-#### Siswa
-- `GET /api/master-data/siswa/all` - Get all siswa with kelas
-- `GET /api/master-data/siswa/:id` - Get single siswa
-- `POST /api/master-data/siswa` - Create new siswa
-- `PUT /api/master-data/siswa/:id` - Update siswa
-- `DELETE /api/master-data/siswa/:id` - Delete siswa
+### Import
+- `POST /api/import/siswa` - Import siswa dari Excel
+- `POST /api/import/guru` - Import guru dari Excel
 
-#### Kelas
-- `GET /api/master-data/kelas/all` - Get all kelas
-- `POST /api/master-data/kelas` - Create new kelas
-- `PUT /api/master-data/kelas/:id` - Update kelas
-- `DELETE /api/master-data/kelas/:id` - Delete kelas
+### Rekap
+- `GET /api/rekap/harian` - Rekap absensi harian
+- `GET /api/rekap/bulanan` - Rekap absensi bulanan
+- `GET /api/rekap/export/harian/excel` - Export harian ke Excel
+- `GET /api/rekap/export/harian/pdf` - Export harian ke PDF
+- `GET /api/rekap/export/bulanan/excel` - Export bulanan ke Excel
+- `GET /api/rekap/export/bulanan/pdf` - Export bulanan ke PDF
 
 ### Orang Tua
-- `GET /api/orang-tua/anak` - Get children
-- `GET /api/orang-tua/anak/:siswaId/riwayat` - Get riwayat
-- `GET /api/orang-tua/anak/:siswaId/statistik` - Get statistik
+- `GET /api/orang-tua/anak` - Get daftar anak
+- `GET /api/orang-tua/anak/:siswaId/riwayat` - Get riwayat kehadiran
+- `GET /api/orang-tua/anak/:siswaId/statistik` - Get statistik kehadiran
 
-## 🔄 Realtime Events (Socket.io)
+## Realtime Events (Socket.io)
 
-### Client → Server
-- `join-role` - Join room berdasarkan role (admin/guru/orang_tua)
-- `join-student` - Join room spesifik student (untuk ortu)
+### Client ke Server
+- `join-role` - Join room berdasarkan role
+- `join-student` - Join room spesifik siswa (untuk ortu)
 
-### Server → Client
+### Server ke Client
 - `new-absen` - Notify admin saat ada absen baru
-- `new-absen-all` - Notify semua ortu
+- `new-absen-all` - Notify semua user
 
-## 🗃 Database Schema
+## Database Schema
 
 ### Tables
-- **guru** - Data guru/admin
+- **jurusan** - Data jurusan/program keahlian
+- **kelas** - Data kelas (terhubung ke jurusan)
+- **guru** - Data guru dan admin
+- **siswa** - Data siswa (terhubung ke kelas)
 - **orang_tua** - Data orang tua
-- **kelas** - Data kelas
-- **siswa** - Data siswa
-- **jurnal** - Jurnal pembelajaran
+- **jurnal** - Jurnal pembelajaran guru
 - **absensi** - Data absensi siswa
-- **SiswaOrangTua** - Junction table (many-to-many)
+- **SiswaOrangTua** - Relasi siswa-orang tua (many-to-many)
 
-### → Siswa Relationships
-- Kelas (1:N)
-- Siswa ↔ OrangTua (N:N)
-- Guru → Jurnal (1:N)
-- Kelas → Jurnal (1:N)
-- Jurnal → Absensi (1:N)
-- Siswa → Absensi (1:N)
+### Relationships
+- Jurusan -> Kelas (1:N)
+- Kelas -> Siswa (1:N)
+- Siswa <-> OrangTua (N:N)
+- Guru -> Jurnal (1:N)
+- Kelas -> Jurnal (1:N)
+- Jurnal -> Absensi (1:N)
+- Siswa -> Absensi (1:N)
 
-## 🔒 Security Features
+## Security Features
 
-- ✅ Password hashing dengan bcrypt
-- ✅ JWT authentication
-- ✅ Role-based access control
-- ✅ CORS enabled
-- ✅ Input validation
-- ✅ SQL injection protection (Sequelize ORM)
+- Password hashing dengan bcrypt
+- JWT authentication
+- Role-based access control
+- CORS enabled
+- Input validation
+- SQL injection protection (Sequelize ORM)
 
-## 🎨 UI/UX Features
-
-- Responsive design (mobile-friendly)
-- Modern gradient UI
-- Realtime notifications
-- Tab-based login (Guru/Admin vs Orang Tua)
-- Color-coded status (hijau=hadir, orange=izin, merah=alpha)
-
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Error: "Access denied to database"
 - Cek credentials MySQL di `.env`
 - Pastikan MySQL service sudah berjalan
-- Pastikan database `absen_digital` sudah dibuat
+- Pastikan database sudah dibuat
 
 ### Socket.io tidak connect
-- Pastikan server sudah berjalan di port 3000
+- Pastikan server sudah berjalan
 - Cek browser console untuk error
 - Pastikan CORS sudah enabled
 
 ### Data tidak muncul
-- Jalankan `npm run seed` untuk populate data
-- Cek console.log di server untuk debugging
+- Jalankan `npm run seed` untuk populate data demo
+- Cek console server untuk debugging
 - Pastikan token JWT valid
 
-## 🚀 Deployment
+## Deployment
 
 ### Development
 ```bash
@@ -291,7 +284,7 @@ npm run dev
 npm start
 ```
 
-### Environment Variables Production
+### Environment Variables
 ```env
 NODE_ENV=production
 JWT_SECRET=your-super-secure-secret
@@ -302,14 +295,6 @@ DB_NAME=your-db-name
 PORT=3000
 ```
 
-## 📝 Lisensi
+## Lisensi
 
 MIT License - Free to use for educational purposes
-
-## 👨‍💻 Developer
-
-Made with ❤️ for SMK Indonesia
-
----
-
-**Selamat menggunakan Absen Digital! 🎓**
