@@ -331,7 +331,6 @@
 
         .demo-badge.admin { background: linear-gradient(135deg, #ef4444, #f97316); color: white; }
         .demo-badge.guru { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; }
-        .demo-badge.ortu { background: linear-gradient(135deg, #10b981, #34d399); color: white; }
 
         .demo-code {
             font-family: 'Monaco', 'Consolas', monospace;
@@ -363,6 +362,11 @@
             background: linear-gradient(135deg, #fef2f2, #fee2e2);
             color: #991b1b;
         }
+
+        .alert-success-custom {
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+            color: #166534;
+        }
     </style>
 </head>
 <body>
@@ -391,9 +395,6 @@
                     <button class="nav-link active" id="guru-tab" data-bs-toggle="tab" data-bs-target="#form-guru" type="button" role="tab">
                         <i class="bi bi-person-badge me-1"></i> Guru / Admin
                     </button>
-                    <button class="nav-link" id="ortu-tab" data-bs-toggle="tab" data-bs-target="#form-ortu" type="button" role="tab">
-                        <i class="bi bi-people me-1"></i> Orang Tua
-                    </button>
                 </div>
 
                 <!-- Tab Content -->
@@ -413,143 +414,139 @@
                                 <i class="bi bi-box-arrow-in-right me-2"></i>Masuk
                             </button>
                         </form>
-                    </div>
 
-                    <!-- Login Form Orang Tua -->
-                    <div class="tab-pane fade" id="form-ortu" role="tabpanel">
-                        <form onsubmit="loginOrtu(event)">
-                            <div class="input-group-custom">
-                                <i class="bi bi-person input-icon"></i>
-                                <input type="text" class="form-control" id="ortu-username" placeholder="Username" required>
+                        <!-- Demo Credentials -->
+                        <div class="demo-section">
+                            <div class="demo-title">
+                                <i class="bi bi-info-circle"></i>
+                                <span>Demo Credentials</span>
                             </div>
-                            <div class="input-group-custom">
-                                <i class="bi bi-lock input-icon"></i>
-                                <input type="password" class="form-control" id="ortu-password" placeholder="Password" required>
+                            <div class="demo-item">
+                                <div>
+                                    <span class="demo-badge admin">ADMIN</span>
+                                    <span class="ms-2 text-muted">Username:</span>
+                                    <code class="demo-code ms-1">admin</code>
+                                    <span class="ms-2 text-muted">Password:</span>
+                                    <code class="demo-code ms-1">admin123</code>
+                                </div>
                             </div>
-                            <button type="submit" class="btn btn-login mt-2">
-                                <i class="bi bi-box-arrow-in-right me-2"></i>Masuk
-                            </button>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Error Message -->
-                <div id="error-message" class="alert alert-custom alert-danger-custom d-none" role="alert">
-                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
-                    <span id="error-text"></span>
-                </div>
-
-                <!-- Demo Credentials -->
-                <div class="demo-section">
-                    <div class="demo-title">
-                        <i class="bi bi-info-circle"></i>
-                        Akun Demo
-                    </div>
-                    <div class="demo-item">
-                        <span class="demo-badge admin">Admin</span>
-                        <code class="demo-code">admin / admin123</code>
-                    </div>
-                    <div class="demo-item">
-                        <span class="demo-badge guru">Guru</span>
-                        <code class="demo-code">sari / guru123</code>
-                    </div>
-                    <div class="demo-item">
-                        <span class="demo-badge ortu">Orang Tua</span>
-                        <code class="demo-code">ortu_ahmad / ortu123</code>
+                            <div class="demo-item">
+                                <div>
+                                    <span class="demo-badge guru">GURU</span>
+                                    <span class="ms-2 text-muted">Username:</span>
+                                    <code class="demo-code ms-1">sari</code>
+                                    <span class="ms-2 text-muted">Password:</span>
+                                    <code class="demo-code ms-1">guru123</code>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap 5 JS -->
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
+    <!-- Login Script -->
     <script>
-        // Check if already logged in
-        const token = localStorage.getItem('token');
-        const userRole = localStorage.getItem('userRole');
-
-        if (token && userRole) {
-            if (userRole === 'admin') {
-                window.location.href = 'admin.html';
-            } else if (userRole === 'guru') {
-                window.location.href = 'guru.html';
-            } else if (userRole === 'orang_tua') {
-                window.location.href = 'ortu.html';
-            }
-        }
+        const API_URL = '/api';
 
         async function loginGuru(event) {
             event.preventDefault();
+
             const username = document.getElementById('guru-username').value;
             const password = document.getElementById('guru-password').value;
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+
+            // Disable button and show loading
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Memproses...';
 
             try {
-                const response = await fetch('/api/auth/login/guru', {
+                const response = await fetch(`${API_URL}/auth/login/guru`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify({ username, password })
                 });
 
                 const data = await response.json();
 
-                if (data.success) {
+                if (response.ok && data.success) {
+                    // Save token and user data to localStorage
                     localStorage.setItem('token', data.token);
-                    localStorage.setItem('userRole', data.user.role);
                     localStorage.setItem('userData', JSON.stringify(data.user));
-                    localStorage.setItem('userName', data.user.nama);
 
-                    if (data.user.role === 'admin') {
-                        window.location.href = 'admin.html';
-                    } else {
-                        window.location.href = 'guru.html';
-                    }
+                    // Show success message
+                    showAlert('success', 'Login berhasil! Mengalihkan...');
+
+                    // Redirect based on role
+                    setTimeout(() => {
+                        if (data.user.role === 'admin') {
+                            window.location.href = 'admin.html';
+                        } else {
+                            window.location.href = 'guru.html';
+                        }
+                    }, 500);
                 } else {
-                    showError(data.error || 'Login gagal');
+                    // Show error message
+                    showAlert('danger', data.error || 'Username atau password salah');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="bi bi-box-arrow-in-right me-2"></i>Masuk';
                 }
             } catch (error) {
-                showError('Terjadi kesalahan: ' + error.message);
+                console.error('Login error:', error);
+                showAlert('danger', 'Terjadi kesalahan. Pastikan server berjalan.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-box-arrow-in-right me-2"></i>Masuk';
             }
         }
 
-        async function loginOrtu(event) {
-            event.preventDefault();
-            const username = document.getElementById('ortu-username').value;
-            const password = document.getElementById('ortu-password').value;
-
-            try {
-                const response = await fetch('/api/auth/login/orang-tua', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('userRole', data.user.role);
-                    localStorage.setItem('userData', JSON.stringify(data.user));
-                    localStorage.setItem('userName', data.user.nama);
-                    window.location.href = 'ortu.html';
-                } else {
-                    showError(data.error || 'Login gagal');
-                }
-            } catch (error) {
-                showError('Terjadi kesalahan: ' + error.message);
+        function showAlert(type, message) {
+            const existingAlert = document.querySelector('.alert-custom');
+            if (existingAlert) {
+                existingAlert.remove();
             }
-        }
 
-        function showError(message) {
-            const errorDiv = document.getElementById('error-message');
-            const errorText = document.getElementById('error-text');
-            errorText.textContent = message;
-            errorDiv.classList.remove('d-none');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert-custom alert-${type}-custom`;
+            alertDiv.innerHTML = `
+                <i class="bi bi-${type === 'success' ? 'check-circle-fill' : 'exclamation-triangle-fill'}"></i>
+                <span>${message}</span>
+            `;
+
+            const loginBody = document.querySelector('.login-body');
+            loginBody.appendChild(alertDiv);
+
+            // Auto remove after 5 seconds
             setTimeout(() => {
-                errorDiv.classList.add('d-none');
+                alertDiv.remove();
             }, 5000);
         }
+
+        // Check if already logged in
+        window.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('userData');
+
+            if (token && user) {
+                try {
+                    const userData = JSON.parse(user);
+                    // Redirect to appropriate dashboard
+                    if (userData.role === 'admin') {
+                        window.location.href = 'admin.html';
+                    } else if (userData.role === 'guru') {
+                        window.location.href = 'guru.html';
+                    }
+                } catch (e) {
+                    // Invalid data, clear and stay on login
+                    localStorage.clear();
+                }
+            }
+        });
     </script>
 </body>
 </html>

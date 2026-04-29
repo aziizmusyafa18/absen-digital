@@ -1073,6 +1073,210 @@
         .sidebar-overlay.active {
             display: block;
         }
+
+        /* Filter Section Styles */
+        .filter-section {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-dropdown {
+            position: relative;
+            z-index: 1001;
+        }
+
+        .filter-btn {
+            position: relative;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 0.625rem 1rem;
+            font-weight: 500;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+            border-color: transparent;
+            color: white;
+        }
+
+        .filter-menu {
+            position: fixed;
+            top: auto;
+            left: auto;
+            margin-top: 0.5rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            padding: 1rem;
+            min-width: 280px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1002;
+            display: none;
+        }
+
+        .filter-menu.show {
+            display: block;
+        }
+
+        .filter-menu h6 {
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        .filter-group {
+            margin-bottom: 1rem;
+        }
+
+        .filter-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .filter-group label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .filter-group .form-select,
+        .filter-group .form-control {
+            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .btn-filter-reset {
+            flex: 1;
+            padding: 0.5rem;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 8px;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-filter-reset:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+
+        .btn-filter-apply {
+            flex: 1;
+            padding: 0.5rem;
+            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-filter-apply:hover {
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+        }
+
+        /* Delete All Button Styles */
+        .btn-delete-all {
+            background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+            border: none;
+            color: white;
+            padding: 0.625rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .btn-delete-all:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+            color: white;
+        }
+
+        .btn-delete-selected {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            border: none;
+            color: white;
+            padding: 0.625rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .btn-delete-selected:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+            color: white;
+        }
+
+        /* Active Filter Badge */
+        .filter-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 18px;
+            height: 18px;
+            background: var(--danger);
+            border-radius: 50%;
+            font-size: 0.65rem;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .filter-btn.has-filter {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Count Badge */
+        .count-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+        }
+
+        .filter-btn:not(.active) .count-badge {
+            background: #f1f5f9;
+        }
     </style>
 </head>
 <body>
@@ -1194,6 +1398,7 @@
                                 <i class="bi bi-search"></i>
                                 <input type="text" id="search-jurusan" placeholder="Cari jurusan..." onkeyup="searchJurusan()">
                             </div>
+
                             <button class="btn-add" onclick="openJurusanModal()">
                                 <i class="bi bi-plus-lg"></i>
                                 <span>Tambah</span>
@@ -1223,10 +1428,51 @@
                     <div class="card-modern-header">
                         <h5><i class="bi bi-building-fill"></i> Data Kelas</h5>
                         <div class="header-actions">
+                            <div class="filter-section">
+                                <div class="filter-dropdown">
+                                    <button class="filter-btn" id="filter-kelas-btn" onclick="toggleFilterMenu('kelas')">
+                                        <i class="bi bi-funnel"></i>
+                                        <span>Filter</span>
+                                        <span class="filter-badge d-none" id="filter-kelas-badge">0</span>
+                                    </button>
+                                    <div class="filter-menu" id="filter-kelas-menu">
+                                        <h6><i class="bi bi-funnel me-1"></i>Filter Kelas</h6>
+                                        <div class="filter-group">
+                                            <label>Tingkat</label>
+                                            <select class="form-select" id="filter-kelas-tingkat">
+                                                <option value="">Semua Tingkat</option>
+                                                <option value="X">X</option>
+                                                <option value="XI">XI</option>
+                                                <option value="XII">XII</option>
+                                            </select>
+                                        </div>
+                                        <div class="filter-group">
+                                            <label>Jurusan</label>
+                                            <select class="form-select" id="filter-kelas-jurusan">
+                                                <option value="">Semua Jurusan</option>
+                                            </select>
+                                        </div>
+                                        <div class="filter-group">
+                                            <label>Tahun Ajaran</label>
+                                            <select class="form-select" id="filter-kelas-tahun">
+                                                <option value="">Semua Tahun</option>
+                                            </select>
+                                        </div>
+                                        <div class="filter-actions">
+                                            <button class="btn-filter-reset" onclick="resetFilter('kelas')">Reset</button>
+                                            <button class="btn-filter-apply" onclick="applyFilter('kelas')">Terapkan</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="search-box">
                                 <i class="bi bi-search"></i>
                                 <input type="text" id="search-kelas" placeholder="Cari kelas..." onkeyup="searchKelas()">
                             </div>
+                            <button class="btn-delete-selected" id="btn-delete-selected-kelas" onclick="deleteSelected('kelas')" style="display: none;" title="Hapus Terpilih">
+                                <i class="bi bi-trash"></i>
+                                <span>Hapus Terpilih</span>
+                            </button>
                             <button class="btn-add" onclick="openKelasModal()">
                                 <i class="bi bi-plus-lg"></i>
                                 <span>Tambah</span>
@@ -1237,6 +1483,9 @@
                         <table class="table-modern">
                             <thead>
                                 <tr>
+                                    <th style="width: 50px;">
+                                        <input type="checkbox" class="form-check-input select-all-checkbox" id="select-all-kelas" onchange="toggleSelectAll('kelas')">
+                                    </th>
                                     <th style="width: 60px;">No</th>
                                     <th>Nama Kelas</th>
                                     <th>Tingkat</th>
@@ -1257,6 +1506,46 @@
                     <div class="card-modern-header">
                         <h5><i class="bi bi-people-fill"></i> Data Siswa</h5>
                         <div class="header-actions">
+                            <div class="filter-section">
+                                <div class="filter-dropdown">
+                                    <button class="filter-btn" id="filter-siswa-btn" onclick="toggleFilterMenu('siswa')">
+                                        <i class="bi bi-funnel"></i>
+                                        <span>Filter</span>
+                                        <span class="filter-badge d-none" id="filter-siswa-badge">0</span>
+                                    </button>
+                                    <div class="filter-menu" id="filter-siswa-menu">
+                                        <h6><i class="bi bi-funnel me-1"></i>Filter Siswa</h6>
+                                        <div class="filter-group">
+                                            <label>Kelas</label>
+                                            <select class="form-select" id="filter-siswa-kelas">
+                                                <option value="">Semua Kelas</option>
+                                            </select>
+                                        </div>
+                                        <div class="filter-group">
+                                            <label>Jenis Kelamin</label>
+                                            <select class="form-select" id="filter-siswa-kelamin">
+                                                <option value="">Semua</option>
+                                                <option value="Laki-laki">Laki-laki</option>
+                                                <option value="Perempuan">Perempuan</option>
+                                            </select>
+                                        </div>
+                                        <div class="filter-group">
+                                            <label>Status</label>
+                                            <select class="form-select" id="filter-siswa-status">
+                                                <option value="">Semua Status</option>
+                                                <option value="aktif">Aktif</option>
+                                                <option value="non-aktif">Non-Aktif</option>
+                                                <option value="pindah">Pindah</option>
+                                                <option value="lulus">Lulus</option>
+                                            </select>
+                                        </div>
+                                        <div class="filter-actions">
+                                            <button class="btn-filter-reset" onclick="resetFilter('siswa')">Reset</button>
+                                            <button class="btn-filter-apply" onclick="applyFilter('siswa')">Terapkan</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="search-box">
                                 <i class="bi bi-search"></i>
                                 <input type="text" id="search-siswa" placeholder="Cari siswa..." onkeyup="searchSiswa()">
@@ -1264,6 +1553,10 @@
                             <button class="btn-import" onclick="openImportModal('siswa')">
                                 <i class="bi bi-file-earmark-excel"></i>
                                 <span>Import Excel</span>
+                            </button>
+                            <button class="btn-delete-selected" id="btn-delete-selected-siswa" onclick="deleteSelected('siswa')" style="display: none;" title="Hapus Terpilih">
+                                <i class="bi bi-trash"></i>
+                                <span>Hapus Terpilih</span>
                             </button>
                             <button class="btn-add" onclick="openSiswaModal()">
                                 <i class="bi bi-plus-lg"></i>
@@ -1275,6 +1568,9 @@
                         <table class="table-modern">
                             <thead>
                                 <tr>
+                                    <th style="width: 50px;">
+                                        <input type="checkbox" class="form-check-input select-all-checkbox" id="select-all-siswa" onchange="toggleSelectAll('siswa')">
+                                    </th>
                                     <th style="width: 60px;">No</th>
                                     <th>Nama</th>
                                     <th>NIS</th>
@@ -1294,10 +1590,43 @@
                     <div class="card-modern-header">
                         <h5><i class="bi bi-person-badge-fill"></i> Data Guru</h5>
                         <div class="header-actions">
+                            <div class="filter-section">
+                                <div class="filter-dropdown">
+                                    <button class="filter-btn" id="filter-guru-btn" onclick="toggleFilterMenu('guru')">
+                                        <i class="bi bi-funnel"></i>
+                                        <span>Filter</span>
+                                        <span class="filter-badge d-none" id="filter-guru-badge">0</span>
+                                    </button>
+                                    <div class="filter-menu" id="filter-guru-menu">
+                                        <h6><i class="bi bi-funnel me-1"></i>Filter Guru</h6>
+                                        <div class="filter-group">
+                                            <label>Mata Pelajaran</label>
+                                            <input type="text" class="form-control" id="filter-guru-mapel" placeholder="Cari mapel...">
+                                        </div>
+                                        <div class="filter-group">
+                                            <label>Role</label>
+                                            <select class="form-select" id="filter-guru-role">
+                                                <option value="">Semua Role</option>
+                                                <option value="guru">Guru</option>
+                                                <option value="admin">Admin</option>
+                                            </select>
+                                        </div>
+                                        <div class="filter-actions">
+                                            <button class="btn-filter-reset" onclick="resetFilter('guru')">Reset</button>
+                                            <button class="btn-filter-apply" onclick="applyFilter('guru')">Terapkan</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="search-box">
                                 <i class="bi bi-search"></i>
                                 <input type="text" id="search-guru" placeholder="Cari guru..." onkeyup="searchGuru()">
                             </div>
+                            <button class="btn-delete-selected" id="btn-delete-selected-guru" onclick="deleteSelected('guru')" style="display: none;" title="Hapus Terpilih">
+                                <i class="bi bi-trash"></i>
+                                <span>Hapus Terpilih</span>
+                            </button>
+                            </button>
                             <button class="btn-import" onclick="openImportModal('guru')">
                                 <i class="bi bi-file-earmark-excel"></i>
                                 <span>Import Excel</span>
@@ -1312,6 +1641,9 @@
                         <table class="table-modern">
                             <thead>
                                 <tr>
+                                    <th style="width: 50px;">
+                                        <input type="checkbox" class="form-check-input select-all-checkbox" id="select-all-guru" onchange="toggleSelectAll('guru')">
+                                    </th>
                                     <th style="width: 60px;">No</th>
                                     <th>Nama</th>
                                     <th>NIP</th>
@@ -1431,12 +1763,21 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control" id="siswa-email" placeholder="email@example.com">
+                            <label class="form-label">Jenis Kelamin</label>
+                            <select class="form-select" id="siswa-kelamin">
+                                <option value="">-- Pilih Jenis Kelamin --</option>
+                                <option value="Laki-laki">Laki-laki</option>
+                                <option value="Perempuan">Perempuan</option>
+                            </select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Phone</label>
-                            <input type="text" class="form-control" id="siswa-phone" placeholder="Nomor telepon">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="siswa-status">
+                                <option value="aktif">Aktif</option>
+                                <option value="non-aktif">Non-Aktif</option>
+                                <option value="pindah">Pindah</option>
+                                <option value="lulus">Lulus</option>
+                            </select>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -1502,15 +1843,19 @@
                         <h6 class="mb-3 fw-bold"><i class="bi bi-book me-2"></i>Pengaturan Kelas Mengajar</h6>
 
                         <div class="row g-2 mb-3 p-3 rounded" style="background: #f8fafc; border: 1px solid #e2e8f0;">
-                            <div class="col-md-5">
+                            <div class="col-md-4">
                                 <label class="form-label small">Pilih Kelas</label>
                                 <select class="form-select form-select-sm" id="guru-kelas-select">
                                     <option value="">-- Pilih Kelas --</option>
                                 </select>
                             </div>
-                            <div class="col-md-5">
-                                <label class="form-label small">Mata Pelajaran (override)</label>
-                                <input type="text" class="form-control form-control-sm" id="guru-kelas-mapel" placeholder="Default dari profil">
+                            <div class="col-md-4">
+                                <label class="form-label small">Mata Pelajaran</label>
+                                <input type="text" class="form-control form-control-sm" id="guru-kelas-mapel" placeholder="Contoh: Pemrograman Web">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small">Jam Mulai</label>
+                                <input type="time" class="form-control form-control-sm" id="guru-kelas-jam-mulai">
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
                                 <button type="button" class="btn btn-success btn-sm w-100" onclick="addGuruKelas()">
@@ -1671,6 +2016,39 @@
         </div>
     </div>
 
+    <!-- Modal Delete All Confirmation -->
+    <div class="modal fade" id="delete-all-modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Konfirmasi Hapus Semua</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center py-3">
+                        <i class="bi bi-trash-fill text-danger" style="font-size: 4rem;"></i>
+                        <h5 class="mt-3 mb-2">Apakah Anda Yakin?</h5>
+                        <p class="text-muted" id="delete-all-message">
+                            Anda akan menghapus semua data. Tindakan ini tidak dapat dibatalkan!
+                        </p>
+                        <div class="alert alert-warning mt-3 text-start">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Perhatian:</strong> Menghapus semua data akan menghapus:
+                            <ul class="mb-0 mt-2" id="delete-all-consequences">
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-modal-cancel" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-danger" id="btn-confirm-delete-all" onclick="deleteAllData()">
+                        <i class="bi bi-trash-fill me-1"></i>Ya, Hapus Semua
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Error Details -->
     <div class="modal fade" id="error-modal" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -1731,6 +2109,16 @@
         const kelasModal = new bootstrap.Modal(document.getElementById('kelas-modal'));
         const siswaModal = new bootstrap.Modal(document.getElementById('siswa-modal'));
         const guruModal = new bootstrap.Modal(document.getElementById('guru-modal'));
+
+        // Fix aria-hidden focus warning by removing focus when modals are hidden
+        ['jurusan-modal', 'kelas-modal', 'siswa-modal', 'guru-modal'].forEach(modalId => {
+            const modalEl = document.getElementById(modalId);
+            modalEl.addEventListener('hide.bs.modal', function() {
+                if (document.activeElement) {
+                    document.activeElement.blur();
+                }
+            });
+        });
 
         const socket = io();
         socket.emit('join-role', { role: 'admin', userId: userData.id });
@@ -1933,13 +2321,14 @@
                 const response = await fetch('/api/master-data/jurusan/all', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                allJurusan = await response.json();
+                window.allJurusan = await response.json();
+
                 const select = document.getElementById('kelas-jurusan');
                 select.innerHTML = '<option value="">-- Pilih Jurusan (Opsional) --</option>';
-                allJurusan.forEach(j => {
+                window.allJurusan.forEach(j => {
                     const option = document.createElement('option');
                     option.value = j.id;
-                    option.textContent = j.nama;
+                    option.textContent = `${j.nama}${j.singkatan ? ' (' + j.singkatan + ')' : ''}`;
                     select.appendChild(option);
                 });
             } catch (error) {
@@ -1966,10 +2355,14 @@
         function displayKelas(kelas) {
             const tbody = document.getElementById('kelas-tbody');
             tbody.innerHTML = '';
+            // Reset select all checkbox
+            document.getElementById('select-all-kelas').checked = false;
+            updateDeleteSelectedButton('kelas');
+
             if (kelas.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6">
+                        <td colspan="7">
                             <div class="empty-state">
                                 <i class="bi bi-inbox"></i>
                                 <h5>Belum ada data kelas</h5>
@@ -1981,8 +2374,14 @@
             }
             kelas.forEach((k, index) => {
                 const row = document.createElement('tr');
-                const namaJurusan = k.Jurusan ? k.Jurusan.nama : '-';
+                // Display nama with singkatan
+                const namaJurusan = k.Jurusan
+                    ? `${k.Jurusan.nama}${k.Jurusan.singkatan ? ' (' + k.Jurusan.singkatan + ')' : ''}`
+                    : '-';
                 row.innerHTML = `
+                    <td>
+                        <input type="checkbox" class="form-check-input item-checkbox" data-id="${k.id}" onchange="updateDeleteSelectedButton('kelas')">
+                    </td>
                     <td>${index + 1}</td>
                     <td><strong>${k.nama}</strong></td>
                     <td><span class="badge-modern badge-primary">${k.tingkat}</span></td>
@@ -2005,25 +2404,48 @@
 
         function searchKelas() {
             const search = document.getElementById('search-kelas').value.toLowerCase();
-            const filtered = window.allKelas.filter(k => k.nama.toLowerCase().includes(search) || k.tingkat.toLowerCase().includes(search));
+            const { tingkat, jurusan, tahun } = activeFilters.kelas;
+
+            const filtered = window.allKelas.filter(k => {
+                const matchSearch = k.nama.toLowerCase().includes(search) || k.tingkat.toLowerCase().includes(search);
+                const matchTingkat = !tingkat || k.tingkat === tingkat;
+                const matchJurusan = !jurusan || (k.Jurusan && k.Jurusan.id == jurusan) || k.jurusan_id == jurusan;
+                const matchTahun = !tahun || k.tahun_ajaran === tahun;
+                return matchSearch && matchTingkat && matchJurusan && matchTahun;
+            });
+
             displayKelas(filtered);
         }
 
-        function openKelasModal(id = null) {
+        async function openKelasModal(id = null) {
             document.getElementById('kelas-modal-title').textContent = id ? 'Edit Kelas' : 'Tambah Kelas';
-            document.getElementById('kelas-form').reset();
             document.getElementById('kelas-id').value = id || '';
-            loadJurusanForSelect();
+
+            // Always reload jurusan data to ensure it's fresh
+            await loadJurusanForSelect();
+
             if (id) {
                 const kelas = window.allKelas.find(k => k.id === id);
+
                 if (kelas) {
-                    document.getElementById('kelas-nama').value = kelas.nama;
-                    document.getElementById('kelas-tingkat').value = kelas.tingkat;
-                    document.getElementById('kelas-tahun').value = kelas.tahun_ajaran;
-                    setTimeout(() => {
-                        document.getElementById('kelas-jurusan').value = kelas.jurusan_id || '';
-                    }, 100);
+                    document.getElementById('kelas-nama').value = kelas.nama || '';
+                    document.getElementById('kelas-tingkat').value = kelas.tingkat || '';
+                    document.getElementById('kelas-tahun').value = kelas.tahun_ajaran || '';
+
+                    // Get jurusan_id from either jurusan_id or Jurusan.id
+                    const jurusanId = kelas.jurusan_id || (kelas.Jurusan ? kelas.Jurusan.id : null);
+
+                    if (jurusanId) {
+                        const select = document.getElementById('kelas-jurusan');
+                        select.value = jurusanId;
+                    }
                 }
+            } else {
+                // Reset form for new entry
+                document.getElementById('kelas-nama').value = '';
+                document.getElementById('kelas-tingkat').value = '';
+                document.getElementById('kelas-tahun').value = '';
+                document.getElementById('kelas-jurusan').value = '';
             }
             kelasModal.show();
         }
@@ -2052,10 +2474,12 @@
         document.getElementById('kelas-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('kelas-id').value;
+            const jurusanValue = document.getElementById('kelas-jurusan').value;
             const data = {
                 nama: document.getElementById('kelas-nama').value,
                 tingkat: document.getElementById('kelas-tingkat').value,
-                tahun_ajaran: document.getElementById('kelas-tahun').value
+                tahun_ajaran: document.getElementById('kelas-tahun').value,
+                jurusan_id: jurusanValue ? parseInt(jurusanValue) : null
             };
             try {
                 const url = id ? `/api/master-data/kelas/${id}` : '/api/master-data/kelas';
@@ -2094,10 +2518,14 @@
         function displaySiswa(siswa) {
             const tbody = document.getElementById('siswa-tbody');
             tbody.innerHTML = '';
+            // Reset select all checkbox
+            document.getElementById('select-all-siswa').checked = false;
+            updateDeleteSelectedButton('siswa');
+
             if (siswa.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="5">
+                        <td colspan="6">
                             <div class="empty-state">
                                 <i class="bi bi-inbox"></i>
                                 <h5>Belum ada data siswa</h5>
@@ -2111,6 +2539,9 @@
                 const kelasNama = s.Kelas ? s.Kelas.nama : (s.Kela ? s.Kela.nama : '-');
                 const row = document.createElement('tr');
                 row.innerHTML = `
+                    <td>
+                        <input type="checkbox" class="form-check-input item-checkbox" data-id="${s.id}" onchange="updateDeleteSelectedButton('siswa')">
+                    </td>
                     <td>${index + 1}</td>
                     <td><strong>${s.nama}</strong></td>
                     <td><code style="background: #f1f5f9; padding: 0.25rem 0.5rem; border-radius: 4px;">${s.nis}</code></td>
@@ -2132,7 +2563,16 @@
 
         function searchSiswa() {
             const search = document.getElementById('search-siswa').value.toLowerCase();
-            const filtered = window.allSiswa.filter(s => s.nama.toLowerCase().includes(search) || s.nis.toLowerCase().includes(search));
+            const { kelas, kelamin, status } = activeFilters.siswa;
+
+            const filtered = window.allSiswa.filter(s => {
+                const matchSearch = s.nama.toLowerCase().includes(search) || s.nis.toLowerCase().includes(search);
+                const matchKelas = !kelas || s.kelas_id == kelas;
+                const matchKelamin = !kelamin || s.kelamin === kelamin;
+                const matchStatus = !status || s.status === status;
+                return matchSearch && matchKelas && matchKelamin && matchStatus;
+            });
+
             displaySiswa(filtered);
         }
 
@@ -2145,8 +2585,8 @@
                 document.getElementById('siswa-nis').value = siswa.nis;
                 document.getElementById('siswa-nama').value = siswa.nama;
                 document.getElementById('siswa-kelas').value = siswa.kelas_id;
-                document.getElementById('siswa-email').value = siswa.email || '';
-                document.getElementById('siswa-phone').value = siswa.phone || '';
+                document.getElementById('siswa-kelamin').value = siswa.kelamin || '';
+                document.getElementById('siswa-status').value = siswa.status || 'aktif';
             }
             siswaModal.show();
         }
@@ -2179,8 +2619,8 @@
                 nis: document.getElementById('siswa-nis').value,
                 nama: document.getElementById('siswa-nama').value,
                 kelas_id: parseInt(document.getElementById('siswa-kelas').value),
-                email: document.getElementById('siswa-email').value,
-                phone: document.getElementById('siswa-phone').value
+                kelamin: document.getElementById('siswa-kelamin').value,
+                status: document.getElementById('siswa-status').value
             };
             try {
                 const url = id ? `/api/master-data/siswa/${id}` : '/api/master-data/siswa';
@@ -2237,10 +2677,14 @@
         function displayGuru(guru) {
             const tbody = document.getElementById('guru-tbody');
             tbody.innerHTML = '';
+            // Reset select all checkbox
+            document.getElementById('select-all-guru').checked = false;
+            updateDeleteSelectedButton('guru');
+
             if (guru.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6">
+                        <td colspan="7">
                             <div class="empty-state">
                                 <i class="bi bi-inbox"></i>
                                 <h5>Belum ada data guru</h5>
@@ -2253,6 +2697,9 @@
             guru.forEach((g, index) => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
+                    <td>
+                        <input type="checkbox" class="form-check-input item-checkbox" data-id="${g.id}" onchange="updateDeleteSelectedButton('guru')">
+                    </td>
                     <td>${index + 1}</td>
                     <td><strong>${g.nama}</strong></td>
                     <td><code style="background: #f1f5f9; padding: 0.25rem 0.5rem; border-radius: 4px;">${g.nip}</code></td>
@@ -2275,7 +2722,15 @@
 
         function searchGuru() {
             const search = document.getElementById('search-guru').value.toLowerCase();
-            const filtered = window.allGuru.filter(g => g.nama.toLowerCase().includes(search) || g.nip.toLowerCase().includes(search));
+            const { mapel, role } = activeFilters.guru;
+
+            const filtered = window.allGuru.filter(g => {
+                const matchSearch = g.nama.toLowerCase().includes(search) || g.nip.toLowerCase().includes(search) || g.mapel.toLowerCase().includes(search);
+                const matchMapel = !mapel || g.mapel.toLowerCase().includes(mapel);
+                const matchRole = !role || g.role === role;
+                return matchSearch && matchMapel && matchRole;
+            });
+
             displayGuru(filtered);
         }
 
@@ -2299,10 +2754,8 @@
             tempGuruKelas = [];
             renderGuruKelasList();
 
-            if (allKelas.length === 0) {
-                await loadAllKelas();
-            }
-
+            if (allKelas.length === 0) await loadAllKelas();
+            
             if (id) {
                 const guru = window.allGuru.find(g => g.id === id);
                 if (guru) {
@@ -2317,21 +2770,21 @@
                         const response = await fetch(`/api/master-data/guru-kelas/guru/${id}`, {
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
-                        const data = await response.json();
-                        const guruKelas = Array.isArray(data) ? data : [];
-
-                        const kelasMap = {};
-                        allKelas.forEach(k => { kelasMap[k.id] = k.nama; });
-
-                        tempGuruKelas = guruKelas.map(gk => ({
+                        if (!response.ok) throw new Error('Failed to fetch relations');
+                        
+                        const guruKelasRelations = await response.json();
+                        
+                        tempGuruKelas = guruKelasRelations.map(gk => ({
                             id: gk.id,
                             kelas_id: gk.kelas_id,
-                            kelas_nama: kelasMap[gk.kelas_id] || `Kelas ${gk.kelas_id}`,
-                            mata_pelajaran: gk.mata_pelajaran
+                            kelas_nama: gk.Kela ? gk.Kela.nama : 'N/A',
+                            mata_pelajaran: gk.mata_pelajaran,
+                            jam_mulai: gk.jam_mulai
                         }));
                         renderGuruKelasList();
                     } catch (error) {
                         console.error('Error loading guru-kelas:', error);
+                        showNotification('Gagal memuat jadwal mengajar guru.', 'error');
                     }
                 }
             }
@@ -2356,19 +2809,19 @@
 
         function addGuruKelas() {
             const kelasId = document.getElementById('guru-kelas-select').value;
-            const mapelOverride = document.getElementById('guru-kelas-mapel').value;
-            const defaultMapel = document.getElementById('guru-mapel').value;
+            const mataPelajaran = document.getElementById('guru-kelas-mapel').value;
+            const jamMulai = document.getElementById('guru-kelas-jam-mulai').value;
 
-            if (!kelasId) {
-                showNotification('Pilih kelas terlebih dahulu!', 'error');
+            if (!kelasId || !mataPelajaran || !jamMulai) {
+                showNotification('Harap lengkapi semua field: Kelas, Mata Pelajaran, dan Jam Mulai.', 'error');
                 return;
             }
 
             const kelas = allKelas.find(k => k.id == kelasId);
             if (!kelas) return;
 
-            if (tempGuruKelas.some(gk => gk.kelas_id == kelasId)) {
-                showNotification('Kelas sudah ditambahkan!', 'error');
+            if (tempGuruKelas.some(gk => gk.kelas_id == kelasId && gk.mata_pelajaran == mataPelajaran)) {
+                showNotification('Kombinasi kelas dan mata pelajaran ini sudah ditambahkan!', 'error');
                 return;
             }
 
@@ -2376,12 +2829,14 @@
                 id: null,
                 kelas_id: parseInt(kelasId),
                 kelas_nama: kelas.nama,
-                mata_pelajaran: mapelOverride || defaultMapel
+                mata_pelajaran: mataPelajaran,
+                jam_mulai: jamMulai
             });
 
             renderGuruKelasList();
             updateGuruKelasSelect();
             document.getElementById('guru-kelas-mapel').value = '';
+            document.getElementById('guru-kelas-jam-mulai').value = '';
         }
 
         function removeGuruKelas(index) {
@@ -2412,7 +2867,7 @@
                 item.innerHTML = `
                     <div class="kelas-info">
                         <h6><i class="bi bi-building me-1"></i>${gk.kelas_nama}</h6>
-                        <p><i class="bi bi-book me-1"></i>Mata Pelajaran: ${gk.mata_pelajaran || 'Default (dari profil)'}</p>
+                        <p><i class="bi bi-book me-1"></i>Mapel: ${gk.mata_pelajaran} <span class="badge bg-primary rounded-pill"><i class="bi bi-clock me-1"></i>${gk.jam_mulai}</span></p>
                     </div>
                     <button type="button" class="btn-action btn-delete" onclick="removeGuruKelas(${index})">
                         <i class="bi bi-x"></i>
@@ -2492,44 +2947,60 @@
                 const response = await fetch(`/api/master-data/guru-kelas/guru/${guruId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                const data = await response.json();
-                existingRelations = Array.isArray(data) ? data : [];
+                existingRelations = await response.json();
             } catch (error) {
                 console.error('Error fetching existing relations:', error);
+                showNotification('Gagal mengambil data relasi guru-kelas.', 'error');
+                return;
             }
 
+            const tempIds = tempGuruKelas.map(gk => gk.id).filter(id => id !== null);
             const existingIds = existingRelations.map(r => r.id);
-            const existingKelasIds = existingRelations.map(r => r.kelas_id);
 
-            for (const existingId of existingIds) {
-                const stillExists = tempGuruKelas.some(gk => gk.id === existingId);
-                if (!stillExists) {
-                    try {
-                        await fetch(`/api/master-data/guru-kelas/${existingId}`, {
-                            method: 'DELETE',
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                    } catch (error) {
-                        console.error('Error deleting relation:', error);
-                    }
+            // 1. Delete relations that are no longer in tempGuruKelas
+            const toDelete = existingIds.filter(id => !tempIds.includes(id));
+            for (const id of toDelete) {
+                try {
+                    await fetch(`/api/master-data/guru-kelas/${id}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                } catch (error) {
+                    console.error(`Error deleting relation ${id}:`, error);
                 }
             }
 
+            // 2. Add or Update relations
             for (const gk of tempGuruKelas) {
-                const alreadyExists = existingKelasIds.includes(gk.kelas_id);
-                if (!alreadyExists) {
+                const payload = {
+                    guru_id: guruId,
+                    kelas_id: gk.kelas_id,
+                    mata_pelajaran: gk.mata_pelajaran,
+                    jam_mulai: gk.jam_mulai
+                };
+
+                if (gk.id) { // This is an existing relation, check for updates
+                    const existing = existingRelations.find(r => r.id === gk.id);
+                    if (existing && (existing.jam_mulai !== gk.jam_mulai || existing.mata_pelajaran !== gk.mata_pelajaran)) { // Update if jam or mapel changed
+                        try {
+                            await fetch(`/api/master-data/guru-kelas/${gk.id}`, {
+                                method: 'PUT',
+                                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+                        } catch (error) {
+                            console.error(`Error updating relation ${gk.id}:`, error);
+                        }
+                    }
+                } else { // This is a new relation, add it
                     try {
                         await fetch('/api/master-data/guru-kelas', {
                             method: 'POST',
                             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                guru_id: guruId,
-                                kelas_id: gk.kelas_id,
-                                mata_pelajaran: gk.mata_pelajaran
-                            })
+                            body: JSON.stringify(payload)
                         });
                     } catch (error) {
-                        console.error('Error adding relation:', error);
+                        console.error('Error adding new relation:', error);
                     }
                 }
             }
@@ -2940,6 +3411,297 @@
         function downloadTemplate() {
             window.open(`/api/import/template/${currentEntityType}?token=${token}`, '_blank');
         }
+
+        // ==================== FILTER FUNCTIONS ====================
+        let activeFilters = {
+            kelas: { tingkat: '', jurusan: '', tahun: '' },
+            siswa: { kelas: '', kelamin: '', status: '' },
+            guru: { mapel: '', role: '' }
+        };
+
+        let filterTimeout = null;
+
+        function toggleFilterMenu(tabName) {
+            const menu = document.getElementById(`filter-${tabName}-menu`);
+            const btn = document.getElementById(`filter-${tabName}-btn`);
+            const isOpen = menu.classList.contains('show');
+
+            // Close all other filter menus
+            document.querySelectorAll('.filter-menu').forEach(m => m.classList.remove('show'));
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+
+            if (!isOpen) {
+                // Calculate position
+                const btnRect = btn.getBoundingClientRect();
+                menu.style.top = btnRect.bottom + 5 + 'px';
+                menu.style.left = btnRect.right - 280 + 'px'; // 280 is min-width of menu
+
+                menu.classList.add('show');
+                btn.classList.add('active');
+            }
+        }
+
+        // Close filter menu when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.filter-dropdown')) {
+                document.querySelectorAll('.filter-menu').forEach(m => m.classList.remove('show'));
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            }
+        });
+
+        function resetFilter(tabName) {
+            if (tabName === 'kelas') {
+                document.getElementById('filter-kelas-tingkat').value = '';
+                document.getElementById('filter-kelas-jurusan').value = '';
+                document.getElementById('filter-kelas-tahun').value = '';
+            } else if (tabName === 'siswa') {
+                document.getElementById('filter-siswa-kelas').value = '';
+                document.getElementById('filter-siswa-kelamin').value = '';
+                document.getElementById('filter-siswa-status').value = '';
+            } else if (tabName === 'guru') {
+                document.getElementById('filter-guru-mapel').value = '';
+                document.getElementById('filter-guru-role').value = '';
+            }
+
+            activeFilters[tabName] = tabName === 'guru'
+                ? { mapel: '', role: '' }
+                : { tingkat: '', jurusan: '', tahun: '' };
+
+            updateFilterBadge(tabName);
+            applyFilter(tabName);
+        }
+
+        function applyFilter(tabName) {
+            if (tabName === 'kelas') {
+                activeFilters.kelas = {
+                    tingkat: document.getElementById('filter-kelas-tingkat').value,
+                    jurusan: document.getElementById('filter-kelas-jurusan').value,
+                    tahun: document.getElementById('filter-kelas-tahun').value
+                };
+            } else if (tabName === 'siswa') {
+                activeFilters.siswa = {
+                    kelas: document.getElementById('filter-siswa-kelas').value,
+                    kelamin: document.getElementById('filter-siswa-kelamin').value,
+                    status: document.getElementById('filter-siswa-status').value
+                };
+            } else if (tabName === 'guru') {
+                activeFilters.guru = {
+                    mapel: document.getElementById('filter-guru-mapel').value.toLowerCase(),
+                    role: document.getElementById('filter-guru-role').value
+                };
+            }
+
+            updateFilterBadge(tabName);
+            closeFilterMenu(tabName);
+
+            // Apply filter to display by calling search function
+            if (tabName === 'kelas') searchKelas();
+            else if (tabName === 'siswa') searchSiswa();
+            else if (tabName === 'guru') searchGuru();
+        }
+
+        function updateFilterBadge(tabName) {
+            const badge = document.getElementById(`filter-${tabName}-badge`);
+            const btn = document.getElementById(`filter-${tabName}-btn`);
+            const filters = activeFilters[tabName];
+            const count = Object.values(filters).filter(v => v && v !== '').length;
+
+            if (count > 0) {
+                badge.textContent = count;
+                badge.classList.remove('d-none');
+                btn.classList.add('has-filter');
+            } else {
+                badge.classList.add('d-none');
+                btn.classList.remove('has-filter');
+            }
+        }
+
+        function closeFilterMenu(tabName) {
+            document.getElementById(`filter-${tabName}-menu`).classList.remove('show');
+            document.getElementById(`filter-${tabName}-btn`).classList.remove('active');
+        }
+
+        // ==================== CHECKBOX FUNCTIONS ====================
+        function toggleSelectAll(tabName) {
+            const selectAll = document.getElementById(`select-all-${tabName}`);
+            const checkboxes = document.querySelectorAll(`#${tabName}-tbody .item-checkbox`);
+
+            checkboxes.forEach(cb => {
+                cb.checked = selectAll.checked;
+            });
+
+            updateDeleteSelectedButton(tabName);
+        }
+
+        function updateDeleteSelectedButton(tabName) {
+            const checkboxes = document.querySelectorAll(`#${tabName}-tbody .item-checkbox:checked`);
+            const btn = document.getElementById(`btn-delete-selected-${tabName}`);
+
+            if (checkboxes.length > 0) {
+                btn.style.display = 'flex';
+                btn.querySelector('span').textContent = `Hapus Terpilih (${checkboxes.length})`;
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+
+        async function deleteSelected(tabName) {
+            const checkboxes = document.querySelectorAll(`#${tabName}-tbody .item-checkbox:checked`);
+            if (checkboxes.length === 0) {
+                showNotification('Tidak ada data yang dipilih', 'warning');
+                return;
+            }
+
+            const count = checkboxes.length;
+            if (!confirm(`Apakah Anda yakin ingin menghapus ${count} data ${tabName} yang dipilih?`)) {
+                return;
+            }
+
+            const ids = Array.from(checkboxes).map(cb => parseInt(cb.dataset.id));
+            let deleted = 0;
+            let errors = [];
+
+            for (const id of ids) {
+                try {
+                    const response = await fetch(`/api/master-data/${tabName}/${id}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        deleted++;
+                    } else {
+                        errors.push(data.error || 'Gagal menghapus');
+                    }
+                } catch (error) {
+                    errors.push(error.message);
+                }
+            }
+
+            if (deleted > 0) {
+                showNotification(`${deleted} data ${tabName} berhasil dihapus`, 'success');
+                // Reload data
+                if (tabName === 'kelas') loadKelas();
+                else if (tabName === 'siswa') loadSiswa();
+                else if (tabName === 'guru') loadGuru();
+            }
+
+            if (errors.length > 0) {
+                showNotification(`${errors.length} gagal: ${errors.join(', ')}`, 'error');
+            }
+        }
+
+        // ==================== DELETE ALL FUNCTIONS ====================
+        const deleteAllModal = new bootstrap.Modal(document.getElementById('delete-all-modal'));
+        let currentDeleteType = '';
+
+        function confirmDeleteAll(type) {
+            currentDeleteType = type;
+
+            const msg = messages[type];
+            document.getElementById('delete-all-message').textContent = msg.message;
+
+            const consequencesList = document.getElementById('delete-all-consequences');
+            consequencesList.innerHTML = msg.consequences.map(c => `<li>${c}</li>`).join('');
+
+            deleteAllModal.show();
+        }
+
+        async function deleteAllData() {
+            const btn = document.getElementById('btn-confirm-delete-all');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Menghapus...';
+
+            try {
+                const endpoints = {
+                    jurusan: '/api/master-data/jurusan/all',
+                    kelas: '/api/master-data/kelas/all',
+                    siswa: '/api/master-data/siswa/all',
+                    guru: '/api/master-data/guru/all'
+                };
+
+                const response = await fetch(endpoints[currentDeleteType], {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification(result.message || `Semua data ${currentDeleteType} berhasil dihapus`);
+
+                    // Reload data
+                    if (currentDeleteType === 'jurusan') loadJurusan();
+                    else if (currentDeleteType === 'kelas') loadKelas();
+                    else if (currentDeleteType === 'siswa') loadSiswa();
+                    else if (currentDeleteType === 'guru') loadGuru();
+
+                    deleteAllModal.hide();
+                } else {
+                    showNotification(result.error || `Gagal menghapus data ${currentDeleteType}`, 'error');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-trash-fill me-1"></i>Ya, Hapus Semua';
+            }
+        }
+
+        // Populate filter dropdowns when loading data
+        async function populateFilterOptions() {
+            // Load kelas options for filter
+            try {
+                const response = await fetch('/api/master-data/kelas/all', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const kelas = await response.json();
+
+                // Update siswa filter
+                const siswaKelasSelect = document.getElementById('filter-siswa-kelas');
+                const currentSiswaKelas = siswaKelasSelect.value;
+                siswaKelasSelect.innerHTML = '<option value="">Semua Kelas</option>';
+                kelas.forEach(k => {
+                    const option = document.createElement('option');
+                    option.value = k.id;
+                    option.textContent = k.nama;
+                    siswaKelasSelect.appendChild(option);
+                });
+                if (currentSiswaKelas) siswaKelasSelect.value = currentSiswaKelas;
+
+                // Update kelas filter for tahun ajaran
+                const kelasTahunSelect = document.getElementById('filter-kelas-tahun');
+                const uniqueYears = [...new Set(kelas.map(k => k.tahun_ajaran))].sort().reverse();
+                kelasTahunSelect.innerHTML = '<option value="">Semua Tahun</option>';
+                uniqueYears.forEach(year => {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.textContent = year;
+                    kelasTahunSelect.appendChild(option);
+                });
+
+                // Update kelas filter for jurusan
+                const kelasJurusanSelect = document.getElementById('filter-kelas-jurusan');
+                const currentKelasJurusan = kelasJurusanSelect.value;
+                kelasJurusanSelect.innerHTML = '<option value="">Semua Jurusan</option>';
+                allJurusan.forEach(j => {
+                    const option = document.createElement('option');
+                    option.value = j.id;
+                    option.textContent = j.nama;
+                    kelasJurusanSelect.appendChild(option);
+                });
+                if (currentKelasJurusan) kelasJurusanSelect.value = currentKelasJurusan;
+            } catch (error) {
+                console.error('Error populating filter options:', error);
+            }
+        }
+
+        // Call populate filter options after load
+        const originalLoadKelas = loadKelas;
+        loadKelas = async function() {
+            await originalLoadKelas();
+            await populateFilterOptions();
+        };
     </script>
 </body>
 </html>

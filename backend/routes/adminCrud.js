@@ -125,6 +125,7 @@ router.delete('/jurusan/:id', authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
+
 // ========================================
 // CRUD GURU
 // ========================================
@@ -351,7 +352,7 @@ router.get('/siswa/:id', authMiddleware, adminOnly, async (req, res) => {
 // Create new siswa
 router.post('/siswa', authMiddleware, adminOnly, async (req, res) => {
   try {
-    const { nis, nama, email, phone, kelas_id } = req.body;
+    const { nis, nama, kelamin, status, kelas_id } = req.body;
 
     // Check if nis already exists
     const existingSiswa = await Siswa.findOne({ where: { nis } });
@@ -374,8 +375,8 @@ router.post('/siswa', authMiddleware, adminOnly, async (req, res) => {
     const siswa = await Siswa.create({
       nis,
       nama,
-      email,
-      phone,
+      kelamin,
+      status,
       kelas_id
     });
 
@@ -401,7 +402,7 @@ router.post('/siswa', authMiddleware, adminOnly, async (req, res) => {
 router.put('/siswa/:id', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
-    const { nis, nama, email, phone, kelas_id } = req.body;
+    const { nis, nama, kelamin, status, kelas_id } = req.body;
 
     const siswa = await Siswa.findByPk(id);
 
@@ -439,8 +440,8 @@ router.put('/siswa/:id', authMiddleware, adminOnly, async (req, res) => {
     const updateData = {};
     if (nis) updateData.nis = nis;
     if (nama) updateData.nama = nama;
-    if (email !== undefined) updateData.email = email;
-    if (phone !== undefined) updateData.phone = phone;
+    if (kelamin !== undefined) updateData.kelamin = kelamin;
+    if (status !== undefined) updateData.status = status;
     if (kelas_id) updateData.kelas_id = kelas_id;
 
     // Update siswa
@@ -478,17 +479,11 @@ router.delete('/siswa/:id', authMiddleware, adminOnly, async (req, res) => {
       return res.status(404).json({ error: 'Siswa not found' });
     }
 
-    // Check if siswa has absensi records
-    const absensiCount = await Absensi.count({
-      where: { siswa_id: id }
+    // Delete all absensi records for this siswa first
+    await Absensi.destroy({
+      where: { siswa_id: id },
+      transaction: t
     });
-
-    if (absensiCount > 0) {
-      await t.rollback();
-      return res.status(400).json({
-        error: 'Tidak dapat menghapus siswa yang sudah memiliki data absensi'
-      });
-    }
 
     // Delete siswa (orphan records in siswa_orang_tua will be cascade deleted)
     await siswa.destroy({ transaction: t });
@@ -496,7 +491,7 @@ router.delete('/siswa/:id', authMiddleware, adminOnly, async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Siswa berhasil dihapus'
+      message: 'Siswa dan riwayat absensinya berhasil dihapus'
     });
   } catch (error) {
     await t.rollback();
@@ -713,10 +708,9 @@ router.get('/guru-kelas/guru/:guruId', authMiddleware, adminOnly, async (req, re
     const guruId = parseInt(req.params.guruId);
     const guruKelas = await GuruKelas.findAll({
       where: { guru_id: guruId },
-      include: [{
-        model: Kelas,
-        attributes: ['id', 'nama', 'tingkat']
-      }]
+      include: [
+        { model: Kelas, attributes: ['id', 'nama', 'tingkat'] }
+      ]
     });
     res.json(guruKelas);
   } catch (error) {
@@ -728,29 +722,24 @@ router.get('/guru-kelas/guru/:guruId', authMiddleware, adminOnly, async (req, re
 // Add guru to kelas (with optional mata_pelajaran override)
 router.post('/guru-kelas', authMiddleware, adminOnly, async (req, res) => {
   try {
-    const { guru_id, kelas_id, mata_pelajaran } = req.body;
+    const { guru_id, kelas_id, mata_pelajaran, jam_mulai } = req.body;
 
     // Check if relation already exists
     const existing = await GuruKelas.findOne({
-      where: { guru_id, kelas_id }
+      where: { guru_id, kelas_id, mata_pelajaran }
     });
 
     if (existing) {
       return res.status(400).json({
-        error: 'Guru sudah terdaftar di kelas ini'
+        error: 'Kombinasi guru, kelas, dan mata pelajaran ini sudah ada.'
       });
-    }
-
-    // Get guru's default mapel if not provided
-    const guru = await Guru.findByPk(guru_id);
-    if (!guru) {
-      return res.status(404).json({ error: 'Guru tidak ditemukan' });
     }
 
     const guruKelas = await GuruKelas.create({
       guru_id,
       kelas_id,
-      mata_pelajaran: mata_pelajaran || guru.mapel
+      mata_pelajaran: mata_pelajaran,
+      jam_mulai
     });
 
     res.status(201).json({
@@ -767,7 +756,7 @@ router.post('/guru-kelas', authMiddleware, adminOnly, async (req, res) => {
 router.put('/guru-kelas/:id', authMiddleware, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
-    const { mata_pelajaran } = req.body;
+    const { mata_pelajaran, jam_mulai } = req.body;
 
     const guruKelas = await GuruKelas.findByPk(id);
 
@@ -775,11 +764,15 @@ router.put('/guru-kelas/:id', authMiddleware, adminOnly, async (req, res) => {
       return res.status(404).json({ error: 'Relasi tidak ditemukan' });
     }
 
-    await guruKelas.update({ mata_pelajaran });
+    const updateData = {};
+    if (mata_pelajaran !== undefined) updateData.mata_pelajaran = mata_pelajaran;
+    if (jam_mulai) updateData.jam_mulai = jam_mulai;
+
+    await guruKelas.update(updateData);
 
     res.json({
       success: true,
-      message: 'Mata pelajaran berhasil diupdate',
+      message: 'Jadwal mengajar berhasil diupdate',
       data: guruKelas
     });
   } catch (error) {
@@ -805,6 +798,118 @@ router.delete('/guru-kelas/:id', authMiddleware, adminOnly, async (req, res) => 
       message: 'Guru berhasil dihapus dari kelas'
     });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========================================
+// DELETE ALL ENDPOINTS
+// ========================================
+
+// Delete all Jurusan
+router.delete('/jurusan/all', authMiddleware, adminOnly, async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    // First, set kelas.jurusan_id to NULL
+    await Kelas.update({ jurusan_id: null }, {
+      where: { jurusan_id: { [Op.ne]: null } },
+      transaction: t
+    });
+
+    // Then delete all Jurusan
+    const count = await Jurusan.count();
+    if (count === 0) {
+      await t.rollback();
+      return res.status(400).json({ error: 'Tidak ada data jurusan untuk dihapus' });
+    }
+
+    await Jurusan.destroy({ where: {}, transaction: t, force: true });
+    await t.commit();
+
+    res.json({
+      success: true,
+      message: `Berhasil menghapus ${count} data jurusan`
+    });
+  } catch (error) {
+    await t.rollback();
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete all Guru
+router.delete('/guru/all', authMiddleware, adminOnly, async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    // Get count before deletion
+    const count = await Guru.count();
+    if (count === 0) {
+      await t.rollback();
+      return res.status(400).json({ error: 'Tidak ada data guru untuk dihapus' });
+    }
+
+    // Delete all guru-kelas relations first
+    await GuruKelas.destroy({ where: {}, transaction: t, force: true });
+
+    // Delete all Guru
+    await Guru.destroy({ where: {}, transaction: t, force: true });
+    await t.commit();
+
+    res.json({
+      success: true,
+      message: `Berhasil menghapus ${count} data guru`
+    });
+  } catch (error) {
+    await t.rollback();
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete all Siswa
+router.delete('/siswa/all', authMiddleware, adminOnly, async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    // Get count before deletion
+    const count = await Siswa.count();
+    if (count === 0) {
+      await t.rollback();
+      return res.status(400).json({ error: 'Tidak ada data siswa untuk dihapus' });
+    }
+
+    // Delete all Siswa
+    await Siswa.destroy({ where: {}, transaction: t, force: true });
+    await t.commit();
+
+    res.json({
+      success: true,
+      message: `Berhasil menghapus ${count} data siswa`
+    });
+  } catch (error) {
+    await t.rollback();
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete all Kelas
+router.delete('/kelas/all', authMiddleware, adminOnly, async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    // Get count before deletion
+    const count = await Kelas.count();
+    if (count === 0) {
+      await t.rollback();
+      return res.status(400).json({ error: 'Tidak ada data kelas untuk dihapus' });
+    }
+
+    // Delete all kelas first (siswa, jurnal, guru-kelas will be affected by FK)
+    await Kelas.destroy({ where: {}, transaction: t, force: true });
+    await t.commit();
+
+    res.json({
+      success: true,
+      message: `Berhasil menghapus ${count} data kelas`
+    });
+  } catch (error) {
+    await t.rollback();
     res.status(500).json({ error: error.message });
   }
 });

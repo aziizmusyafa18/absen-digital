@@ -908,6 +908,21 @@
         </div>
     </main>
 
+    <!-- Photo Modal -->
+    <div class="modal fade" id="photoModal" tabindex="-1" aria-labelledby="photoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="photoModalLabel">Foto Kegiatan</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="modal-photo-img" src="" class="img-fluid rounded" alt="Foto Kegiatan">
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3">
         <div id="notification" class="toast toast-custom" role="alert">
@@ -938,9 +953,19 @@
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', options);
 
-        // Initialize Bootstrap Toast
+        // Initialize Bootstrap Toast and Photo Modal
         const toastEl = document.getElementById('notification');
         const toast = new bootstrap.Toast(toastEl, { delay: 5000 });
+        const photoModal = new bootstrap.Modal(document.getElementById('photoModal'));
+
+        function showPhotoModal(base64Data) {
+            if (base64Data) {
+                document.getElementById('modal-photo-img').src = base64Data;
+                photoModal.show();
+            } else {
+                showNotification('Tidak ada foto untuk ditampilkan.', 'error');
+            }
+        }
 
         // Initialize Socket.io
         const socket = io();
@@ -1012,10 +1037,27 @@
             const tbody = document.getElementById('absen-tbody');
             tbody.innerHTML = '';
 
+            // Update table header to include "Foto"
+            const tableHead = document.querySelector('#absen-table thead tr');
+            if (!tableHead.querySelector('th:last-child').textContent.includes('Foto')) {
+                 tableHead.innerHTML = `
+                    <th>Waktu</th>
+                    <th>Guru</th>
+                    <th>Kelas</th>
+                    <th>Mata Pelajaran</th>
+                    <th>Status</th>
+                    <th class="text-center">Hadir</th>
+                    <th class="text-center">Izin</th>
+                    <th class="text-center">Alpha</th>
+                    <th>Foto</th> <!-- New column -->
+                `;
+            }
+
+
             if (!data.jurnal_hari_ini || data.jurnal_hari_ini.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="8">
+                        <td colspan="9"> <!-- colspan changed to 9 -->
                             <div class="empty-state">
                                 <i class="bi bi-inbox"></i>
                                 <h6>Belum Ada Data</h6>
@@ -1039,6 +1081,10 @@
                 const jamMulaiAbsen = jurnal.jam_mulai;
 
                 let statusBadge = getStatusBadge(jamMulaiGuru, jamMulaiAbsen);
+                
+                const fotoButton = jurnal.foto_kegiatan ? 
+                                    `<button class="btn btn-sm btn-outline-primary" onclick='showPhotoModal("${jurnal.foto_kegiatan}")'><i class="bi bi-camera"></i> Lihat Foto</button>` :
+                                    '-';
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -1055,6 +1101,7 @@
                     <td class="text-center"><span class="count-badge success">${hadir}</span></td>
                     <td class="text-center"><span class="count-badge warning">${izin}</span></td>
                     <td class="text-center"><span class="count-badge danger">${alpha}</span></td>
+                    <td>${fotoButton}</td> <!-- New column for photo -->
                 `;
                 tbody.appendChild(row);
             });
@@ -1086,6 +1133,10 @@
             const jamMulaiAbsen = data.jam_mulai;
 
             let statusBadge = getStatusBadge(jamMulaiGuru, jamMulaiAbsen);
+            
+            const fotoButton = data.foto_kegiatan ? 
+                                `<button class="btn btn-sm btn-outline-primary" onclick='showPhotoModal("${data.foto_kegiatan}")'><i class="bi bi-camera"></i> Lihat Foto</button>` :
+                                '-';
 
             const row = document.createElement('tr');
             row.className = 'new-row';
@@ -1103,6 +1154,7 @@
                 <td class="text-center"><span class="count-badge success">${data.total_hadir}</span></td>
                 <td class="text-center"><span class="count-badge warning">${data.total_izin}</span></td>
                 <td class="text-center"><span class="count-badge danger">${data.total_alpha}</span></td>
+                <td>${fotoButton}</td> <!-- New column for photo -->
             `;
             tbody.insertBefore(row, tbody.firstChild);
         }
@@ -1185,5 +1237,3 @@
             toast.show();
         }
     </script>
-</body>
-</html>

@@ -5,7 +5,7 @@ const XLSX = require('xlsx');
 const path = require('path');
 const fs = require('fs');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
-const { Siswa, Kelas, Guru, OrangTua, Jurusan } = require('../models');
+const { Siswa, Kelas, Guru, OrangTua, Jurusan, GuruKelas } = require('../models');
 
 // Configure multer for file upload
 const storage = multer.diskStorage({
@@ -62,44 +62,54 @@ const fieldMappings = {
             required: true,
             patterns: ['kelas', 'class', 'ruang', 'ruang_kelas', 'ruang kelas', 'tingkat']
         },
-        email: {
-            label: 'Email',
+        kelamin: {
+            label: 'Jenis Kelamin',
             required: false,
-            patterns: ['email', 'e-mail', 'mail', 'email_siswa']
+            patterns: ['jenis_kelamin', 'jenis kelamin', 'kelamin', 'gender', 'jk']
         },
-        phone: {
-            label: 'No. Telepon',
+        status: {
+            label: 'Status',
             required: false,
-            patterns: ['phone', 'telepon', 'telp', 'no_hp', 'no hp', 'no_telepon', 'no telepon', 'handphone', 'hp', 'mobile']
+            patterns: ['status', 'stat', 'keadaan', 'kondisi']
         }
     },
     guru: {
-        username: {
-            label: 'Username',
+        nip: {
+            label: 'NIP',
             required: true,
-            patterns: ['username', 'user', 'user_name', 'akun']
+            patterns: ['nip', 'no_pegawai', 'nomor_pegawai', 'id_guru', 'employee_id']
         },
         nama: {
             label: 'Nama Lengkap',
             required: true,
             patterns: ['nama', 'name', 'nama_lengkap', 'nama lengkap', 'nama_guru', 'nama guru', 'fullname']
         },
-        nip: {
-            label: 'NIP',
+        username: {
+            label: 'Username (wajib untuk guru baru)',
+            required: false,
+            patterns: ['username', 'user', 'user_name', 'akun']
+        },
+        password: {
+            label: 'Password (opsional)',
+            required: false,
+            patterns: ['password', 'pass', 'pwd', 'sandi', 'kata_sandi']
+        },
+        kelas: {
+            label: 'Kelas',
             required: true,
-            patterns: ['nip', 'no_pegawai', 'nomor_pegawai', 'id_guru', 'employee_id']
+            patterns: ['kelas', 'class', 'mengajar_kelas']
         },
         mapel: {
             label: 'Mata Pelajaran',
             required: true,
             patterns: ['mapel', 'mata_pelajaran', 'mata pelajaran', 'subject', 'pelajaran', 'bidang']
         },
-        password: {
-            label: 'Password',
-            required: false,
-            patterns: ['password', 'pass', 'pwd', 'sandi', 'kata_sandi']
+        jam_mulai: {
+            label: 'Jam Mulai',
+            required: true,
+            patterns: ['jam_mulai', 'jam mulai', 'mulai_mengajar', 'start_time']
         }
-    }
+    },
 };
 
 // Auto-detect column mapping based on header names
@@ -143,10 +153,18 @@ router.post('/parse', authMiddleware, adminOnly, upload.single('file'), async (r
         }
 
         const entityType = req.body.entity_type || 'siswa';
-        const filePath = req.file.path;
+        // Normalize path untuk Windows
+        const filePath = path.normalize(req.file.path);
+
+        console.log('Reading file:', filePath);
+
+        // Verify file exists
+        if (!fs.existsSync(filePath)) {
+            return res.status(400).json({ success: false, error: 'File tidak ditemukan di server' });
+        }
 
         // Read Excel file
-        const workbook = XLSX.readFile(filePath);
+        const workbook = XLSX.readFile(filePath, { type: 'file' });
         const sheetNames = workbook.SheetNames;
 
         // Get first sheet by default or specified sheet
@@ -216,8 +234,11 @@ router.post('/parse', authMiddleware, adminOnly, upload.single('file'), async (r
 
     } catch (error) {
         console.error('Parse error:', error);
-        if (req.file && fs.existsSync(req.file.path)) {
-            fs.unlinkSync(req.file.path);
+        if (req.file) {
+            const tempPath = path.normalize(req.file.path);
+            if (fs.existsSync(tempPath)) {
+                fs.unlinkSync(tempPath);
+            }
         }
         res.status(500).json({ success: false, error: 'Gagal membaca file: ' + error.message });
     }
@@ -228,7 +249,17 @@ router.post('/process', authMiddleware, adminOnly, async (req, res) => {
     try {
         const { filePath, entityType, mapping, options } = req.body;
 
-        if (!filePath || !fs.existsSync(filePath)) {
+        console.log('=== PROCESS IMPORT ===');
+        console.log('filePath received:', filePath);
+        console.log('mapping received:', JSON.stringify(mapping, null, 2));
+
+        // Normalize path untuk Windows
+        const normalizedPath = path.normalize(filePath);
+
+        console.log('normalizedPath:', normalizedPath);
+        console.log('exists:', fs.existsSync(normalizedPath));
+
+        if (!normalizedPath || !fs.existsSync(normalizedPath)) {
             return res.status(400).json({ success: false, error: 'File tidak ditemukan atau sudah expired' });
         }
 
@@ -236,10 +267,13 @@ router.post('/process', authMiddleware, adminOnly, async (req, res) => {
         const updateExisting = options?.updateExisting === true;
 
         // Read Excel file
-        const workbook = XLSX.readFile(filePath);
+        const workbook = XLSX.readFile(normalizedPath, { type: 'file' });
         const sheetName = req.body.sheetName || workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        console.log('Headers in file:', jsonData[0]);
+        console.log('Total data rows:', jsonData.length - 1);
 
         const headers = jsonData[0];
         const dataRows = jsonData.slice(1);
@@ -253,19 +287,25 @@ router.post('/process', authMiddleware, adminOnly, async (req, res) => {
             errors: []
         };
 
-        // Get kelas mapping for siswa import
+        // Get kelas mapping for both siswa and guru import
         let kelasMap = {};
-        if (entityType === 'siswa') {
-            const kelasList = await Kelas.findAll();
-            kelasList.forEach(k => {
-                kelasMap[k.nama.toLowerCase().trim()] = k.id;
-            });
-        }
+        const kelasList = await Kelas.findAll();
+        console.log('Kelas yang tersedia:', kelasList.map(k => ({ nama: k.nama, id: k.id })));
+        kelasList.forEach(k => {
+            kelasMap[k.nama.toLowerCase().trim()] = k.id;
+        });
+        console.log('Kelas Map:', kelasMap);
+
+
+        console.log('Mapping yang diterima:', mapping);
+        console.log('Total baris data:', dataRows.length);
 
         // Process each row
         for (let i = 0; i < dataRows.length; i++) {
             const row = dataRows[i];
             const rowNumber = i + 2; // Excel row number (1-indexed + header)
+
+            console.log(`Processing row ${rowNumber}:`, row);
 
             try {
                 // Build data object from mapping
@@ -280,6 +320,8 @@ router.post('/process', authMiddleware, adminOnly, async (req, res) => {
                         data[fieldKey] = value;
                     }
                 }
+
+                console.log(`Row ${rowNumber} - Mapped data:`, data);
 
                 // Validate required fields
                 const fields = fieldMappings[entityType];
@@ -297,6 +339,7 @@ router.post('/process', authMiddleware, adminOnly, async (req, res) => {
                         error: `Field wajib kosong: ${missingFields.join(', ')}`,
                         data: data
                     });
+                    console.log(`Row ${rowNumber} - Gagal: Field wajib kosong`);
                     continue;
                 }
 
@@ -310,24 +353,47 @@ router.post('/process', authMiddleware, adminOnly, async (req, res) => {
                         results.failed++;
                         results.errors.push({
                             row: rowNumber,
-                            error: `Kelas "${data.kelas}" tidak ditemukan`,
+                            error: `Kelas "${data.kelas}" tidak ditemukan di database. Pastikan kelas sudah dibuat!`,
                             data: data
                         });
                         continue;
                     }
 
+                    // Validate email - jika bukan format email, set ke null
+                    let emailValue = data.email || null;
+                    if (emailValue && (!emailValue.includes('@') || !emailValue.includes('.'))) {
+                        console.log(`Row ${rowNumber} - Email "${emailValue}" tidak valid, di-set ke null`);
+                        emailValue = null;
+                    }
+
                     // Check for existing
-                    const existing = await Siswa.findOne({ where: { nis: data.nis } });
+                    let existing = null;
+                    let isDuplicate = false;
+                    try {
+                        existing = await Siswa.findOne({ where: { nis: data.nis } });
+                    } catch (e) {
+                        console.error(`Row ${rowNumber} - Error checking existing:`, e);
+                    }
 
                     if (existing) {
                         if (updateExisting) {
-                            await existing.update({
-                                nama: data.nama,
-                                kelas_id: kelas_id,
-                                email: data.email || existing.email,
-                                phone: data.phone || existing.phone
-                            });
-                            results.updated++;
+                            try {
+                                await existing.update({
+                                    nama: data.nama,
+                                    kelas_id: kelas_id,
+                                    kelamin: data.kelamin || existing.kelamin,
+                                    status: data.status || existing.status
+                                });
+                                results.updated++;
+                            } catch (e) {
+                                results.failed++;
+                                results.errors.push({
+                                    row: rowNumber,
+                                    error: `Update failed: ${e.message}`,
+                                    data: data
+                                });
+                                continue;
+                            }
                         } else if (skipDuplicate) {
                             results.skipped++;
                         } else {
@@ -339,55 +405,102 @@ router.post('/process', authMiddleware, adminOnly, async (req, res) => {
                             });
                         }
                     } else {
-                        await Siswa.create({
-                            nis: data.nis,
-                            nama: data.nama,
-                            kelas_id: kelas_id,
-                            email: data.email || null,
-                            phone: data.phone || null
-                        });
-                        results.success++;
+                        try {
+                            await Siswa.create({
+                                nis: data.nis,
+                                nama: data.nama,
+                                kelas_id: kelas_id,
+                                kelamin: data.kelamin || null,
+                                status: data.status || 'aktif'
+                            });
+                            results.success++;
+                            console.log(`Row ${rowNumber} - Berhasil: ${data.nama}`);
+                        } catch (e) {
+                            results.failed++;
+                            results.errors.push({
+                                row: rowNumber,
+                                error: `Create failed: ${e.message}`,
+                                data: data
+                            });
+                            continue;
+                        }
                     }
                 } else if (entityType === 'guru') {
-                    const existing = await Guru.findOne({ where: { nip: data.nip } });
+                    // This logic processes one teaching assignment (GuruKelas) per row.
+                    
+                    // 1. Find or Create the Guru
+                    const [guru, created] = await Guru.findOrCreate({
+                        where: { nip: data.nip },
+                        defaults: {
+                            nama: data.nama,
+                            username: data.username,
+                            password: data.password || 'guru123', // Default password if needed
+                            mapel: '-', // Default value, as mapel is now per-assignment
+                            role: 'guru'
+                        }
+                    });
 
-                    if (existing) {
+                    // If a new guru was created, hash the password
+                    if (created) {
+                        if (!data.username) {
+                            results.failed++;
+                            results.errors.push({ row: rowNumber, error: `Username wajib diisi untuk guru baru dengan NIP ${data.nip}.` });
+                            // Rollback guru creation by destroying it
+                            await guru.destroy();
+                            continue;
+                        }
+                        const bcrypt = require('bcrypt');
+                        guru.password = await bcrypt.hash(guru.password, 10);
+                        await guru.save();
+                        results.success++; // Count guru creation as a success
+                    } else {
+                        // If guru exists, optionally update their name
+                        if (updateExisting && data.nama && guru.nama !== data.nama) {
+                           await guru.update({ nama: data.nama });
+                           // We don't count this as an "update" in the results unless the assignment is also updated.
+                        }
+                    }
+
+                    // 2. Find the Kelas
+                    const kelasName = data.kelas?.toLowerCase().trim();
+                    const kelas_id = kelasMap[kelasName];
+
+                    if (!kelas_id) {
+                        results.failed++;
+                        results.errors.push({ row: rowNumber, error: `Kelas "${data.kelas}" tidak ditemukan.` });
+                        continue;
+                    }
+
+                    // 3. Create the GuruKelas assignment
+                    const assignmentData = {
+                        guru_id: guru.id,
+                        kelas_id: kelas_id,
+                        jam_mulai: data.jam_mulai,
+                        mata_pelajaran: data.mapel
+                    };
+
+                    const existingAssignment = await GuruKelas.findOne({
+                        where: {
+                            guru_id: guru.id,
+                            kelas_id: kelas_id,
+                            jam_mulai: data.jam_mulai
+                        }
+                    });
+
+                    if (existingAssignment) {
                         if (updateExisting) {
-                            const updateData = {
-                                nama: data.nama,
-                                mapel: data.mapel,
-                                username: data.username
-                            };
-                            if (data.password) {
-                                const bcrypt = require('bcrypt');
-                                updateData.password = await bcrypt.hash(data.password, 10);
-                            }
-                            await existing.update(updateData);
+                            await existingAssignment.update({ mata_pelajaran: data.mapel });
                             results.updated++;
                         } else if (skipDuplicate) {
                             results.skipped++;
                         } else {
-                            results.failed++;
-                            results.errors.push({
-                                row: rowNumber,
-                                error: `NIP ${data.nip} sudah ada`,
-                                data: data
-                            });
+                             results.failed++;
+                             results.errors.push({ row: rowNumber, error: `Jadwal mengajar untuk guru ini di kelas dan jam yang sama sudah ada.` });
                         }
                     } else {
-                        const bcrypt = require('bcrypt');
-                        const password = data.password || 'guru123'; // Default password
-                        const hashedPassword = await bcrypt.hash(password, 10);
-
-                        await Guru.create({
-                            username: data.username,
-                            password: hashedPassword,
-                            nama: data.nama,
-                            nip: data.nip,
-                            mapel: data.mapel,
-                            role: 'guru'
-                        });
-                        results.success++;
+                        await GuruKelas.create(assignmentData);
+                        // Only count as success if the guru wasn't just created (as that was already counted)
+                        if (!created) results.success++;
                     }
                 }
 
@@ -402,8 +515,8 @@ router.post('/process', authMiddleware, adminOnly, async (req, res) => {
         }
 
         // Clean up uploaded file
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
+        if (fs.existsSync(normalizedPath)) {
+            fs.unlinkSync(normalizedPath);
         }
 
         res.json({
@@ -422,9 +535,10 @@ router.post('/process', authMiddleware, adminOnly, async (req, res) => {
 router.post('/cancel', authMiddleware, adminOnly, async (req, res) => {
     try {
         const { filePath } = req.body;
+        const normalizedPath = path.normalize(filePath);
 
-        if (filePath && fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
+        if (normalizedPath && fs.existsSync(normalizedPath)) {
+            fs.unlinkSync(normalizedPath);
         }
 
         res.json({ success: true, message: 'Import dibatalkan' });
@@ -454,15 +568,21 @@ router.get('/template/:entityType', authMiddleware, adminOnly, async (req, res) 
         if (entityType === 'siswa') {
             const kelasList = await Kelas.findAll({ limit: 3 });
             sampleData = [
-                ['12345', 'Ahmad Rizki', kelasList[0]?.nama || 'XII TJKT A', 'ahmad@email.com', '081234567890'],
-                ['12346', 'Budi Santoso', kelasList[0]?.nama || 'XII TJKT A', 'budi@email.com', '081234567891'],
-                ['12347', 'Citra Dewi', kelasList[1]?.nama || 'XII TJKT B', '', '081234567892']
+                ['12345', 'Ahmad Rizki', kelasList[0]?.nama || 'XII TJKT A', 'Laki-laki', 'aktif'],
+                ['12346', 'Budi Santoso', kelasList[0]?.nama || 'XII TJKT A', 'Laki-laki', 'aktif'],
+                ['12347', 'Citra Dewi', kelasList[1]?.nama || 'XII TJKT B', 'Perempuan', 'aktif']
             ];
         } else if (entityType === 'guru') {
+            const kelasList = await Kelas.findAll({ limit: 3, order: [['nama', 'ASC']] });
+            const kelasContoh1 = kelasList[0]?.nama || 'X TJKT A';
+            const kelasContoh2 = kelasList[1]?.nama || 'X TJKT B';
+            const kelasContoh3 = kelasList[2]?.nama || 'XI TJKT A';
+
             sampleData = [
-                ['sari', 'Sari Indah, S.Pd', '198501012010011001', 'Matematika', 'guru123'],
-                ['budi', 'Budi Hartono, M.Pd', '198601012010011002', 'Bahasa Inggris', ''],
-                ['dewi', 'Dewi Lestari, S.Kom', '198701012010011003', 'Pemrograman Web', '']
+                // nip, nama, username, password, kelas, mapel, jam_mulai
+                ['198501012010011001', 'Sari Indah, S.Pd', 'sari.indah', 'guru123', kelasContoh1, 'Matematika', '07:00'],
+                ['198501012010011001', 'Sari Indah, S.Pd', '', '', kelasContoh2, 'Matematika', '09:00'],
+                ['198601012010011002', 'Budi Hartono, M.Pd', 'budi.hartono', '', kelasContoh3, 'Bahasa Inggris', '08:00'],
             ];
         }
 

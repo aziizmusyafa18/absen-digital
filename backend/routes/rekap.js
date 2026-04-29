@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const XLSX = require('xlsx');
-const PDFDocument = require('pdfkit');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
-const { Absensi, Siswa, Kelas, Jurnal, Guru, Jurusan } = require('../models');
+const { Absensi, Siswa, Kelas, Jurnal, Guru, Jurusan, Nilai, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
 // Helper function untuk get data rekap
@@ -35,7 +34,7 @@ async function getRekapData(tanggal, kelas_id, jurusan_id) {
             },
             {
                 model: Siswa,
-                attributes: ['id', 'nis', 'nama'],
+                attributes: ['id', 'nis', 'nama', 'kelas_id'], // Pastikan kelas_id di-load
                 required: false
             }
         ],
@@ -64,25 +63,29 @@ async function getRekapData(tanggal, kelas_id, jurusan_id) {
                 model: Absensi,
                 include: [{
                     model: Siswa,
-                    attributes: ['id', 'nis', 'nama', 'kelas_id']
+                    attributes: ['id', 'nis', 'nama', 'kelas_id'] // kelas_id di sini mungkin tidak update
                 }]
             }
         ]
     });
 
-    // Flatten absensi dari jurnal
+    // Flatten absensi dari jurnal, dan yang PENTING: tambahkan kelas_id dari JURNAL
     const absensiList = [];
     jurnalList.forEach(jurnal => {
         if (jurnal.Absensis) {
             jurnal.Absensis.forEach(absensi => {
                 absensiList.push({
                     ...absensi.toJSON(),
+                    // Di sini kita menggunakan `jurnal.kelas_id` sebagai sumber kebenaran
+                    // untuk asosiasi kelas saat absensi terjadi.
+                    kelas_id_saat_absen: jurnal.kelas_id,
                     Jurnal: {
                         id: jurnal.id,
                         mata_pelajaran: jurnal.mata_pelajaran,
                         jam_mulai: jurnal.jam_mulai,
                         tanggal: jurnal.tanggal,
-                        Guru: jurnal.Guru
+                        Guru: jurnal.Guru,
+                        foto_kegiatan: jurnal.foto_kegiatan
                     }
                 });
             });
@@ -92,20 +95,29 @@ async function getRekapData(tanggal, kelas_id, jurusan_id) {
     return { targetDate, kelasList, absensiList, startOfDay, endOfDay };
 }
 
+
 // Get rekap absensi per hari dengan filter
 router.get('/harian', authMiddleware, adminOnly, async (req, res) => {
     try {
         const { tanggal, kelas_id, jurusan_id } = req.query;
-        const { targetDate, kelasList, absensiList } = await getRekapData(tanggal, kelas_id, jurusan_id);
+        console.log('Rekap Harian Request:', { tanggal, kelas_id, jurusan_id });
+
+        const { targetDate, kelasList, absensiList, startOfDay, endOfDay } = await getRekapData(tanggal, kelas_id, jurusan_id);
+
+        console.log('Hasil getRekapData:', {
+            targetDate: targetDate.toISOString(),
+            jumlahKelas: kelasList.length,
+            jumlahAbsensi: absensiList.length,
+            startOfDay: startOfDay.toISOString(),
+            endOfDay: endOfDay.toISOString()
+        });
 
         // Organize data per kelas
         const rekapPerKelas = kelasList.map(kelas => {
             const siswaList = kelas.Siswas || [];
 
-            // Get absensi untuk kelas ini
-            const kelasAbsensi = absensiList.filter(a =>
-                a.Siswa && a.Siswa.kelas_id === kelas.id
-            );
+            // Get absensi untuk kelas ini menggunakan `kelas_id_saat_absen`
+            const kelasAbsensi = absensiList.filter(a => a.kelas_id_saat_absen === kelas.id);
 
             // Map siswa dengan status absensi
             const siswaRekap = siswaList.map(siswa => {
@@ -144,10 +156,11 @@ router.get('/harian', authMiddleware, adminOnly, async (req, res) => {
                     total_mapel: absensiSiswa.length,
                     detail: statusPerMapel
                 };
-            });
+            }).filter(Boolean); // Hapus siswa yang null (yang sudah tidak di kelas ini)
+
 
             // Hitung statistik kelas
-            const totalSiswa = siswaList.length;
+            const totalSiswa = siswaRekap.length; // Gunakan panjang siswaRekap yang sudah difilter
             const hadirCount = siswaRekap.filter(s => s.status_ringkasan === 'hadir').length;
             const izinCount = siswaRekap.filter(s => s.status_ringkasan === 'izin').length;
             const alphaCount = siswaRekap.filter(s => s.status_ringkasan === 'tanpa_ket').length;
@@ -178,6 +191,15 @@ router.get('/harian', authMiddleware, adminOnly, async (req, res) => {
         const totalSemuaAlpha = rekapPerKelas.reduce((sum, k) => sum + k.statistik.alpha, 0);
         const totalBelumAbsen = rekapPerKelas.reduce((sum, k) => sum + k.statistik.belum_absen, 0);
 
+        console.log('Rekap Harian Response:', {
+            total_kelas: rekapPerKelas.length,
+            total_siswa: totalSemuaSiswa,
+            hadir: totalSemuaHadir,
+            izin: totalSemuaIzin,
+            alpha: totalSemuaAlpha,
+            belum_absen: totalBelumAbsen
+        });
+
         res.json({
             success: true,
             data: {
@@ -207,108 +229,45 @@ router.get('/export/excel', authMiddleware, adminOnly, async (req, res) => {
         const { tanggal, kelas_id, jurusan_id } = req.query;
         const { targetDate, kelasList, absensiList } = await getRekapData(tanggal, kelas_id, jurusan_id);
 
-        // Create workbook
         const wb = XLSX.utils.book_new();
-
-        // Format tanggal untuk nama file
         const tanggalStr = targetDate.toISOString().split('T')[0];
         const tanggalFormatted = targetDate.toLocaleDateString('id-ID', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
         });
 
-        // Sheet 1: Ringkasan
-        const ringkasanData = [
+        // --- Data for the single sheet ---
+        const rekapData = [
             ['REKAP ABSENSI HARIAN'],
             [`Tanggal: ${tanggalFormatted}`],
             [],
-            ['No', 'Kelas', 'Jurusan', 'Total Siswa', 'Hadir', 'Izin', 'Alpha', 'Belum Absen', '% Hadir']
+            ['No', 'Kelas', 'NIS', 'Nama Siswa', 'Status', 'Jumlah Mapel Absen', 'Keterangan']
         ];
+        
+        let grandTotalSiswa = 0;
+        let grandTotalHadir = 0;
+        let grandTotalIzin = 0;
+        let grandTotalAlpha = 0;
+        let grandTotalBelum = 0;
+        let no = 1;
 
-        let totalSiswa = 0, totalHadir = 0, totalIzin = 0, totalAlpha = 0, totalBelum = 0;
-
-        kelasList.forEach((kelas, index) => {
-            const siswaList = kelas.Siswas || [];
-            const kelasAbsensi = absensiList.filter(a => a.Siswa && a.Siswa.kelas_id === kelas.id);
-
-            // Get unique siswa yang sudah absen
-            const siswaAbsenIds = new Set(kelasAbsensi.map(a => a.siswa_id));
-
-            const hadirCount = siswaList.filter(s => {
-                const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === s.id);
-                return absensiSiswa.length > 0 && absensiSiswa.every(a => a.status === 'hadir');
-            }).length;
-
-            const izinCount = siswaList.filter(s => {
-                const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === s.id);
-                return absensiSiswa.some(a => a.status === 'izin') && !absensiSiswa.some(a => a.status === 'tanpa_ket');
-            }).length;
-
-            const alphaCount = siswaList.filter(s => {
-                const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === s.id);
-                return absensiSiswa.some(a => a.status === 'tanpa_ket');
-            }).length;
-
-            const belumAbsen = siswaList.filter(s => !siswaAbsenIds.has(s.id)).length;
-            const persen = siswaList.length > 0 ? Math.round((hadirCount / siswaList.length) * 100) : 0;
-
-            totalSiswa += siswaList.length;
-            totalHadir += hadirCount;
-            totalIzin += izinCount;
-            totalAlpha += alphaCount;
-            totalBelum += belumAbsen;
-
-            ringkasanData.push([
-                index + 1,
-                kelas.nama,
-                kelas.Jurusan?.nama || '-',
-                siswaList.length,
-                hadirCount,
-                izinCount,
-                alphaCount,
-                belumAbsen,
-                `${persen}%`
-            ]);
-        });
-
-        // Total row
-        const totalPersen = totalSiswa > 0 ? Math.round((totalHadir / totalSiswa) * 100) : 0;
-        ringkasanData.push([]);
-        ringkasanData.push(['', 'TOTAL', '', totalSiswa, totalHadir, totalIzin, totalAlpha, totalBelum, `${totalPersen}%`]);
-
-        const wsRingkasan = XLSX.utils.aoa_to_sheet(ringkasanData);
-        wsRingkasan['!cols'] = [
-            { wch: 5 }, { wch: 15 }, { wch: 20 }, { wch: 12 },
-            { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 10 }
-        ];
-        // Merge title cells
-        wsRingkasan['!merges'] = [
-            { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } },
-            { s: { r: 1, c: 0 }, e: { r: 1, c: 8 } }
-        ];
-        XLSX.utils.book_append_sheet(wb, wsRingkasan, 'Ringkasan');
-
-        // Sheet per kelas dengan detail siswa
         kelasList.forEach(kelas => {
             const siswaList = kelas.Siswas || [];
             if (siswaList.length === 0) return;
 
-            const kelasAbsensi = absensiList.filter(a => a.Siswa && a.Siswa.kelas_id === kelas.id);
+            const kelasAbsensi = absensiList.filter(a => a.kelas_id_saat_absen === kelas.id);
+            const absensiPerSiswa = new Map();
+            kelasAbsensi.forEach(a => {
+                if (!absensiPerSiswa.has(a.siswa_id)) absensiPerSiswa.set(a.siswa_id, []);
+                absensiPerSiswa.get(a.siswa_id).push(a);
+            });
+            
+            grandTotalSiswa += siswaList.length;
 
-            const detailData = [
-                [`REKAP ABSENSI - ${kelas.nama}`],
-                [`Jurusan: ${kelas.Jurusan?.nama || '-'}`],
-                [`Tanggal: ${tanggalFormatted}`],
-                [],
-                ['No', 'NIS', 'Nama Siswa', 'Status', 'Keterangan']
-            ];
-
-            siswaList.forEach((siswa, index) => {
-                const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === siswa.id);
+            siswaList.forEach(siswa => {
+                const absensiSiswa = absensiPerSiswa.get(siswa.id) || [];
                 let status = 'Belum Absen';
                 let keterangan = '-';
+                let jumlahMapel = absensiSiswa.length;
 
                 if (absensiSiswa.length > 0) {
                     const hasAlpha = absensiSiswa.some(a => a.status === 'tanpa_ket');
@@ -316,311 +275,60 @@ router.get('/export/excel', authMiddleware, adminOnly, async (req, res) => {
 
                     if (hasAlpha) {
                         status = 'Alpha';
-                        const alphaAbsen = absensiSiswa.find(a => a.status === 'tanpa_ket');
-                        keterangan = alphaAbsen?.keterangan || '-';
+                        grandTotalAlpha++;
+                        keterangan = absensiSiswa.find(a => a.status === 'tanpa_ket')?.keterangan || '-';
                     } else if (hasIzin) {
                         status = 'Izin';
-                        const izinAbsen = absensiSiswa.find(a => a.status === 'izin');
-                        keterangan = izinAbsen?.keterangan || '-';
+                        grandTotalIzin++;
+                        keterangan = absensiSiswa.find(a => a.status === 'izin')?.keterangan || '-';
                     } else {
                         status = 'Hadir';
-                        keterangan = `${absensiSiswa.length} mapel`;
+                        grandTotalHadir++;
+                        keterangan = absensiSiswa.map(a => a.Jurnal?.mata_pelajaran || a.Jurnal?.Guru?.mapel || '-').join(', ');
                     }
+                } else {
+                    grandTotalBelum++;
                 }
-
-                detailData.push([
-                    index + 1,
+                
+                rekapData.push([
+                    no++,
+                    kelas.nama,
                     siswa.nis,
                     siswa.nama,
                     status,
+                    jumlahMapel,
                     keterangan
                 ]);
             });
-
-            const wsDetail = XLSX.utils.aoa_to_sheet(detailData);
-            wsDetail['!cols'] = [
-                { wch: 5 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 25 }
-            ];
-            wsDetail['!merges'] = [
-                { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
-                { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } },
-                { s: { r: 2, c: 0 }, e: { r: 2, c: 4 } }
-            ];
-
-            // Nama sheet max 31 karakter
-            const sheetName = kelas.nama.substring(0, 31).replace(/[\\\/\*\?\[\]:]/g, '');
-            XLSX.utils.book_append_sheet(wb, wsDetail, sheetName);
         });
 
-        // Generate buffer
-        const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+        // Add summary row at the bottom
+        rekapData.push([]); // Spacer row
+        const totalPersen = grandTotalSiswa > 0 ? Math.round((grandTotalHadir / grandTotalSiswa) * 100) : 0;
+        const summaryText = `TOTAL KESELURUHAN: Hadir: ${grandTotalHadir} | Izin: ${grandTotalIzin} | Alpha: ${grandTotalAlpha} | Belum Absen: ${grandTotalBelum} | Tingkat Kehadiran: ${totalPersen}%`;
+        rekapData.push(['', '', '', summaryText]);
 
+        const ws = XLSX.utils.aoa_to_sheet(rekapData);
+        ws['!cols'] = [ { wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 40 } ];
+        
+        // Merge title and total cells
+        const merges = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }, 
+            { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } },
+            { s: { r: rekapData.length - 1, c: 3 }, e: { r: rekapData.length - 1, c: 6 } }
+        ];
+        ws['!merges'] = merges;
+        
+        XLSX.utils.book_append_sheet(wb, ws, 'Rekap Harian');
+
+        // Generate buffer and send response
+        const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename=rekap_absensi_${tanggalStr}.xlsx`);
+        res.setHeader('Content-Disposition', `attachment; filename=rekap_absensi_harian_${tanggalStr}.xlsx`);
         res.send(buffer);
 
     } catch (error) {
         console.error('Export Excel error:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// Export rekap ke PDF
-router.get('/export/pdf', authMiddleware, adminOnly, async (req, res) => {
-    try {
-        const { tanggal, kelas_id, jurusan_id } = req.query;
-        const { targetDate, kelasList, absensiList } = await getRekapData(tanggal, kelas_id, jurusan_id);
-
-        // Format tanggal
-        const tanggalStr = targetDate.toISOString().split('T')[0];
-        const tanggalFormatted = targetDate.toLocaleDateString('id-ID', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-
-        // Create PDF
-        const doc = new PDFDocument({
-            margin: 50,
-            size: 'A4',
-            bufferPages: true
-        });
-
-        // Collect chunks
-        const chunks = [];
-        doc.on('data', chunk => chunks.push(chunk));
-        doc.on('end', () => {
-            const pdfBuffer = Buffer.concat(chunks);
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', `attachment; filename=rekap_absensi_${tanggalStr}.pdf`);
-            res.send(pdfBuffer);
-        });
-
-        // Title
-        doc.fontSize(18).font('Helvetica-Bold').text('REKAP ABSENSI HARIAN', { align: 'center' });
-        doc.fontSize(12).font('Helvetica').text(`Tanggal: ${tanggalFormatted}`, { align: 'center' });
-        doc.moveDown(2);
-
-        // Ringkasan Table Header
-        doc.fontSize(14).font('Helvetica-Bold').text('RINGKASAN PER KELAS');
-        doc.moveDown(0.5);
-
-        // Table settings
-        const tableTop = doc.y;
-        const tableLeft = 50;
-        const colWidths = [30, 80, 60, 50, 50, 50, 60, 60];
-        const headers = ['No', 'Kelas', 'Jurusan', 'Siswa', 'Hadir', 'Izin', 'Alpha', '% Hadir'];
-
-        // Draw header
-        doc.fontSize(10).font('Helvetica-Bold');
-        let xPos = tableLeft;
-        headers.forEach((header, i) => {
-            doc.text(header, xPos, tableTop, { width: colWidths[i], align: 'center' });
-            xPos += colWidths[i];
-        });
-
-        // Draw header line
-        doc.moveTo(tableLeft, tableTop + 15).lineTo(tableLeft + colWidths.reduce((a, b) => a + b, 0), tableTop + 15).stroke();
-
-        // Table data
-        let yPos = tableTop + 20;
-        let totalSiswa = 0, totalHadir = 0, totalIzin = 0, totalAlpha = 0;
-
-        doc.font('Helvetica').fontSize(9);
-
-        kelasList.forEach((kelas, index) => {
-            const siswaList = kelas.Siswas || [];
-            const kelasAbsensi = absensiList.filter(a => a.Siswa && a.Siswa.kelas_id === kelas.id);
-
-            const siswaAbsenIds = new Set(kelasAbsensi.map(a => a.siswa_id));
-
-            const hadirCount = siswaList.filter(s => {
-                const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === s.id);
-                return absensiSiswa.length > 0 && absensiSiswa.every(a => a.status === 'hadir');
-            }).length;
-
-            const izinCount = siswaList.filter(s => {
-                const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === s.id);
-                return absensiSiswa.some(a => a.status === 'izin') && !absensiSiswa.some(a => a.status === 'tanpa_ket');
-            }).length;
-
-            const alphaCount = siswaList.filter(s => {
-                const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === s.id);
-                return absensiSiswa.some(a => a.status === 'tanpa_ket');
-            }).length;
-
-            const persen = siswaList.length > 0 ? Math.round((hadirCount / siswaList.length) * 100) : 0;
-
-            totalSiswa += siswaList.length;
-            totalHadir += hadirCount;
-            totalIzin += izinCount;
-            totalAlpha += alphaCount;
-
-            // Check if need new page
-            if (yPos > 700) {
-                doc.addPage();
-                yPos = 50;
-            }
-
-            xPos = tableLeft;
-            const rowData = [
-                (index + 1).toString(),
-                kelas.nama,
-                (kelas.Jurusan?.singkatan || '-'),
-                siswaList.length.toString(),
-                hadirCount.toString(),
-                izinCount.toString(),
-                alphaCount.toString(),
-                `${persen}%`
-            ];
-
-            rowData.forEach((data, i) => {
-                doc.text(data, xPos, yPos, { width: colWidths[i], align: 'center' });
-                xPos += colWidths[i];
-            });
-
-            yPos += 15;
-        });
-
-        // Total row
-        doc.moveTo(tableLeft, yPos).lineTo(tableLeft + colWidths.reduce((a, b) => a + b, 0), yPos).stroke();
-        yPos += 5;
-
-        doc.font('Helvetica-Bold');
-        const totalPersen = totalSiswa > 0 ? Math.round((totalHadir / totalSiswa) * 100) : 0;
-        xPos = tableLeft;
-        const totalRowData = ['', 'TOTAL', '', totalSiswa.toString(), totalHadir.toString(), totalIzin.toString(), totalAlpha.toString(), `${totalPersen}%`];
-        totalRowData.forEach((data, i) => {
-            doc.text(data, xPos, yPos, { width: colWidths[i], align: 'center' });
-            xPos += colWidths[i];
-        });
-
-        // Detail per kelas
-        kelasList.forEach(kelas => {
-            const siswaList = kelas.Siswas || [];
-            if (siswaList.length === 0) return;
-
-            const kelasAbsensi = absensiList.filter(a => a.Siswa && a.Siswa.kelas_id === kelas.id);
-
-            // New page for each class
-            doc.addPage();
-
-            // Class header
-            doc.fontSize(14).font('Helvetica-Bold').text(`DETAIL ABSENSI - ${kelas.nama}`, { align: 'center' });
-            doc.fontSize(10).font('Helvetica').text(`Jurusan: ${kelas.Jurusan?.nama || '-'}`, { align: 'center' });
-            doc.text(`Tanggal: ${tanggalFormatted}`, { align: 'center' });
-            doc.moveDown(1);
-
-            // Detail table
-            const detailTop = doc.y;
-            const detailLeft = 50;
-            const detailWidths = [30, 70, 180, 70, 100];
-            const detailHeaders = ['No', 'NIS', 'Nama Siswa', 'Status', 'Keterangan'];
-
-            // Draw header
-            doc.fontSize(10).font('Helvetica-Bold');
-            xPos = detailLeft;
-            detailHeaders.forEach((header, i) => {
-                doc.text(header, xPos, detailTop, { width: detailWidths[i], align: i === 2 ? 'left' : 'center' });
-                xPos += detailWidths[i];
-            });
-
-            doc.moveTo(detailLeft, detailTop + 15).lineTo(detailLeft + detailWidths.reduce((a, b) => a + b, 0), detailTop + 15).stroke();
-
-            yPos = detailTop + 20;
-            doc.font('Helvetica').fontSize(9);
-
-            siswaList.forEach((siswa, index) => {
-                const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === siswa.id);
-                let status = 'Belum Absen';
-                let keterangan = '-';
-
-                if (absensiSiswa.length > 0) {
-                    const hasAlpha = absensiSiswa.some(a => a.status === 'tanpa_ket');
-                    const hasIzin = absensiSiswa.some(a => a.status === 'izin');
-
-                    if (hasAlpha) {
-                        status = 'Alpha';
-                        const alphaAbsen = absensiSiswa.find(a => a.status === 'tanpa_ket');
-                        keterangan = alphaAbsen?.keterangan || '-';
-                    } else if (hasIzin) {
-                        status = 'Izin';
-                        const izinAbsen = absensiSiswa.find(a => a.status === 'izin');
-                        keterangan = izinAbsen?.keterangan || '-';
-                    } else {
-                        status = 'Hadir';
-                        keterangan = `${absensiSiswa.length} mapel`;
-                    }
-                }
-
-                // Check if need new page
-                if (yPos > 750) {
-                    doc.addPage();
-                    yPos = 50;
-
-                    // Redraw header on new page
-                    doc.fontSize(10).font('Helvetica-Bold');
-                    xPos = detailLeft;
-                    detailHeaders.forEach((header, i) => {
-                        doc.text(header, xPos, yPos, { width: detailWidths[i], align: i === 2 ? 'left' : 'center' });
-                        xPos += detailWidths[i];
-                    });
-                    doc.moveTo(detailLeft, yPos + 15).lineTo(detailLeft + detailWidths.reduce((a, b) => a + b, 0), yPos + 15).stroke();
-                    yPos += 20;
-                    doc.font('Helvetica').fontSize(9);
-                }
-
-                xPos = detailLeft;
-                const rowData = [
-                    (index + 1).toString(),
-                    siswa.nis,
-                    siswa.nama,
-                    status,
-                    (keterangan || '-').substring(0, 20)
-                ];
-
-                rowData.forEach((data, i) => {
-                    doc.text(data || '-', xPos, yPos, { width: detailWidths[i], align: i === 2 ? 'left' : 'center' });
-                    xPos += detailWidths[i];
-                });
-
-                yPos += 15;
-            });
-
-            // Summary for this class
-            const siswaAbsenIds = new Set(kelasAbsensi.map(a => a.siswa_id));
-
-            const hadirCount = siswaList.filter(s => {
-                const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === s.id);
-                return absensiSiswa.length > 0 && absensiSiswa.every(a => a.status === 'hadir');
-            }).length;
-
-            const izinCount = siswaList.filter(s => {
-                const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === s.id);
-                return absensiSiswa.some(a => a.status === 'izin') && !absensiSiswa.some(a => a.status === 'tanpa_ket');
-            }).length;
-
-            const alphaCount = siswaList.filter(s => {
-                const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === s.id);
-                return absensiSiswa.some(a => a.status === 'tanpa_ket');
-            }).length;
-
-            const belumAbsen = siswaList.filter(s => !siswaAbsenIds.has(s.id)).length;
-
-            yPos += 10;
-            doc.moveTo(detailLeft, yPos).lineTo(detailLeft + detailWidths.reduce((a, b) => a + b, 0), yPos).stroke();
-            yPos += 10;
-
-            doc.font('Helvetica-Bold').fontSize(10);
-            doc.text(`Total: ${siswaList.length} siswa | Hadir: ${hadirCount} | Izin: ${izinCount} | Alpha: ${alphaCount} | Belum Absen: ${belumAbsen}`, detailLeft, yPos);
-        });
-
-        // Finalize PDF
-        doc.end();
-
-    } catch (error) {
-        console.error('Export PDF error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -695,19 +403,23 @@ async function getRekapBulananData(bulan, tahun, kelas_id, jurusan_id) {
         ]
     });
 
-    // Flatten absensi dari jurnal
+    // Flatten absensi dari jurnal, dan yang PENTING: tambahkan kelas_id dari JURNAL
     const absensiList = [];
     jurnalList.forEach(jurnal => {
         if (jurnal.Absensis) {
             jurnal.Absensis.forEach(absensi => {
                 absensiList.push({
                     ...absensi.toJSON(),
+                    // Di sini kita menggunakan `jurnal.kelas_id` sebagai sumber kebenaran
+                    // untuk asosiasi kelas saat absensi terjadi.
+                    kelas_id_saat_absen: jurnal.kelas_id,
                     Jurnal: {
                         id: jurnal.id,
                         mata_pelajaran: jurnal.mata_pelajaran,
                         jam_mulai: jurnal.jam_mulai,
                         tanggal: jurnal.tanggal,
-                        Guru: jurnal.Guru
+                        Guru: jurnal.Guru,
+                        foto_kegiatan: jurnal.foto_kegiatan
                     }
                 });
             });
@@ -729,7 +441,7 @@ router.get('/bulanan', authMiddleware, adminOnly, async (req, res) => {
 
             // Get absensi untuk kelas ini
             const kelasAbsensi = absensiList.filter(a =>
-                a.Siswa && a.Siswa.kelas_id === kelas.id
+                a.kelas_id_saat_absen === kelas.id
             );
 
             // Map siswa dengan rekap bulanan
@@ -811,7 +523,7 @@ router.get('/bulanan', authMiddleware, adminOnly, async (req, res) => {
         // Hitung statistik keseluruhan
         const totalSemuaSiswa = rekapPerKelas.reduce((sum, k) => sum + k.statistik.total_siswa, 0);
         const totalSemuaHadir = rekapPerKelas.reduce((sum, k) => sum + k.statistik.total_hadir, 0);
-        const totalSemuaIzin = rekapPerKelas.reduce((sum, k) => sum + k.statistik.total_izin, 0);
+        const totalSemuaIzin = rekapPerKelas.reduce((sum, k) => sum + k.statistik.izin, 0);
         const totalSemuaAlpha = rekapPerKelas.reduce((sum, k) => sum + k.statistik.total_alpha, 0);
         const avgPersentaseKeseluruhan = rekapPerKelas.length > 0
             ? Math.round(rekapPerKelas.reduce((sum, k) => sum + k.statistik.rata_rata_persentase_hadir, 0) / rekapPerKelas.length)
@@ -845,429 +557,242 @@ router.get('/bulanan', authMiddleware, adminOnly, async (req, res) => {
     }
 });
 
+// EXPORT REKAP NILAI BULANAN (PER MATA PELAJARAN)
+router.get('/export/nilai-bulanan/excel', authMiddleware, async (req, res) => {
+    try {
+        const { bulan, kelas_id, mata_pelajaran } = req.query;
+        if (!kelas_id || !mata_pelajaran || !bulan) {
+            return res.status(400).json({ success: false, error: 'Parameter kelas_id, mata_pelajaran, dan bulan wajib diisi' });
+        }
+
+        const year = parseInt(bulan.split('-')[0]);
+        const month = parseInt(bulan.split('-')[1]); // month is 1-based
+
+        if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+             return res.status(400).json({ success: false, error: 'Format bulan tidak valid. Harusnya YYYY-MM' });
+        }
+
+        const startOfMonth = new Date(year, month - 1, 1);
+        const endOfMonth = new Date(year, month, 0);
+
+        const kelas = await Kelas.findByPk(kelas_id, {
+            include: [{ model: Siswa, order: [['nama', 'ASC']] }]
+        });
+        if (!kelas) {
+            return res.status(404).json({ success: false, error: 'Kelas tidak ditemukan' });
+        }
+
+        const nilaiList = await Nilai.findAll({
+            where: {
+                kelas_id: kelas_id,
+                mata_pelajaran: mata_pelajaran, // Filter by the specific subject
+                tanggal: { [Op.between]: [startOfMonth, endOfMonth] }
+            },
+            order: [['siswa_id', 'ASC'], ['tanggal', 'ASC']]
+        });
+
+        // 1. Organize scores by student
+        const dataBySiswa = new Map();
+        for (const siswa of kelas.Siswas) {
+            dataBySiswa.set(siswa.id, {
+                info: siswa,
+                scores: [],
+                keterangan: []
+            });
+        }
+
+        for (const nilai of nilaiList) {
+            if (dataBySiswa.has(nilai.siswa_id)) {
+                const siswaData = dataBySiswa.get(nilai.siswa_id);
+                siswaData.scores.push(nilai.nilai);
+                siswaData.keterangan.push(nilai.keterangan);
+            }
+        }
+        
+        // 2. Find max number of meetings for headers
+        let maxPertemuan = 0;
+        dataBySiswa.forEach(siswaData => {
+            if (siswaData.scores.length > maxPertemuan) {
+                maxPertemuan = siswaData.scores.length;
+            }
+        });
+
+        // 3. Prepare Excel data
+        const wb = XLSX.utils.book_new();
+        const namaBulan = startOfMonth.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+        const wsData = [];
+        
+        // Headers
+        const staticHeaders = ['No', 'NIS', 'Nama Siswa'];
+        const pertemuanHeaders = maxPertemuan > 0 ? Array.from({ length: maxPertemuan }, (_, i) => `P${i + 1}`) : [];
+        const finalHeaders = ['Rata-rata', 'Keterangan'];
+        const headers = [...staticHeaders, ...pertemuanHeaders, ...finalHeaders];
+        
+        wsData.push([`REKAPITULASI NILAI - ${mata_pelajaran.toUpperCase()}`]);
+        wsData.push([`Kelas: ${kelas.nama} | Periode: ${namaBulan}`]);
+        wsData.push([]); // Spacer
+        wsData.push(headers);
+
+        // 4. Populate rows (one row per student)
+        let noSiswa = 1;
+        for (const siswa of kelas.Siswas) {
+            const siswaData = dataBySiswa.get(siswa.id);
+            const scores = siswaData.scores;
+            const totalNilai = scores.reduce((sum, score) => sum + score, 0);
+            const rataRata = scores.length > 0 ? (totalNilai / scores.length).toFixed(2) : 0;
+            
+            const row = [noSiswa++, siswa.nis, siswa.nama];
+
+            // Add scores, padding with '' if less than maxPertemuan
+            for (let i = 0; i < maxPertemuan; i++) {
+                row.push(scores[i] !== undefined ? scores[i] : '');
+            }
+            
+            row.push(rataRata, siswaData.keterangan.join(', '));
+            wsData.push(row);
+        }
+
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+        // Merges & Column Widths
+        ws['!merges'] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } },
+            { s: { r: 1, c: 0 }, e: { r: 1, c: headers.length - 1 } }
+        ];
+        
+        const colWidths = [{ wch: 5 }, { wch: 15 }, { wch: 30 }]; // No, NIS, Nama
+        for (let i = 0; i < maxPertemuan; i++) colWidths.push({ wch: 5 }); // P1, P2...
+        colWidths.push({ wch: 10 }, { wch: 40 }); // Rata-rata, Keterangan
+        ws['!cols'] = colWidths;
+        
+        XLSX.utils.book_append_sheet(wb, ws, `Rekap Nilai`);
+
+        const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename=rekap_nilai_${kelas.nama}_${mata_pelajaran}_${year}_${month.toString().padStart(2, '0')}.xlsx`);
+        res.send(buffer);
+
+    } catch (error) {
+        console.error('Export rekap nilai error:', error);
+        res.status(500).json({ success: false, error: 'Gagal membuat rekap nilai: ' + error.message });
+    }
+});
+
 // Export rekap bulanan ke Excel
 router.get('/export/bulanan/excel', authMiddleware, adminOnly, async (req, res) => {
     try {
         const { bulan, tahun, kelas_id, jurusan_id } = req.query;
         const { targetMonth, targetYear, daysInMonth, kelasList, absensiList } = await getRekapBulananData(bulan, tahun, kelas_id, jurusan_id);
 
-        // Create workbook
         const wb = XLSX.utils.book_new();
-
-        // Format bulan untuk nama file dan header
         const namaBulan = new Date(targetYear, targetMonth - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 
-        // Sheet 1: Ringkasan
-        const ringkasanData = [
+        // --- Headers ---
+        const staticHeaders = ['No', 'Kelas', 'NIS', 'Nama Siswa'];
+        const dateHeaders = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString());
+        const totalHeaders = ['Jml Hadir', 'Jml Izin', 'Jml Alpha'];
+        const headers = [...staticHeaders, ...dateHeaders, ...totalHeaders];
+
+        // --- Add day names for each date column ---
+        const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+        const dayNameRow = Array(staticHeaders.length).fill(''); // Empty cells for static headers
+        for (let i = 1; i <= daysInMonth; i++) {
+            const date = new Date(targetYear, targetMonth - 1, i);
+            dayNameRow.push(dayNames[date.getDay()]);
+        }
+        dayNameRow.push(...Array(totalHeaders.length).fill('')); // Empty cells for total headers
+
+        // --- Data Rows ---
+        const rekapData = [
             ['REKAP ABSENSI BULANAN'],
             [`Periode: ${namaBulan}`],
-            [],
-            ['No', 'Kelas', 'Jurusan', 'Total Siswa', 'Total Hadir', 'Total Izin', 'Total Alpha', 'Rata-rata % Hadir']
+            dayNameRow, // New row for day names
+            headers
         ];
 
-        let grandTotalSiswa = 0, grandTotalHadir = 0, grandTotalIzin = 0, grandTotalAlpha = 0;
-        let totalPersentase = 0;
-
-        kelasList.forEach((kelas, index) => {
-            const siswaList = kelas.Siswas || [];
-            const kelasAbsensi = absensiList.filter(a => a.Siswa && a.Siswa.kelas_id === kelas.id);
-
-            let totalHadir = 0, totalIzin = 0, totalAlpha = 0;
-
-            siswaList.forEach(siswa => {
-                const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === siswa.id);
-
-                // Group per tanggal
-                const absensiPerTanggal = {};
-                absensiSiswa.forEach(a => {
-                    const tgl = new Date(a.Jurnal.tanggal).toISOString().split('T')[0];
-                    if (!absensiPerTanggal[tgl]) absensiPerTanggal[tgl] = [];
-                    absensiPerTanggal[tgl].push(a);
-                });
-
-                Object.keys(absensiPerTanggal).forEach(tgl => {
-                    const absensiHari = absensiPerTanggal[tgl];
-                    if (absensiHari.some(a => a.status === 'tanpa_ket')) {
-                        totalAlpha++;
-                    } else if (absensiHari.some(a => a.status === 'izin')) {
-                        totalIzin++;
-                    } else {
-                        totalHadir++;
-                    }
-                });
-            });
-
-            const totalHariAktif = totalHadir + totalIzin + totalAlpha;
-            const persen = totalHariAktif > 0 ? Math.round((totalHadir / totalHariAktif) * 100) : 0;
-
-            grandTotalSiswa += siswaList.length;
-            grandTotalHadir += totalHadir;
-            grandTotalIzin += totalIzin;
-            grandTotalAlpha += totalAlpha;
-            totalPersentase += persen;
-
-            ringkasanData.push([
-                index + 1,
-                kelas.nama,
-                kelas.Jurusan?.nama || '-',
-                siswaList.length,
-                totalHadir,
-                totalIzin,
-                totalAlpha,
-                `${persen}%`
-            ]);
-        });
-
-        // Total row
-        const avgPersen = kelasList.length > 0 ? Math.round(totalPersentase / kelasList.length) : 0;
-        ringkasanData.push([]);
-        ringkasanData.push(['', 'TOTAL', '', grandTotalSiswa, grandTotalHadir, grandTotalIzin, grandTotalAlpha, `${avgPersen}%`]);
-
-        const wsRingkasan = XLSX.utils.aoa_to_sheet(ringkasanData);
-        wsRingkasan['!cols'] = [
-            { wch: 5 }, { wch: 15 }, { wch: 25 }, { wch: 12 },
-            { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 18 }
-        ];
-        wsRingkasan['!merges'] = [
-            { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },
-            { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } }
-        ];
-        XLSX.utils.book_append_sheet(wb, wsRingkasan, 'Ringkasan');
-
-        // Sheet per kelas dengan detail siswa
-        kelasList.forEach(kelas => {
+        let noSiswa = 1;
+        
+        kelasList.forEach((kelas) => {
             const siswaList = kelas.Siswas || [];
             if (siswaList.length === 0) return;
 
-            const kelasAbsensi = absensiList.filter(a => a.Siswa && a.Siswa.kelas_id === kelas.id);
+            const kelasAbsensi = absensiList.filter(a => a.kelas_id_saat_absen === kelas.id);
 
-            const detailData = [
-                [`REKAP ABSENSI BULANAN - ${kelas.nama}`],
-                [`Jurusan: ${kelas.Jurusan?.nama || '-'}`],
-                [`Periode: ${namaBulan}`],
-                [],
-                ['No', 'NIS', 'Nama Siswa', 'Hari Aktif', 'Hadir', 'Izin', 'Alpha', '% Hadir']
-            ];
-
-            siswaList.forEach((siswa, index) => {
+            siswaList.forEach(siswa => {
                 const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === siswa.id);
-
-                // Group per tanggal
-                const absensiPerTanggal = {};
+                const absensiPerTanggal = new Map();
                 absensiSiswa.forEach(a => {
-                    const tgl = new Date(a.Jurnal.tanggal).toISOString().split('T')[0];
-                    if (!absensiPerTanggal[tgl]) absensiPerTanggal[tgl] = [];
-                    absensiPerTanggal[tgl].push(a);
+                    const tanggalJurnal = new Date(a.Jurnal.tanggal);
+                    const tgl = tanggalJurnal.getDate(); // Get day of the month (1-31)
+                    if (!absensiPerTanggal.has(tgl)) absensiPerTanggal.set(tgl, []);
+                    absensiPerTanggal.get(tgl).push(a);
                 });
 
-                let hadir = 0, izin = 0, alpha = 0;
-                Object.keys(absensiPerTanggal).forEach(tgl => {
-                    const absensiHari = absensiPerTanggal[tgl];
+                const dateRow = Array(daysInMonth).fill(''); // Array for dates 1 to 31
+                let totalHadir = 0;
+                let totalIzin = 0;
+                let totalAlpha = 0;
+
+                absensiPerTanggal.forEach((absensiHari, tgl) => {
+                    let statusHari = '';
                     if (absensiHari.some(a => a.status === 'tanpa_ket')) {
-                        alpha++;
+                        statusHari = 'A';
+                        totalAlpha++;
                     } else if (absensiHari.some(a => a.status === 'izin')) {
-                        izin++;
+                        statusHari = 'I';
+                        totalIzin++;
                     } else {
-                        hadir++;
+                        statusHari = 'H';
+                        totalHadir++;
+                    }
+                    if (tgl > 0 && tgl <= daysInMonth) {
+                        dateRow[tgl - 1] = statusHari;
                     }
                 });
 
-                const hariAktif = hadir + izin + alpha;
-                const persen = hariAktif > 0 ? Math.round((hadir / hariAktif) * 100) : 0;
-
-                detailData.push([
-                    index + 1,
+                const studentRow = [
+                    noSiswa++,
+                    kelas.nama,
                     siswa.nis,
-                    siswa.nama,
-                    hariAktif,
-                    hadir,
-                    izin,
-                    alpha,
-                    `${persen}%`
-                ]);
+                    siswa.nama
+                ];
+                
+                rekapData.push([...studentRow, ...dateRow, totalHadir, totalIzin, totalAlpha]);
             });
-
-            const wsDetail = XLSX.utils.aoa_to_sheet(detailData);
-            wsDetail['!cols'] = [
-                { wch: 5 }, { wch: 15 }, { wch: 30 }, { wch: 12 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 10 }
-            ];
-            wsDetail['!merges'] = [
-                { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },
-                { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } },
-                { s: { r: 2, c: 0 }, e: { r: 2, c: 7 } }
-            ];
-
-            const sheetName = kelas.nama.substring(0, 31).replace(/[\\\/\*\?\[\]:]/g, '');
-            XLSX.utils.book_append_sheet(wb, wsDetail, sheetName);
         });
 
-        // Generate buffer
-        const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+        // --- Create and Send Workbook ---
+        const ws = XLSX.utils.aoa_to_sheet(rekapData);
 
+        // Styling
+        const colWidths = [
+            { wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 30 }, 
+            ...Array(daysInMonth).fill({ wch: 3 }), // Width for date columns
+            { wch: 10 }, { wch: 10 }, { wch: 10 } // Width for total columns
+        ];
+        ws['!cols'] = colWidths;
+        ws['!merges'] = [ 
+            { s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 + staticHeaders.length -1 } }, // Adjust merge for title to span all columns
+            { s: { r: 1, c: 0 }, e: { r: 1, c: headers.length - 1 + staticHeaders.length -1 } }  // Adjust merge for period to span all columns
+        ];
+        // The headers variable already includes staticHeaders.length in its size.
+        // So headers.length - 1 is the index of the last header column.
+        // The total number of columns is headers.length.
+        // The original merges used headers.length - 1 for the end column.
+        // Now, we added a new row, and the headers array already accounts for all headers.
+        // The length of the headers array is staticHeaders.length + dateHeaders.length + totalHeaders.length.
+        // So, the last column index is headers.length - 1.
+        // The merge should span to headers.length - 1.
+
+        XLSX.utils.book_append_sheet(wb, ws, 'Rekap Bulanan');
+        
+        const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename=rekap_bulanan_${targetYear}_${targetMonth.toString().padStart(2, '0')}.xlsx`);
+        res.setHeader('Content-Disposition', `attachment; filename=rekap_bulanan_detail_${targetYear}_${targetMonth.toString().padStart(2, '0')}.xlsx`);
         res.send(buffer);
 
     } catch (error) {
         console.error('Export bulanan Excel error:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// Export rekap bulanan ke PDF
-router.get('/export/bulanan/pdf', authMiddleware, adminOnly, async (req, res) => {
-    try {
-        const { bulan, tahun, kelas_id, jurusan_id } = req.query;
-        const { targetMonth, targetYear, daysInMonth, kelasList, absensiList } = await getRekapBulananData(bulan, tahun, kelas_id, jurusan_id);
-
-        // Format bulan
-        const namaBulan = new Date(targetYear, targetMonth - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
-
-        // Create PDF
-        const doc = new PDFDocument({
-            margin: 50,
-            size: 'A4',
-            bufferPages: true
-        });
-
-        // Collect chunks
-        const chunks = [];
-        doc.on('data', chunk => chunks.push(chunk));
-        doc.on('end', () => {
-            const pdfBuffer = Buffer.concat(chunks);
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', `attachment; filename=rekap_bulanan_${targetYear}_${targetMonth.toString().padStart(2, '0')}.pdf`);
-            res.send(pdfBuffer);
-        });
-
-        // Title
-        doc.fontSize(18).font('Helvetica-Bold').text('REKAP ABSENSI BULANAN', { align: 'center' });
-        doc.fontSize(12).font('Helvetica').text(`Periode: ${namaBulan}`, { align: 'center' });
-        doc.moveDown(2);
-
-        // Ringkasan Table Header
-        doc.fontSize(14).font('Helvetica-Bold').text('RINGKASAN PER KELAS');
-        doc.moveDown(0.5);
-
-        // Table settings
-        const tableTop = doc.y;
-        const tableLeft = 50;
-        const colWidths = [25, 70, 70, 45, 45, 45, 45, 55];
-        const headers = ['No', 'Kelas', 'Jurusan', 'Siswa', 'Hadir', 'Izin', 'Alpha', '% Hadir'];
-
-        // Draw header
-        doc.fontSize(9).font('Helvetica-Bold');
-        let xPos = tableLeft;
-        headers.forEach((header, i) => {
-            doc.text(header, xPos, tableTop, { width: colWidths[i], align: 'center' });
-            xPos += colWidths[i];
-        });
-
-        // Draw header line
-        doc.moveTo(tableLeft, tableTop + 15).lineTo(tableLeft + colWidths.reduce((a, b) => a + b, 0), tableTop + 15).stroke();
-
-        // Table data
-        let yPos = tableTop + 20;
-        let grandTotalSiswa = 0, grandTotalHadir = 0, grandTotalIzin = 0, grandTotalAlpha = 0;
-        let totalPersentase = 0;
-
-        doc.font('Helvetica').fontSize(8);
-
-        kelasList.forEach((kelas, index) => {
-            const siswaList = kelas.Siswas || [];
-            const kelasAbsensi = absensiList.filter(a => a.Siswa && a.Siswa.kelas_id === kelas.id);
-
-            let totalHadir = 0, totalIzin = 0, totalAlpha = 0;
-
-            siswaList.forEach(siswa => {
-                const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === siswa.id);
-                const absensiPerTanggal = {};
-                absensiSiswa.forEach(a => {
-                    const tgl = new Date(a.Jurnal.tanggal).toISOString().split('T')[0];
-                    if (!absensiPerTanggal[tgl]) absensiPerTanggal[tgl] = [];
-                    absensiPerTanggal[tgl].push(a);
-                });
-
-                Object.keys(absensiPerTanggal).forEach(tgl => {
-                    const absensiHari = absensiPerTanggal[tgl];
-                    if (absensiHari.some(a => a.status === 'tanpa_ket')) {
-                        totalAlpha++;
-                    } else if (absensiHari.some(a => a.status === 'izin')) {
-                        totalIzin++;
-                    } else {
-                        totalHadir++;
-                    }
-                });
-            });
-
-            const totalHariAktif = totalHadir + totalIzin + totalAlpha;
-            const persen = totalHariAktif > 0 ? Math.round((totalHadir / totalHariAktif) * 100) : 0;
-
-            grandTotalSiswa += siswaList.length;
-            grandTotalHadir += totalHadir;
-            grandTotalIzin += totalIzin;
-            grandTotalAlpha += totalAlpha;
-            totalPersentase += persen;
-
-            // Check if need new page
-            if (yPos > 700) {
-                doc.addPage();
-                yPos = 50;
-            }
-
-            xPos = tableLeft;
-            const rowData = [
-                (index + 1).toString(),
-                kelas.nama,
-                (kelas.Jurusan?.singkatan || '-'),
-                siswaList.length.toString(),
-                totalHadir.toString(),
-                totalIzin.toString(),
-                totalAlpha.toString(),
-                `${persen}%`
-            ];
-
-            rowData.forEach((data, i) => {
-                doc.text(data, xPos, yPos, { width: colWidths[i], align: 'center' });
-                xPos += colWidths[i];
-            });
-
-            yPos += 15;
-        });
-
-        // Total row
-        doc.moveTo(tableLeft, yPos).lineTo(tableLeft + colWidths.reduce((a, b) => a + b, 0), yPos).stroke();
-        yPos += 5;
-
-        doc.font('Helvetica-Bold');
-        const avgPersen = kelasList.length > 0 ? Math.round(totalPersentase / kelasList.length) : 0;
-        xPos = tableLeft;
-        const totalRowData = ['', 'TOTAL', '', grandTotalSiswa.toString(), grandTotalHadir.toString(), grandTotalIzin.toString(), grandTotalAlpha.toString(), `${avgPersen}%`];
-        totalRowData.forEach((data, i) => {
-            doc.text(data, xPos, yPos, { width: colWidths[i], align: 'center' });
-            xPos += colWidths[i];
-        });
-
-        // Detail per kelas
-        kelasList.forEach(kelas => {
-            const siswaList = kelas.Siswas || [];
-            if (siswaList.length === 0) return;
-
-            const kelasAbsensi = absensiList.filter(a => a.Siswa && a.Siswa.kelas_id === kelas.id);
-
-            // New page for each class
-            doc.addPage();
-
-            // Class header
-            doc.fontSize(14).font('Helvetica-Bold').text(`DETAIL REKAP BULANAN - ${kelas.nama}`, { align: 'center' });
-            doc.fontSize(10).font('Helvetica').text(`Jurusan: ${kelas.Jurusan?.nama || '-'}`, { align: 'center' });
-            doc.text(`Periode: ${namaBulan}`, { align: 'center' });
-            doc.moveDown(1);
-
-            // Detail table
-            const detailTop = doc.y;
-            const detailLeft = 50;
-            const detailWidths = [25, 60, 160, 50, 40, 40, 40, 50];
-            const detailHeaders = ['No', 'NIS', 'Nama Siswa', 'Hari Aktif', 'Hadir', 'Izin', 'Alpha', '% Hadir'];
-
-            // Draw header
-            doc.fontSize(9).font('Helvetica-Bold');
-            xPos = detailLeft;
-            detailHeaders.forEach((header, i) => {
-                doc.text(header, xPos, detailTop, { width: detailWidths[i], align: i === 2 ? 'left' : 'center' });
-                xPos += detailWidths[i];
-            });
-
-            doc.moveTo(detailLeft, detailTop + 15).lineTo(detailLeft + detailWidths.reduce((a, b) => a + b, 0), detailTop + 15).stroke();
-
-            yPos = detailTop + 20;
-            doc.font('Helvetica').fontSize(8);
-
-            let classHadir = 0, classIzin = 0, classAlpha = 0;
-
-            siswaList.forEach((siswa, index) => {
-                const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === siswa.id);
-
-                const absensiPerTanggal = {};
-                absensiSiswa.forEach(a => {
-                    const tgl = new Date(a.Jurnal.tanggal).toISOString().split('T')[0];
-                    if (!absensiPerTanggal[tgl]) absensiPerTanggal[tgl] = [];
-                    absensiPerTanggal[tgl].push(a);
-                });
-
-                let hadir = 0, izin = 0, alpha = 0;
-                Object.keys(absensiPerTanggal).forEach(tgl => {
-                    const absensiHari = absensiPerTanggal[tgl];
-                    if (absensiHari.some(a => a.status === 'tanpa_ket')) {
-                        alpha++;
-                    } else if (absensiHari.some(a => a.status === 'izin')) {
-                        izin++;
-                    } else {
-                        hadir++;
-                    }
-                });
-
-                const hariAktif = hadir + izin + alpha;
-                const persen = hariAktif > 0 ? Math.round((hadir / hariAktif) * 100) : 0;
-
-                classHadir += hadir;
-                classIzin += izin;
-                classAlpha += alpha;
-
-                // Check if need new page
-                if (yPos > 750) {
-                    doc.addPage();
-                    yPos = 50;
-
-                    // Redraw header on new page
-                    doc.fontSize(9).font('Helvetica-Bold');
-                    xPos = detailLeft;
-                    detailHeaders.forEach((header, i) => {
-                        doc.text(header, xPos, yPos, { width: detailWidths[i], align: i === 2 ? 'left' : 'center' });
-                        xPos += detailWidths[i];
-                    });
-                    doc.moveTo(detailLeft, yPos + 15).lineTo(detailLeft + detailWidths.reduce((a, b) => a + b, 0), yPos + 15).stroke();
-                    yPos += 20;
-                    doc.font('Helvetica').fontSize(8);
-                }
-
-                xPos = detailLeft;
-                const rowData = [
-                    (index + 1).toString(),
-                    siswa.nis,
-                    siswa.nama,
-                    hariAktif.toString(),
-                    hadir.toString(),
-                    izin.toString(),
-                    alpha.toString(),
-                    `${persen}%`
-                ];
-
-                rowData.forEach((data, i) => {
-                    doc.text(data || '-', xPos, yPos, { width: detailWidths[i], align: i === 2 ? 'left' : 'center' });
-                    xPos += detailWidths[i];
-                });
-
-                yPos += 15;
-            });
-
-            // Summary for this class
-            yPos += 10;
-            doc.moveTo(detailLeft, yPos).lineTo(detailLeft + detailWidths.reduce((a, b) => a + b, 0), yPos).stroke();
-            yPos += 10;
-
-            const totalHariAktifKelas = classHadir + classIzin + classAlpha;
-            const avgPersenKelas = totalHariAktifKelas > 0 ? Math.round((classHadir / totalHariAktifKelas) * 100) : 0;
-
-            doc.font('Helvetica-Bold').fontSize(10);
-            doc.text(`Total: ${siswaList.length} siswa | Hadir: ${classHadir} | Izin: ${classIzin} | Alpha: ${classAlpha} | Rata-rata Kehadiran: ${avgPersenKelas}%`, detailLeft, yPos);
-        });
-
-        // Finalize PDF
-        doc.end();
-
-    } catch (error) {
-        console.error('Export bulanan PDF error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -1299,6 +824,302 @@ router.get('/filter-options', authMiddleware, adminOnly, async (req, res) => {
         });
     } catch (error) {
         console.error('Filter options error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get Mapel options for filter
+router.get('/filter-options/mapel', authMiddleware, async (req, res) => {
+    try {
+        const { kelas_id, bulan } = req.query;
+        if (!kelas_id || !bulan) {
+            return res.status(400).json({ success: false, error: 'Parameter kelas_id dan bulan wajib diisi.' });
+        }
+
+        const targetYear = parseInt(bulan.split('-')[0]);
+        const targetMonth = parseInt(bulan.split('-')[1]);
+        const startOfMonth = new Date(targetYear, targetMonth - 1, 1);
+        const endOfMonth = new Date(targetYear, targetMonth, 0);
+
+        const uniqueMapel = await Nilai.findAll({
+            attributes: [
+                [sequelize.fn('DISTINCT', sequelize.col('mata_pelajaran')), 'mata_pelajaran']
+            ],
+            where: {
+                kelas_id: kelas_id,
+                tanggal: { [Op.between]: [startOfMonth, endOfMonth] }
+            }
+        });
+
+        const mapelList = uniqueMapel.map(item => item.mata_pelajaran);
+
+        res.json({ success: true, data: mapelList });
+    } catch (error) {
+        console.error('Filter mapel options error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+
+// Rekap menyeluruh - ringkasan semua kelas dengan statistik global
+router.get('/menyeluruh', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const { tanggal, jurusan_id } = req.query;
+        const { targetDate, kelasList, absensiList, startOfDay, endOfDay } = await getRekapData(tanggal, null, jurusan_id);
+
+        // Organize data per kelas dengan statistik
+        const rekapPerKelas = kelasList.map(kelas => {
+            const siswaList = kelas.Siswas || [];
+            if (siswaList.length === 0) return null;
+
+            const kelasAbsensi = absensiList.filter(a => a.kelas_id_saat_absen === kelas.id);
+
+            // Get unique siswa yang sudah absen
+            const siswaAbsenIds = new Set(kelasAbsensi.map(a => a.siswa_id));
+
+            const hadirCount = siswaList.filter(s => {
+                const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === s.id);
+                return absensiSiswa.length > 0 && absensiSiswa.every(a => a.status === 'hadir');
+            }).length;
+
+            const izinCount = siswaList.filter(s => {
+                const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === s.id);
+                return absensiSiswa.some(a => a.status === 'izin') && !absensiSiswa.some(a => a.status === 'tanpa_ket');
+            }).length;
+
+            const alphaCount = siswaList.filter(s => {
+                const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === s.id);
+                return absensiSiswa.some(a => a.status === 'tanpa_ket');
+            }).length;
+
+            const belumAbsen = siswaList.filter(s => !siswaAbsenIds.has(s.id)).length;
+            const persen = siswaList.length > 0 ? Math.round((hadirCount / siswaList.length) * 100) : 0;
+
+            return {
+                kelas_id: kelas.id,
+                kelas_nama: kelas.nama,
+                jurusan: kelas.Jurusan ? {
+                    id: kelas.Jurusan.id,
+                    nama: kelas.Jurusan.nama,
+                    singkatan: kelas.Jurusan.singkatan
+                } : null,
+                total_siswa: siswaList.length,
+                hadir: hadirCount,
+                izin: izinCount,
+                alpha: alphaCount,
+                belum_absen: belumAbsen,
+                persentase_hadir: persen
+            };
+        }).filter(Boolean);
+
+        // Hitung statistik keseluruhan
+        const totalSiswa = rekapPerKelas.reduce((sum, k) => sum + k.total_siswa, 0);
+        const totalHadir = rekapPerKelas.reduce((sum, k) => sum + k.hadir, 0);
+        const totalIzin = rekapPerKelas.reduce((sum, k) => sum + k.izin, 0);
+        const totalAlpha = rekapPerKelas.reduce((sum, k) => sum + k.alpha, 0);
+        const totalBelum = rekapPerKelas.reduce((sum, k) => sum + k.belum_absen, 0);
+        const persenKeseluruhan = totalSiswa > 0 ? Math.round((totalHadir / totalSiswa) * 100) : 0;
+
+        res.json({
+            success: true,
+            data: {
+                tanggal: targetDate.toISOString().split('T')[0],
+                tanggal_formatted: targetDate.toLocaleDateString('id-ID', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }),
+                statistik_keseluruhan: {
+                    total_kelas: rekapPerKelas.length,
+                    total_siswa: totalSiswa,
+                    hadir: totalHadir,
+                    izin: totalIzin,
+                    alpha: totalAlpha,
+                    belum_absen: totalBelum,
+                    persentase_hadir: persenKeseluruhan
+                },
+                rekap_per_kelas: rekapPerKelas
+            }
+        });
+    } catch (error) {
+        console.error('Rekap menyeluruh error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+// Rekap per kelas - detail semua siswa dalam satu kelas dengan persentase
+router.get('/per-kelas/:kelas_id', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const { kelas_id } = req.params;
+        const { bulan, tahun } = req.query;
+
+        // Parse bulan dan tahun
+        const targetMonth = parseInt(bulan) || (new Date().getMonth() + 1);
+        const targetYear = parseInt(tahun) || new Date().getFullYear();
+
+        // Tanggal awal dan akhir bulan
+        const startOfMonth = new Date(targetYear, targetMonth - 1, 1);
+        startOfMonth.setHours(0, 0, 0, 0);
+        const endOfMonth = new Date(targetYear, targetMonth, 0);
+        endOfMonth.setHours(23, 59, 59, 999);
+
+        // Get kelas dengan siswa
+        const kelas = await Kelas.findByPk(kelas_id, {
+            include: [
+                {
+                    model: Jurusan,
+                    attributes: ['id', 'nama', 'singkatan'],
+                    required: false
+                },
+                {
+                    model: Siswa,
+                    attributes: ['id', 'nis', 'nama', 'kelamin'],
+                    required: false
+                }
+            ]
+        });
+
+        if (!kelas) {
+            return res.status(404).json({ success: false, error: 'Kelas tidak ditemukan' });
+        }
+
+        // Get semua jurnal pada bulan tersebut untuk kelas ini
+        const jurnalList = await Jurnal.findAll({
+            where: {
+                kelas_id: kelas_id,
+                tanggal: {
+                    [Op.between]: [startOfMonth, endOfMonth]
+                }
+            },
+            include: [
+                {
+                    model: Guru,
+                    as: 'Guru',
+                    attributes: ['nama', 'mapel']
+                },
+                {
+                    model: Absensi,
+                    include: [{
+                        model: Siswa,
+                        attributes: ['id', 'nis', 'nama']
+                    }]
+                }
+            ]
+        });
+
+        // Flatten absensi dari jurnal
+        const absensiList = [];
+        jurnalList.forEach(jurnal => {
+            if (jurnal.Absensis) {
+                jurnal.Absensis.forEach(absensi => {
+                    absensiList.push({
+                        ...absensi.toJSON(),
+                        Jurnal: {
+                            id: jurnal.id,
+                            mata_pelajaran: jurnal.mata_pelajaran,
+                            tanggal: jurnal.tanggal,
+                            Guru: jurnal.Guru
+                        }
+                    });
+                });
+            }
+        });
+
+        // Map siswa dengan rekap bulanan
+        const siswaList = kelas.siswa || [];
+        const siswaRekap = siswaList.map(siswa => {
+            const absensiSiswa = absensiList.filter(a => a.siswa_id === siswa.id);
+
+            // Group absensi per tanggal
+            const absensiPerTanggal = {};
+            absensiSiswa.forEach(a => {
+                const tgl = new Date(a.Jurnal.tanggal).toISOString().split('T')[0];
+                if (!absensiPerTanggal[tgl]) {
+                    absensiPerTanggal[tgl] = [];
+                }
+                absensiPerTanggal[tgl].push(a);
+            });
+
+            // Hitung total per status untuk seluruh bulan
+            let totalHadir = 0;
+            let totalIzin = 0;
+            let totalAlpha = 0;
+            let totalHariAktif = Object.keys(absensiPerTanggal).length;
+
+            // Tentukan status per hari
+            Object.keys(absensiPerTanggal).forEach(tgl => {
+                const absensiHari = absensiPerTanggal[tgl];
+                const hasAlpha = absensiHari.some(a => a.status === 'tanpa_ket');
+                const hasIzin = absensiHari.some(a => a.status === 'izin');
+
+                if (hasAlpha) {
+                    totalAlpha++;
+                } else if (hasIzin) {
+                    totalIzin++;
+                } else {
+                    totalHadir++;
+                }
+            });
+
+            // Persentase kehadiran
+            const persentaseHadir = totalHariAktif > 0 ? Math.round((totalHadir / totalHariAktif) * 100) : 0;
+
+            return {
+                id: siswa.id,
+                nis: siswa.nis,
+                nama: siswa.nama,
+                kelamin: siswa.kelamin,
+                total_hari_aktif: totalHariAktif,
+                total_hadir: totalHadir,
+                total_izin: totalIzin,
+                total_alpha: totalAlpha,
+                persentase_hadir: persentaseHadir
+            };
+        });
+
+        // Hitung statistik kelas
+        const totalSiswa = siswaList.length;
+        const totalHadirKelas = siswaRekap.reduce((sum, s) => sum + s.total_hadir, 0);
+        const totalIzinKelas = siswaRekap.reduce((sum, s) => sum + s.total_izin, 0);
+        const totalAlphaKelas = siswaRekap.reduce((sum, s) => sum + s.total_alpha, 0);
+        const totalHariAktifKelas = siswaRekap.reduce((sum, s) => sum + s.total_hari_aktif, 0);
+        const avgPersentase = totalSiswa > 0 ? Math.round(siswaRekap.reduce((sum, s) => sum + s.persentase_hadir, 0) / totalSiswa) : 0;
+
+        // Nama bulan
+        const namaBulan = new Date(targetYear, targetMonth - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+
+        res.json({
+            success: true,
+            data: {
+                kelas: {
+                    id: kelas.id,
+                    nama: kelas.nama,
+                    tingkat: kelas.tingkat,
+                    tahun_ajaran: kelas.tahun_ajaran,
+                    jurusan: kelas.Jurusan ? {
+                        id: kelas.Jurusan.id,
+                        nama: kelas.Jurusan.nama,
+                        singkatan: kelas.Jurusan.singkatan
+                    } : null
+                },
+                periode: {
+                    bulan: targetMonth,
+                    tahun: targetYear,
+                    nama_bulan: namaBulan
+                },
+                statistik: {
+                    total_siswa: totalSiswa,
+                    total_hadir: totalHadirKelas,
+                    total_izin: totalIzinKelas,
+                    total_alpha: totalAlphaKelas,
+                    total_hari_aktif: totalHariAktifKelas,
+                    rata_rata_persentase_hadir: avgPersentase
+                },
+                siswa: siswaRekap
+            }
+        });
+    } catch (error) {
+        console.error('Rekap per kelas error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });

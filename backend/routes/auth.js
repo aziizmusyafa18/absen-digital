@@ -37,35 +37,4 @@ router.post('/login/guru', async (req, res) => {
   }
 });
 
-// Login untuk Orang Tua
-router.post('/login/orang-tua', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-
-    const ortu = await OrangTua.findOne({ where: { username } });
-
-    if (!ortu || !await bcrypt.compare(password, ortu.password)) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    const token = jwt.sign(
-      { id: ortu.id, role: 'orang_tua', nama: ortu.nama },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    res.json({
-      success: true,
-      token,
-      user: {
-        id: ortu.id,
-        nama: ortu.nama,
-        role: 'orang_tua'
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 module.exports = router;

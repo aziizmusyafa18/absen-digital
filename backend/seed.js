@@ -159,37 +159,43 @@ const seedDatabase = async () => {
     await GuruKelas.create({
       guru_id: guru1.id,
       kelas_id: kelasXII.id,
-      mata_pelajaran: 'Pemrograman Web'
+      mata_pelajaran: 'Pemrograman Web',
+      jam_mulai: '07:30:00'
     });
 
     await GuruKelas.create({
       guru_id: guru1.id,
       kelas_id: kelasXI.id,
-      mata_pelajaran: 'Pemrograman Web Dasar'
+      mata_pelajaran: 'Pemrograman Web Dasar',
+      jam_mulai: '09:00:00'
     });
 
     await GuruKelas.create({
       guru_id: guru2.id,
       kelas_id: kelasXII.id,
-      mata_pelajaran: 'Jaringan Komputer'
+      mata_pelajaran: 'Jaringan Komputer',
+      jam_mulai: '08:15:00'
     });
 
     await GuruKelas.create({
       guru_id: guru2.id,
       kelas_id: kelasXI.id,
-      mata_pelajaran: 'Administrasi Jaringan'
+      mata_pelajaran: 'Administrasi Jaringan',
+      jam_mulai: '10:00:00'
     });
 
     await GuruKelas.create({
       guru_id: guru3.id,
       kelas_id: kelasXII.id,
-      mata_pelajaran: 'Basis Data'
+      mata_pelajaran: 'Basis Data',
+      jam_mulai: '07:30:00'
     });
 
     await GuruKelas.create({
       guru_id: guru3.id,
       kelas_id: kelasX.id,
-      mata_pelajaran: 'Pengenalan Basis Data'
+      mata_pelajaran: 'Pengenalan Basis Data',
+      jam_mulai: '11:00:00'
     });
 
     console.log('✅ Guru-Kelas relationships created');

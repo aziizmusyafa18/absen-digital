@@ -7,6 +7,8 @@ const Jurnal = require('./Jurnal');
 const Absensi = require('./Absensi');
 const GuruKelas = require('./GuruKelas');
 const Jurusan = require('./Jurusan');
+const Nilai = require('./Nilai');
+const MataPelajaran = require('./MataPelajaran');
 
 // Define Associations
 // Kelas - Siswa (one-to-many)
@@ -49,6 +51,21 @@ Kelas.hasMany(GuruKelas, { foreignKey: 'kelas_id', onDelete: 'CASCADE' });
 Jurusan.hasMany(Kelas, { foreignKey: 'jurusan_id', onDelete: 'SET NULL' });
 Kelas.belongsTo(Jurusan, { foreignKey: 'jurusan_id', allowNull: true });
 
+// Associations for Nilai
+Siswa.hasMany(Nilai, { foreignKey: 'siswa_id', onDelete: 'CASCADE' });
+Nilai.belongsTo(Siswa, { foreignKey: 'siswa_id', as: 'Siswa' });
+
+Guru.hasMany(Nilai, { foreignKey: 'guru_id', onDelete: 'CASCADE' });
+Nilai.belongsTo(Guru, { foreignKey: 'guru_id', as: 'Guru' });
+
+Kelas.hasMany(Nilai, { foreignKey: 'kelas_id', onDelete: 'CASCADE' });
+Nilai.belongsTo(Kelas, { foreignKey: 'kelas_id', as: 'Kelas' });
+
+// GuruKelas - MataPelajaran (belongsTo)
+GuruKelas.belongsTo(MataPelajaran, { foreignKey: 'mapel_id' });
+MataPelajaran.hasMany(GuruKelas, { foreignKey: 'mapel_id' });
+
+
 module.exports = {
   sequelize,
   Guru,
@@ -58,5 +75,7 @@ module.exports = {
   Jurnal,
   Absensi,
   GuruKelas,
-  Jurusan
+  Jurusan,
+  Nilai,
+  MataPelajaran
 };

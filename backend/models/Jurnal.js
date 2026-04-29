@@ -26,6 +26,10 @@ const Jurnal = sequelize.define('Jurnal', {
   materi: {
     type: DataTypes.TEXT,
     allowNull: false
+  },
+  foto_kegiatan: {
+    type: DataTypes.TEXT({ length: 'long' }),
+    allowNull: true
   }
 }, {
   tableName: 'jurnal',

@@ -18,17 +18,17 @@ const authRoutes = require('./routes/auth');
 const guruRoutes = require('./routes/guru');
 const adminRoutes = require('./routes/admin');
 const adminCrudRoutes = require('./routes/adminCrud');
-const orangTuaRoutes = require('./routes/orangTua');
 const importRoutes = require('./routes/import');
 const rekapRoutes = require('./routes/rekap');
+const publicSearchRoutes = require('./routes/publicSearch');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/guru', guruRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/master-data', adminCrudRoutes);
-app.use('/api/orang-tua', orangTuaRoutes);
 app.use('/api/import', importRoutes);
 app.use('/api/rekap', rekapRoutes);
+app.use('/api/public', publicSearchRoutes);
 
 // Serve index.html for root
 app.get('/', (req, res) => {

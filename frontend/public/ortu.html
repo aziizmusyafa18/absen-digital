@@ -1,1278 +1,708 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Orang Tua - Absen Digital</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="js/tab-sync.js"></script>
-    <style>
-        :root {
-            --primary: #4f46e5;
-            --primary-dark: #4338ca;
-            --secondary: #64748b;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background: #f1f5f9;
-            min-height: 100vh;
-        }
-
-        /* Top Header */
-        .top-header {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            padding: 1rem 2rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .brand-icon {
-            width: 45px;
-            height: 45px;
-            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.25rem;
-            color: white;
-        }
-
-        .brand-text h5 {
-            color: white;
-            font-weight: 700;
-            margin: 0;
-            font-size: 1.1rem;
-        }
-
-        .brand-text span {
-            color: rgba(255,255,255,0.6);
-            font-size: 0.75rem;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-        }
-
-        .datetime-display {
-            color: rgba(255,255,255,0.8);
-            font-size: 0.85rem;
-            text-align: right;
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            cursor: pointer;
-        }
-
-        .user-avatar {
-            width: 42px;
-            height: 42px;
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-        }
-
-        .user-info {
-            text-align: right;
-        }
-
-        .user-info h6 {
-            color: white;
-            font-weight: 600;
-            margin: 0;
-            font-size: 0.9rem;
-        }
-
-        .user-info span {
-            color: rgba(255,255,255,0.6);
-            font-size: 0.75rem;
-        }
-
-        /* Main Content */
-        .main-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        /* Card Modern */
-        .card-modern {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            border: 1px solid #e2e8f0;
-            overflow: hidden;
-            margin-bottom: 1.5rem;
-        }
-
-        .card-modern-header {
-            padding: 1.25rem 1.5rem;
-            border-bottom: 1px solid #f1f5f9;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .card-modern-header h5 {
-            font-weight: 700;
-            color: #1e293b;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .card-modern-header h5 i {
-            color: var(--primary);
-        }
-
-        .card-modern-body {
-            padding: 1.5rem;
-        }
-
-        /* Anak Cards */
-        .anak-card {
-            background: white;
-            border: 2px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 1.25rem;
-            transition: all 0.3s;
-            cursor: pointer;
-            height: 100%;
-        }
-
-        .anak-card:hover {
-            border-color: var(--primary);
-            transform: translateY(-4px);
-            box-shadow: 0 12px 30px rgba(79, 70, 229, 0.15);
-        }
-
-        .anak-card.active {
-            border-color: var(--primary);
-            background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%);
-        }
-
-        .anak-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .anak-avatar {
-            width: 55px;
-            height: 55px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1.25rem;
-        }
-
-        .anak-details {
-            flex: 1;
-        }
-
-        .anak-details h6 {
-            margin: 0 0 0.25rem 0;
-            font-weight: 700;
-            color: #1e293b;
-        }
-
-        .anak-details span {
-            font-size: 0.8rem;
-            color: var(--secondary);
-        }
-
-        .btn-lihat {
-            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
-            border: none;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 0.375rem;
-            transition: all 0.2s;
-        }
-
-        .btn-lihat:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
-            color: white;
-        }
-
-        /* Stat Cards */
-        .stat-cards {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
-        }
-
-        .stat-card {
-            border-radius: 16px;
-            padding: 1.5rem;
-            color: white;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: -30%;
-            right: -30%;
-            width: 120px;
-            height: 120px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 50%;
-        }
-
-        .stat-card.success {
-            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
-        }
-
-        .stat-card.warning {
-            background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%);
-        }
-
-        .stat-card.danger {
-            background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
-        }
-
-        .stat-card-content {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .stat-icon {
-            width: 50px;
-            height: 50px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-        }
-
-        .stat-info h3 {
-            font-size: 2rem;
-            font-weight: 700;
-            margin: 0;
-        }
-
-        .stat-info span {
-            font-size: 0.85rem;
-            opacity: 0.9;
-        }
-
-        /* Table Modern */
-        .table-modern {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .table-modern thead {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        }
-
-        .table-modern thead th {
-            padding: 1rem 1.25rem;
-            font-weight: 600;
-            color: #475569;
-            text-align: left;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 2px solid #e2e8f0;
-        }
-
-        .table-modern tbody td {
-            padding: 1rem 1.25rem;
-            border-bottom: 1px solid #f1f5f9;
-            color: #334155;
-            font-size: 0.9rem;
-        }
-
-        .table-modern tbody tr {
-            transition: background 0.2s;
-        }
-
-        .table-modern tbody tr:hover {
-            background: #f8fafc;
-        }
-
-        .table-modern tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        /* Badges */
-        .badge-modern {
-            padding: 0.375rem 0.75rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.75rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-
-        .badge-hadir {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--success);
-        }
-
-        .badge-izin {
-            background: rgba(245, 158, 11, 0.1);
-            color: var(--warning);
-        }
-
-        .badge-alpha {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger);
-        }
-
-        .badge-kelas {
-            background: rgba(79, 70, 229, 0.1);
-            color: var(--primary);
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 4rem 2rem;
-        }
-
-        .empty-state i {
-            font-size: 4rem;
-            color: #e2e8f0;
-            margin-bottom: 1rem;
-        }
-
-        .empty-state h5 {
-            color: #64748b;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .empty-state p {
-            color: #94a3b8;
-            font-size: 0.9rem;
-        }
-
-        /* Toast Custom */
-        .toast-custom {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-            border: none;
-        }
-
-        .toast-custom.success {
-            border-left: 4px solid var(--success);
-        }
-
-        .toast-custom.error {
-            border-left: 4px solid var(--danger);
-        }
-
-        /* Responsive - Tablet */
-        @media (max-width: 992px) {
-            .stat-cards {
-                grid-template-columns: repeat(3, 1fr);
-                gap: 0.75rem;
-            }
-
-            .stat-card {
-                padding: 1.25rem;
-            }
-
-            .stat-info h3 {
-                font-size: 1.75rem;
-            }
-
-            .stat-icon {
-                width: 45px;
-                height: 45px;
-                font-size: 1.25rem;
-            }
-
-            .main-content {
-                padding: 1.5rem;
-            }
-
-            .card-modern-body {
-                padding: 1.25rem;
-            }
-
-            .table-modern thead th,
-            .table-modern tbody td {
-                padding: 0.875rem 1rem;
-            }
-        }
-
-        /* Responsive - Mobile */
-        @media (max-width: 768px) {
-            .main-content {
-                padding: 1rem;
-            }
-
-            .top-header {
-                padding: 0.875rem 1rem;
-            }
-
-            .header-container {
-                flex-wrap: wrap;
-                gap: 0.75rem;
-            }
-
-            .datetime-display {
-                display: none;
-            }
-
-            .brand-icon {
-                width: 40px;
-                height: 40px;
-                font-size: 1.1rem;
-                border-radius: 10px;
-            }
-
-            .brand-text h5 {
-                font-size: 1rem;
-            }
-
-            .brand-text span {
-                font-size: 0.7rem;
-            }
-
-            .user-avatar {
-                width: 38px;
-                height: 38px;
-                border-radius: 10px;
-                font-size: 0.9rem;
-            }
-
-            .user-profile {
-                padding: 0.25rem;
-                gap: 0;
-            }
-
-            .header-right {
-                gap: 0.75rem;
-            }
-
-            .stat-cards {
-                grid-template-columns: 1fr;
-                gap: 0.75rem;
-            }
-
-            .stat-card {
-                padding: 1rem;
-                border-radius: 12px;
-            }
-
-            .stat-card-content {
-                gap: 0.75rem;
-            }
-
-            .stat-icon {
-                width: 42px;
-                height: 42px;
-                font-size: 1.15rem;
-                border-radius: 10px;
-            }
-
-            .stat-info h3 {
-                font-size: 1.5rem;
-            }
-
-            .stat-info span {
-                font-size: 0.8rem;
-            }
-
-            .anak-card {
-                padding: 1rem;
-                border-radius: 12px;
-            }
-
-            .anak-info {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .anak-avatar {
-                width: 50px;
-                height: 50px;
-                font-size: 1.15rem;
-            }
-
-            .anak-details {
-                text-align: center;
-            }
-
-            .anak-card .mt-3 {
-                justify-content: center !important;
-            }
-
-            .card-modern {
-                border-radius: 12px;
-                margin-bottom: 1rem;
-            }
-
-            .card-modern-header {
-                padding: 1rem;
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .card-modern-header h5 {
-                font-size: 1rem;
-            }
-
-            .card-modern-body {
-                padding: 1rem;
-            }
-
-            .month-badge {
-                font-size: 0.8rem;
-                padding: 0.25rem 0.75rem;
-            }
-
-            /* Table responsive for mobile */
-            .table-responsive {
-                margin: 0 -1rem;
-                padding: 0 1rem;
-            }
-
-            .table-modern thead th {
-                padding: 0.75rem 0.625rem;
-                font-size: 0.7rem;
-                white-space: nowrap;
-            }
-
-            .table-modern tbody td {
-                padding: 0.75rem 0.625rem;
-                font-size: 0.8rem;
-            }
-
-            .table-modern tbody td i {
-                display: none;
-            }
-
-            .badge-modern {
-                padding: 0.25rem 0.5rem;
-                font-size: 0.7rem;
-            }
-
-            .empty-state {
-                padding: 2.5rem 1rem;
-            }
-
-            .empty-state i {
-                font-size: 3rem;
-            }
-
-            .empty-state h5 {
-                font-size: 1rem;
-            }
-
-            .empty-state p {
-                font-size: 0.85rem;
-            }
-
-            .toast-container {
-                padding: 0.75rem !important;
-                left: 0.75rem !important;
-                right: 0.75rem !important;
-            }
-
-            .toast-custom {
-                width: 100%;
-            }
-        }
-
-        /* Responsive - Small Mobile */
-        @media (max-width: 576px) {
-            .main-content {
-                padding: 0.75rem;
-            }
-
-            .top-header {
-                padding: 0.75rem;
-            }
-
-            .header-right {
-                gap: 0.75rem;
-            }
-
-            .brand {
-                gap: 0.5rem;
-            }
-
-            .brand-icon {
-                width: 36px;
-                height: 36px;
-                font-size: 1rem;
-                border-radius: 8px;
-            }
-
-            .brand-text h5 {
-                font-size: 0.9rem;
-            }
-
-            .brand-text span {
-                display: none;
-            }
-
-            .user-avatar {
-                width: 34px;
-                height: 34px;
-                font-size: 0.85rem;
-            }
-
-            .stat-card {
-                padding: 0.875rem;
-            }
-
-            .stat-icon {
-                width: 38px;
-                height: 38px;
-                font-size: 1rem;
-            }
-
-            .stat-info h3 {
-                font-size: 1.35rem;
-            }
-
-            .stat-info span {
-                font-size: 0.75rem;
-            }
-
-            .anak-avatar {
-                width: 45px;
-                height: 45px;
-                font-size: 1rem;
-                border-radius: 10px;
-            }
-
-            .anak-details h6 {
-                font-size: 0.95rem;
-            }
-
-            .anak-details span {
-                font-size: 0.75rem;
-            }
-
-            .btn-lihat {
-                padding: 0.4rem 0.875rem;
-                font-size: 0.8rem;
-            }
-
-            .card-modern-header h5 {
-                font-size: 0.95rem;
-            }
-
-            .card-modern-header h5 i {
-                font-size: 1rem;
-            }
-
-            /* Hide some table columns on very small screens */
-            .table-modern thead th:nth-child(2),
-            .table-modern tbody td:nth-child(2) {
-                display: none;
-            }
-
-            .table-modern thead th:nth-child(5),
-            .table-modern tbody td:nth-child(5) {
-                display: none;
-            }
-        }
-
-        /* Responsive - Extra Small Mobile */
-        @media (max-width: 400px) {
-            .main-content {
-                padding: 0.5rem;
-            }
-
-            .top-header {
-                padding: 0.625rem;
-            }
-
-            .brand-icon {
-                width: 32px;
-                height: 32px;
-                font-size: 0.9rem;
-            }
-
-            .brand-text h5 {
-                font-size: 0.85rem;
-            }
-
-            .brand-text span {
-                font-size: 0.65rem;
-            }
-
-            .user-avatar {
-                width: 32px;
-                height: 32px;
-                font-size: 0.8rem;
-            }
-
-            .stat-card {
-                padding: 0.75rem;
-            }
-
-            .stat-card-content {
-                gap: 0.5rem;
-            }
-
-            .stat-icon {
-                width: 35px;
-                height: 35px;
-                font-size: 0.9rem;
-                border-radius: 8px;
-            }
-
-            .stat-info h3 {
-                font-size: 1.25rem;
-            }
-
-            .card-modern {
-                border-radius: 10px;
-            }
-
-            .card-modern-header {
-                padding: 0.875rem;
-            }
-
-            .card-modern-body {
-                padding: 0.875rem;
-            }
-
-            .anak-card {
-                padding: 0.875rem;
-                border-radius: 10px;
-            }
-
-            .anak-avatar {
-                width: 40px;
-                height: 40px;
-                font-size: 0.9rem;
-                border-radius: 8px;
-            }
-
-            .anak-details h6 {
-                font-size: 0.9rem;
-            }
-
-            .btn-lihat {
-                padding: 0.35rem 0.75rem;
-                font-size: 0.75rem;
-                border-radius: 6px;
-            }
-
-            .table-modern thead th {
-                padding: 0.625rem 0.5rem;
-                font-size: 0.65rem;
-            }
-
-            .table-modern tbody td {
-                padding: 0.625rem 0.5rem;
-                font-size: 0.75rem;
-            }
-
-            .badge-modern {
-                padding: 0.2rem 0.4rem;
-                font-size: 0.65rem;
-                border-radius: 6px;
-            }
-
-            .month-badge {
-                font-size: 0.75rem;
-                padding: 0.2rem 0.625rem;
-            }
-
-            .empty-state {
-                padding: 2rem 0.75rem;
-            }
-
-            .empty-state i {
-                font-size: 2.5rem;
-            }
-
-            .empty-state h5 {
-                font-size: 0.9rem;
-            }
-
-            .empty-state p {
-                font-size: 0.8rem;
-            }
-
-            /* Hide mata pelajaran column on extra small */
-            .table-modern thead th:nth-child(3),
-            .table-modern tbody td:nth-child(3) {
-                display: none;
-            }
-        }
-
-        /* Dropdown Menu */
-        .dropdown-menu {
-            border: none;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-            padding: 0.5rem;
-        }
-
-        .dropdown-item {
-            border-radius: 8px;
-            padding: 0.625rem 1rem;
-            font-weight: 500;
-        }
-
-        .dropdown-item:hover {
-            background: #f1f5f9;
-        }
-
-        /* Month Badge */
-        .month-badge {
-            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
-            color: white;
-            padding: 0.375rem 1rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.85rem;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal Orang Tua - Absen Digital</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+    --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+    --glass-bg: rgba(255, 255, 255, 0.95);
+}
+
+* {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+body {
+    min-height: 100vh;
+    background: var(--primary-gradient);
+    position: relative;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+        radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.2) 0%, transparent 50%);
+    animation: bgFloat 15s ease-in-out infinite;
+    z-index: 0;
+}
+
+@keyframes bgFloat {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.1) rotate(3deg); }
+}
+
+.navbar {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.navbar-brand {
+    font-weight: 800;
+    font-size: 1.5rem;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.nav-link {
+    font-weight: 600;
+    color: #475569;
+    transition: color 0.3s ease;
+    position: relative;
+}
+
+.nav-link:hover, .nav-link.active {
+    color: #6366f1;
+}
+
+.nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 3px;
+    background: var(--primary-gradient);
+    border-radius: 2px;
+}
+
+.container-main {
+    position: relative;
+    z-index: 1;
+    padding: 2rem 0;
+}
+
+.hero-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    padding: 3rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.hero-section h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 1rem;
+}
+
+.hero-section p {
+    font-size: 1.1rem;
+    color: #64748b;
+}
+
+.feature-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(99, 102, 241, 0.2);
+    border-color: #6366f1;
+}
+
+.feature-icon {
+    width: 60px;
+    height: 60px;
+    background: var(--primary-gradient);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    color: white;
+    margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.75rem;
+}
+
+.feature-card p {
+    color: #64748b;
+    margin: 0;
+}
+
+.search-section {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.search-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.search-header h2 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+}
+
+.search-header p {
+    color: #64748b;
+    font-size: 1rem;
+}
+
+.search-box {
+    position: relative;
+    max-width: 600px;
+    margin: 0 auto 2rem;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 1.25rem 1.25rem 1.25rem 3.5rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    font-size: 1.05rem;
+    transition: all 0.3s ease;
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.search-box i {
+    position: absolute;
+    left: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.3rem;
+    color: #94a3b8;
+}
+
+.student-profile {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 2px solid #e2e8f0;
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    background: var(--primary-gradient);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.profile-info h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+}
+
+.profile-info p {
+    color: #64748b;
+    margin: 0;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.stat-card.hadir {
+    border-left: 4px solid #10b981;
+}
+
+.stat-card.izin {
+    border-left: 4px solid #f59e0b;
+}
+
+.stat-card.alpha {
+    border-left: 4px solid #ef4444;
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 0.25rem;
+}
+
+.stat-card.hadir .stat-number { color: #10b981; }
+.stat-card.izin .stat-number { color: #f59e0b; }
+.stat-card.alpha .stat-number { color: #ef4444; }
+
+.stat-label {
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+.attendance-table {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.table-header {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    padding: 1.5rem;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.table-body {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.table {
+    margin: 0;
+}
+
+.table thead th {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    padding: 1rem;
+    border: none;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.table tbody td {
+    padding: 1rem;
+    vertical-align: middle;
+    border-color: #f1f5f9;
+}
+
+.badge-status {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-hadir {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    color: #065f46;
+}
+
+.badge-izin {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #78350f;
+}
+
+.badge-alpha {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    color: #991b1b;
+}
+
+.empty-state, .error-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: #94a3b8;
+}
+
+.empty-state i, .error-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state p, .error-state p {
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
+}
+
+.spinner-border {
+    color: #6366f1;
+}
+
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 2rem;
+    }
+
+    .hero-section h1 {
+        font-size: 2rem;
+    }
+
+    .profile-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
 </head>
 <body>
-    <!-- Top Header -->
-    <header class="top-header">
-        <div class="header-container">
-            <div class="brand">
-                <div class="brand-icon">
-                    <i class="bi bi-people-fill"></i>
-                </div>
-                <div class="brand-text">
-                    <h5>Absen Digital</h5>
-                    <span>Dashboard Orang Tua</span>
-                </div>
-            </div>
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg">
+    <div class="container">
+        <a class="navbar-brand" href="#">
+            <i class="bi bi-mortarboard-fill me-2"></i>Absen Digital
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#beranda">
+                        <i class="bi bi-house-fill me-1"></i> Beranda
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#cari-siswa">
+                        <i class="bi bi-search me-1"></i> Cari Siswa
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
 
-            <div class="header-right">
-                <div class="datetime-display" id="current-datetime"></div>
-                <div class="dropdown">
-                    <div class="user-profile" data-bs-toggle="dropdown">
-                        <div class="user-info d-none d-sm-block">
-                            <h6 id="user-name">Orang Tua</h6>
-                            <span>Orang Tua/Wali</span>
-                        </div>
-                        <div class="user-avatar" id="user-avatar">O</div>
-                    </div>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><span class="dropdown-item-text fw-semibold" id="dropdown-user-name">Orang Tua</span></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <a class="dropdown-item text-danger" href="#" onclick="logout()">
-                                <i class="bi bi-box-arrow-right me-2"></i>Logout
-                            </a>
-                        </li>
-                    </ul>
+<!-- Main Container -->
+<div class="container container-main">
+    <!-- Hero Section -->
+    <section id="beranda" class="hero-section">
+        <h1><i class="bi bi-heart-fill me-2"></i>Portal Orang Tua</h1>
+        <p class="lead">Pantau kehadiran dan aktivitas belajar putra-putri Anda secara real-time</p>
+    </section>
+
+    <!-- Features Grid -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-search"></i>
                 </div>
+                <h3>Pencarian Mudah</h3>
+                <p>Cari data kehadiran siswa berdasarkan nama atau NIS dengan cepat dan akurat</p>
             </div>
         </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="main-content">
-        <!-- Anak List -->
-        <div class="card-modern">
-            <div class="card-modern-header">
-                <h5><i class="bi bi-people-fill"></i> Anak Didik</h5>
-            </div>
-            <div class="card-modern-body">
-                <div class="row g-3" id="anak-list"></div>
-            </div>
-        </div>
-
-        <!-- Statistik Section -->
-        <div id="statistik-section" class="card-modern" style="display: none;">
-            <div class="card-modern-header">
-                <h5><i class="bi bi-bar-chart-fill"></i> Statistik Kehadiran</h5>
-                <span class="month-badge" id="stat-bulan">Bulan Ini</span>
-            </div>
-            <div class="card-modern-body">
-                <div class="stat-cards">
-                    <div class="stat-card success">
-                        <div class="stat-card-content">
-                            <div class="stat-icon">
-                                <i class="bi bi-check-circle"></i>
-                            </div>
-                            <div class="stat-info">
-                                <h3 id="stat-hadir">0</h3>
-                                <span>Hadir</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="stat-card warning">
-                        <div class="stat-card-content">
-                            <div class="stat-icon">
-                                <i class="bi bi-file-earmark-text"></i>
-                            </div>
-                            <div class="stat-info">
-                                <h3 id="stat-izin">0</h3>
-                                <span>Izin</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="stat-card danger">
-                        <div class="stat-card-content">
-                            <div class="stat-icon">
-                                <i class="bi bi-x-circle"></i>
-                            </div>
-                            <div class="stat-info">
-                                <h3 id="stat-alpha">0</h3>
-                                <span>Tanpa Ket</span>
-                            </div>
-                        </div>
-                    </div>
+        <div class="col-md-6">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-clock-history"></i>
                 </div>
+                <h3>Riwayat Real-time</h3>
+                <p>Lihat riwayat kehadiran terkini dengan update otomatis dari sistem absensi</p>
             </div>
         </div>
-
-        <!-- Riwayat Section -->
-        <div id="riwayat-section" class="card-modern" style="display: none;">
-            <div class="card-modern-header">
-                <h5><i class="bi bi-calendar-check"></i> Riwayat Kehadiran</h5>
-            </div>
-            <div class="table-responsive">
-                <table class="table-modern">
-                    <thead>
-                        <tr>
-                            <th>Tanggal</th>
-                            <th>Jam</th>
-                            <th>Mata Pelajaran</th>
-                            <th>Status</th>
-                            <th>Kelas</th>
-                        </tr>
-                    </thead>
-                    <tbody id="riwayat-tbody"></tbody>
-                </table>
+        <div class="col-md-6">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-graph-up-arrow"></i>
+                </div>
+                <h3>Statistik Lengkap</h3>
+                <p>Monitor statistik kehadiran bulanan: hadir, izin, dan tanpa keterangan</p>
             </div>
         </div>
-    </main>
-
-    <!-- Toast Notification -->
-    <div class="toast-container position-fixed bottom-0 end-0 p-3">
-        <div id="notification" class="toast toast-custom" role="alert">
-            <div class="d-flex align-items-center p-3">
-                <i class="bi bi-check-circle-fill text-success me-2 fs-5" id="notification-icon"></i>
-                <span id="notification-message" class="flex-grow-1"></span>
-                <button type="button" class="btn-close ms-2" data-bs-dismiss="toast"></button>
+        <div class="col-md-6">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-calendar-check"></i>
+                </div>
+                <h3>Laporan Terperinci</h3>
+                <p>Akses detail setiap sesi pelajaran dengan informasi mata pelajaran dan jam belajar</p>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Search Section -->
+    <section id="cari-siswa" class="search-section">
+        <div class="search-header">
+            <h2><i class="bi bi-person-search me-2"></i>Cari Data Siswa</h2>
+            <p>Masukkan nama atau NIS siswa untuk melihat data kehadiran</p>
+        </div>
 
-    <script>
-        const token = localStorage.getItem('token');
-        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+        <div class="search-box">
+            <i class="bi bi-search"></i>
+            <input
+                type="text"
+                id="searchInput"
+                class="form-control"
+                placeholder="Ketik nama atau NIS siswa..."
+                autocomplete="off"
+            >
+        </div>
 
-        if (!token || userData.role !== 'orang_tua') {
-            window.location.href = 'index.html';
+        <!-- Loading State -->
+        <div id="loadingState" class="loading" style="display: none;">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Mencari data siswa...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state">
+            <i class="bi bi-inbox"></i>
+            <p>Masukkan nama atau NIS siswa untuk memulai pencarian</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="error-state" style="display: none;">
+            <i class="bi bi-exclamation-circle"></i>
+            <p id="errorMessage">Terjadi kesalahan</p>
+        </div>
+
+        <!-- Student Profile & Data -->
+        <div id="studentData" style="display: none;">
+            <!-- Profile -->
+            <div class="student-profile">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                    <div class="profile-info">
+                        <h3 id="studentName">-</h3>
+                        <p><strong>NIS:</strong> <span id="studentNis">-</span></p>
+                        <p><strong>Kelas:</strong> <span id="studentKelas">-</span></p>
+                    </div>
+                </div>
+
+                <!-- Statistics -->
+                <div class="stats-grid">
+                    <div class="stat-card hadir">
+                        <div class="stat-number" id="statHadir">0</div>
+                        <div class="stat-label">Hadir</div>
+                    </div>
+                    <div class="stat-card izin">
+                        <div class="stat-number" id="statIzin">0</div>
+                        <div class="stat-label">Izin</div>
+                    </div>
+                    <div class="stat-card alpha">
+                        <div class="stat-number" id="statAlpha">0</div>
+                        <div class="stat-label">Alpha</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Table -->
+            <div class="attendance-table">
+                <div class="table-header">
+                    <i class="bi bi-list-ul me-2"></i>Riwayat Kehadiran (20 Data Terakhir)
+                </div>
+                <div class="table-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Mata Pelajaran</th>
+                                <th>Jam</th>
+                                <th>Kelas</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let searchTimeout;
+
+// Smooth scroll for navigation
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+});
+
+// Search input with debounce
+document.getElementById('searchInput').addEventListener('input', function(e) {
+    const query = e.target.value.trim();
+
+    clearTimeout(searchTimeout);
+
+    if (query.length < 2) {
+        showEmptyState();
+        return;
+    }
+
+    searchTimeout = setTimeout(() => {
+        searchStudent(query);
+    }, 500);
+});
+
+async function searchStudent(query) {
+    const loadingState = document.getElementById('loadingState');
+    const emptyState = document.getElementById('emptyState');
+    const errorState = document.getElementById('errorState');
+    const studentData = document.getElementById('studentData');
+
+    // Show loading
+    loadingState.style.display = 'block';
+    emptyState.style.display = 'none';
+    errorState.style.display = 'none';
+    studentData.style.display = 'none';
+
+    try {
+        const response = await fetch(`/api/public/search/${encodeURIComponent(query)}`);
+
+        if (!response.ok) {
+            if (response.status === 404) {
+                throw new Error('Siswa tidak ditemukan. Periksa kembali nama atau NIS yang dimasukkan.');
+            }
+            throw new Error('Terjadi kesalahan saat mengambil data');
         }
 
-        document.getElementById('user-name').textContent = userData.nama || 'Orang Tua';
-        document.getElementById('dropdown-user-name').textContent = userData.nama || 'Orang Tua';
-        document.getElementById('user-avatar').textContent = (userData.nama || 'O').charAt(0).toUpperCase();
+        const data = await response.json();
 
-        const toastEl = document.getElementById('notification');
-        const toast = new bootstrap.Toast(toastEl, { delay: 5000 });
+        // Hide loading
+        loadingState.style.display = 'none';
 
-        const socket = io();
-        socket.emit('join-role', { role: 'orang_tua', userId: userData.id });
+        // Display student data
+        displayStudentData(data);
 
-        TabSync.init('absen-digital');
-        initStorageSync();
+    } catch (error) {
+        console.error('Search error:', error);
+        loadingState.style.display = 'none';
+        errorState.style.display = 'block';
+        document.getElementById('errorMessage').textContent = error.message;
+    }
+}
 
-        loadAnak();
+function displayStudentData(data) {
+    // Show student data section
+    document.getElementById('studentData').style.display = 'block';
 
-        // Update datetime realtime
-        function updateDateTime() {
-            const now = new Date();
-            const options = {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            };
-            const datetimeEl = document.getElementById('current-datetime');
-            if (datetimeEl) {
-                datetimeEl.textContent = now.toLocaleDateString('id-ID', options);
-            }
-        }
-        updateDateTime();
-        setInterval(updateDateTime, 1000);
+    // Fill profile info
+    document.getElementById('studentName').textContent = data.nama;
+    document.getElementById('studentNis').textContent = data.nis;
+    document.getElementById('studentKelas').textContent = data.kelas;
 
-        let currentSiswaId = null;
+    // Fill statistics
+    document.getElementById('statHadir').textContent = data.hadir;
+    document.getElementById('statIzin').textContent = data.izin;
+    document.getElementById('statAlpha').textContent = data.alpha;
 
-        socket.on('new-absen-all', (data) => {
-            if (data && data.kelas_name) {
-                showNotification(`Ada absen baru untuk kelas ${data.kelas_name}`);
+    // Fill attendance table
+    const tableBody = document.getElementById('attendanceTableBody');
+    tableBody.innerHTML = '';
 
-                if (currentSiswaId) {
-                    loadRiwayat(currentSiswaId);
-                }
+    if (data.riwayat && data.riwayat.length > 0) {
+        data.riwayat.forEach(item => {
+            const row = document.createElement('tr');
 
-                notifyOtherTabs('orang_tua', 'new-absen', data);
-            }
+            const statusClass = item.status === 'hadir' ? 'badge-hadir' :
+                              item.status === 'izin' ? 'badge-izin' : 'badge-alpha';
+            const statusText = item.status === 'hadir' ? 'Hadir' :
+                             item.status === 'izin' ? 'Izin' : 'Alpha';
+
+            row.innerHTML = `
+                <td>${formatDate(item.tanggal)}</td>
+                <td>${item.mapel}</td>
+                <td>${item.jam}</td>
+                <td>${item.kelas}</td>
+                <td><span class="badge-status ${statusClass}">${statusText}</span></td>
+            `;
+
+            tableBody.appendChild(row);
         });
+    } else {
+        tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Belum ada data kehadiran</td></tr>';
+    }
+}
 
-        TabSync.on('new-absen', (data) => {
-            if (currentSiswaId) {
-                loadRiwayat(currentSiswaId);
-            }
-        });
+function formatDate(dateString) {
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString('id-ID', options);
+}
 
-        async function loadAnak() {
-            try {
-                const response = await fetch('/api/orang-tua/anak', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (!response.ok) throw new Error('Failed to load anak');
-
-                const anakList = await response.json();
-                const listDiv = document.getElementById('anak-list');
-
-                if (anakList.length === 0) {
-                    listDiv.innerHTML = `
-                        <div class="col-12">
-                            <div class="empty-state">
-                                <i class="bi bi-inbox"></i>
-                                <h5>Tidak ada anak terdaftar</h5>
-                                <p>Hubungi admin sekolah untuk mendaftarkan anak Anda</p>
-                            </div>
-                        </div>`;
-                    return;
-                }
-
-                listDiv.innerHTML = '';
-
-                anakList.forEach(anak => {
-                    const kelasNama = anak.Kelas ? anak.Kelas.nama : (anak.Kela ? anak.Kela.nama : 'N/A');
-                    const col = document.createElement('div');
-                    col.className = 'col-md-6 col-lg-4';
-                    col.innerHTML = `
-                        <div class="anak-card" id="anak-card-${anak.id}" onclick="loadRiwayat(${anak.id})">
-                            <div class="anak-info">
-                                <div class="anak-avatar">${anak.nama.charAt(0).toUpperCase()}</div>
-                                <div class="anak-details">
-                                    <h6>${anak.nama}</h6>
-                                    <span><i class="bi bi-credit-card me-1"></i>${anak.nis}</span>
-                                    <br>
-                                    <span class="badge-modern badge-kelas mt-1">${kelasNama}</span>
-                                </div>
-                            </div>
-                            <div class="mt-3 d-flex justify-content-end">
-                                <button class="btn-lihat">
-                                    <i class="bi bi-eye"></i>
-                                    Lihat Detail
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                    listDiv.appendChild(col);
-
-                    socket.emit('join-student', anak.id);
-                });
-
-            } catch (error) {
-                showNotification('Error loading anak: ' + error.message, 'error');
-            }
-        }
-
-        async function loadRiwayat(siswaId) {
-            try {
-                currentSiswaId = siswaId;
-
-                // Update active card
-                document.querySelectorAll('.anak-card').forEach(card => card.classList.remove('active'));
-                const activeCard = document.getElementById(`anak-card-${siswaId}`);
-                if (activeCard) activeCard.classList.add('active');
-
-                const now = new Date();
-                const currentMonth = now.getMonth() + 1;
-                const currentYear = now.getFullYear();
-                const monthName = now.toLocaleString('id-ID', { month: 'long' });
-
-                document.getElementById('stat-bulan').textContent = monthName + ' ' + currentYear;
-
-                const response = await fetch(`/api/orang-tua/anak/${siswaId}/riwayat?tanggal_mulai=${currentYear}-${currentMonth}-01&tanggal_selesai=${currentYear}-${currentMonth}-31`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (!response.ok) throw new Error('Failed to load riwayat');
-
-                const riwayat = await response.json();
-                displayRiwayat(riwayat);
-                loadStatistik(siswaId);
-
-                document.getElementById('statistik-section').style.display = 'block';
-                document.getElementById('riwayat-section').style.display = 'block';
-
-                document.getElementById('statistik-section').scrollIntoView({ behavior: 'smooth' });
-
-            } catch (error) {
-                showNotification('Error loading riwayat: ' + error.message, 'error');
-            }
-        }
-
-        function displayRiwayat(riwayat) {
-            const tbody = document.getElementById('riwayat-tbody');
-            tbody.innerHTML = '';
-
-            if (!riwayat || riwayat.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="5">
-                            <div class="empty-state">
-                                <i class="bi bi-inbox"></i>
-                                <h5>Tidak ada data kehadiran</h5>
-                                <p>Belum ada riwayat kehadiran bulan ini</p>
-                            </div>
-                        </td>
-                    </tr>`;
-                return;
-            }
-
-            riwayat.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
-
-            riwayat.forEach(r => {
-                const row = document.createElement('tr');
-                let badgeClass = '';
-                let statusText = r.status.charAt(0).toUpperCase() + r.status.slice(1).replace('_', ' ');
-
-                if (r.status === 'hadir') badgeClass = 'badge-hadir';
-                else if (r.status === 'izin') badgeClass = 'badge-izin';
-                else badgeClass = 'badge-alpha';
-
-                const tanggal = r.tanggal ? new Date(r.tanggal).toLocaleDateString('id-ID', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric'
-                }) : '-';
-
-                const jamMulai = r.jam_mulai || '-';
-                const jamSelesai = r.jam_selesai || '-';
-
-                row.innerHTML = `
-                    <td><i class="bi bi-calendar text-muted me-1"></i>${tanggal}</td>
-                    <td><i class="bi bi-clock text-muted me-1"></i>${jamMulai} - ${jamSelesai}</td>
-                    <td>${r.mata_pelajaran || '-'}</td>
-                    <td><span class="badge-modern ${badgeClass}">${statusText}</span></td>
-                    <td><span class="badge-modern badge-kelas">${r.kelas || '-'}</span></td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        async function loadStatistik(siswaId) {
-            try {
-                const currentMonth = new Date().getMonth() + 1;
-                const currentYear = new Date().getFullYear();
-
-                const response = await fetch(`/api/orang-tua/anak/${siswaId}/statistik?bulan=${currentMonth}&tahun=${currentYear}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (!response.ok) throw new Error('Failed to load statistik');
-
-                const stats = await response.json();
-
-                document.getElementById('stat-hadir').textContent = stats.hadir || 0;
-                document.getElementById('stat-izin').textContent = stats.izin || 0;
-                document.getElementById('stat-alpha').textContent = stats.tanpa_ket || 0;
-
-            } catch (error) {
-                console.error('Error loading statistik:', error);
-            }
-        }
-
-        function logout() {
-            TabSync.broadcast('logout', { role: 'orang_tua' });
-            localStorage.clear();
-            window.location.href = 'index.html';
-        }
-
-        function showNotification(message, type = 'success') {
-            const notifIcon = document.getElementById('notification-icon');
-            const notifMsg = document.getElementById('notification-message');
-
-            notifMsg.textContent = message;
-            toastEl.classList.remove('success', 'error');
-
-            if (type === 'error') {
-                toastEl.classList.add('error');
-                notifIcon.className = 'bi bi-x-circle-fill text-danger me-2 fs-5';
-            } else {
-                toastEl.classList.add('success');
-                notifIcon.className = 'bi bi-check-circle-fill text-success me-2 fs-5';
-            }
-
-            toast.show();
-        }
-    </script>
+function showEmptyState() {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('errorState').style.display = 'none';
+    document.getElementById('studentData').style.display = 'none';
+}
+</script>
 </body>
 </html>

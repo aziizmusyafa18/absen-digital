@@ -578,14 +578,10 @@
                 font-size: 0.9rem;
             }
 
-            .table-modern thead th {
-                padding: 0.75rem;
-                font-size: 0.7rem;
-            }
-
+            .table-modern thead th,
             .table-modern tbody td {
                 padding: 0.75rem;
-                font-size: 0.8rem;
+                font-size: 0.7rem;
             }
 
             .badge-modern {
@@ -759,85 +755,133 @@
 
     <!-- Main Content -->
     <main class="main-content">
-        <!-- Pilih Kelas -->
-        <div class="card-modern">
-            <div class="card-modern-header">
-                <h5><i class="bi bi-pencil-square"></i> Absen Siswa</h5>
-            </div>
-            <div class="card-modern-body">
-                <div class="kelas-select-wrapper">
-                    <label>Pilih Kelas</label>
-                    <select class="form-select form-select-modern" id="kelas-select" onchange="loadSiswa()">
-                        <option value="">-- Pilih Kelas --</option>
-                    </select>
+        <ul class="nav nav-tabs nav-tabs-modern" id="main-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="absen-tab" data-bs-toggle="tab" data-bs-target="#absen-jurnal-panel" type="button" role="tab"><i class="bi bi-pencil-square me-2"></i>Absensi & Jurnal</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="nilai-tab" data-bs-toggle="tab" data-bs-target="#input-nilai-panel" type="button" role="tab"><i class="bi bi-journal-check me-2"></i>Input Nilai Siswa</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="myTabContent">
+            <!-- Absensi & Jurnal Panel -->
+            <div class="tab-pane fade show active" id="absen-jurnal-panel" role="tabpanel">
+                <div class="card-modern">
+                    <div class="card-modern-body">
+                        <div class="kelas-select-wrapper">
+                            <label>Pilih Kelas untuk Absen</label>
+                            <select class="form-select" id="kelas-select-absen" onchange="loadSiswaForAbsen()">
+                                <option value="">-- Pilih Kelas --</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div id="absen-section" class="card-modern" style="display: none;">
+                    <div class="card-modern-header"><h5><i class="bi bi-people-fill"></i> <span id="kelas-title-absen">Kelas</span></h5></div>
+                    <div class="card-modern-body">
+                        <div class="jurnal-form">
+                            <h6><i class="bi bi-journal-text"></i> Jurnal Pembelajaran</h6>
+                             <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label">Mata Pelajaran <span class="text-danger">*</span></label><input type="text" class="form-control" id="mata-pelajaran" placeholder="Contoh: Pemrograman Web"></div>
+                        <div class="col-md-6"><label class="form-label">Materi <span class="text-danger">*</span></label><input type="text" class="form-control" id="materi" placeholder="Contoh: Framework Laravel - CRUD"></div>
+                        <div class="col-md-6"><label class="form-label">Jam Mulai</label><input type="time" class="form-control" id="jam-mulai" readonly></div>
+                        <div class="col-md-6"><label class="form-label">Jam Selesai <span class="text-danger">*</span></label><input type="time" class="form-control" id="jam-selesai"></div>
+                    </div>
+                        </div>
+
+                        <!-- Camera Section -->
+                        <div class="camera-section mb-3">
+                            <h6 class="mb-3"><i class="bi bi-camera-fill"></i> Foto Kegiatan (Wajib)</h6>
+                            <div id="camera-container">
+                                <video id="camera-feed" playsinline style="display:none; max-width: 100%; border-radius: 8px;"></video>
+                                <canvas id="camera-canvas" style="display:none;"></canvas>
+                                <img id="photo-preview" src="" alt="Preview Foto" style="display:none; max-width: 100%; border-radius: 8px;">
+                                <div id="camera-placeholder" style="cursor: pointer;">
+                                    <i class="bi bi-camera" style="font-size: 3rem; color: #cbd5e1;"></i>
+                                    <p>Klik untuk membuka kamera</p>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <button id="start-camera-btn" class="btn btn-primary btn-sm"><i class="bi bi-camera-video"></i> Buka Kamera</button>
+                                <button id="take-photo-btn" class="btn btn-success btn-sm" style="display:none;"><i class="bi bi-camera"></i> Ambil Foto</button>
+                            </div>
+                        </div>
+
+                        <h6 class="mb-3 fw-bold"><i class="bi bi-people me-2"></i>Daftar Siswa</h6>
+                        <div id="siswa-list-absen"></div>
+                        <button class="btn-submit mt-4" onclick="submitAbsen()"><i class="bi bi-check-circle"></i> Submit Absen & Jurnal</button>
+                    </div>
+                </div>
+                <div class="card-modern">
+                    <div class="card-modern-header"><h5><i class="bi bi-clock-history"></i> Riwayat Absen</h5><button class="btn-refresh" onclick="loadRiwayatAbsen()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button></div>
+                    <div class="table-responsive"><table class="table-modern"><thead><tr><th>Tanggal</th><th>Kelas</th><th>Mata Pelajaran</th><th>Jam</th><th class="text-center">Hadir</th><th class="text-center">Izin</th><th class="text-center">Alpha</th></tr></thead><tbody id="riwayat-absen-tbody"></tbody></table></div>
                 </div>
             </div>
-        </div>
 
-        <!-- Absen Section -->
-        <div id="absen-section" class="card-modern" style="display: none;">
-            <div class="card-modern-header">
-                <h5><i class="bi bi-people-fill"></i> <span id="kelas-title">Kelas</span></h5>
-            </div>
-            <div class="card-modern-body">
-                <!-- Jurnal Form -->
-                <div class="jurnal-form">
-                    <h6><i class="bi bi-journal-text"></i> Jurnal Pembelajaran</h6>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Mata Pelajaran <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="mata-pelajaran" placeholder="Contoh: Pemrograman Web">
+            <!-- Input Nilai Panel -->
+            <div class="tab-pane fade" id="input-nilai-panel" role="tabpanel">
+                <div class="card-modern">
+                    <div class="card-modern-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label>Pilih Kelas untuk Input Nilai</label>
+                                <select class="form-select" id="kelas-select-nilai" onchange="loadSiswaForNilai()">
+                                    <option value="">-- Pilih Kelas --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label>Mata Pelajaran</label>
+                                <input type="text" class="form-control" id="nilai-mapel" placeholder="Mata pelajaran">
+                            </div>
+                             <div class="col-md-4">
+                                <label>Keterangan Penilaian</label>
+                                <input type="text" class="form-control" id="nilai-keterangan" placeholder="Cth: Ulangan Harian 1, Tugas 2">
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Materi <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="materi" placeholder="Contoh: Framework Laravel - CRUD">
+                    </div>
+                </div>
+                 <div id="nilai-section" class="card-modern" style="display: none;">
+                    <div class="card-modern-header"><h5><i class="bi bi-people-fill"></i> <span id="kelas-title-nilai">Kelas</span></h5></div>
+                    <div class="card-modern-body">
+                        <div class="table-responsive">
+                            <table class="table-modern">
+                                <thead><tr><th>Nama Siswa</th><th>NIS</th><th style="width: 150px;">Nilai (0-100)</th></tr></thead>
+                                <tbody id="siswa-list-nilai"></tbody>
+                            </table>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Jam Mulai</label>
-                            <input type="time" class="form-control" id="jam-mulai" readonly title="Waktu otomatis">
-                            <small class="text-muted">Waktu realtime (tidak dapat diubah)</small>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Jam Selesai <span class="text-danger">*</span></label>
-                            <input type="time" class="form-control" id="jam-selesai">
+                        <button class="btn-submit-nilai mt-4" onclick="submitNilai()"><i class="bi bi-check-circle"></i> Submit Nilai</button>
+                    </div>
+                </div>
+                <div class="card-modern">
+                    <div class="card-modern-header"><h5><i class="bi bi-clock-history"></i> Riwayat Input Nilai</h5><button class="btn-refresh" onclick="loadRiwayatNilai()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button></div>
+                    <div class="table-responsive"><table class="table-modern"><thead><tr><th>Tanggal</th><th>Siswa</th><th>Kelas</th><th>Mapel</th><th>Keterangan</th><th>Nilai</th></tr></thead><tbody id="riwayat-nilai-tbody"></tbody></table></div>
+                </div>
+
+                <!-- Export Section -->
+                <div class="card-modern">
+                    <div class="card-modern-header"><h5><i class="bi bi-file-earmark-excel"></i> Export Rekap Nilai</h5></div>
+                    <div class="card-modern-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label for="export-kelas" class="form-label">Kelas</label>
+                                <select id="export-kelas" class="form-select"></select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="export-bulan" class="form-label">Bulan</label>
+                                <input type="month" id="export-bulan" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="export-mapel" class="form-label">Mata Pelajaran</label>
+                                <select id="export-mapel" class="form-select"></select>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-success w-100" onclick="exportNilai()"><i class="bi bi-download me-2"></i>Download Excel</button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Siswa List -->
-                <h6 class="mb-3 fw-bold"><i class="bi bi-people me-2"></i>Daftar Siswa</h6>
-                <div id="siswa-list"></div>
-
-                <button class="btn-submit mt-4" onclick="submitAbsen()">
-                    <i class="bi bi-check-circle"></i>
-                    Submit Absen & Jurnal
-                </button>
-            </div>
-        </div>
-
-        <!-- Riwayat Section -->
-        <div class="card-modern">
-            <div class="card-modern-header">
-                <h5><i class="bi bi-clock-history"></i> Riwayat Absen</h5>
-                <button class="btn-refresh" onclick="loadRiwayat()">
-                    <i class="bi bi-arrow-clockwise me-1"></i>Refresh
-                </button>
-            </div>
-            <div class="table-responsive">
-                <table class="table-modern">
-                    <thead>
-                        <tr>
-                            <th>Tanggal</th>
-                            <th>Kelas</th>
-                            <th>Mata Pelajaran</th>
-                            <th>Jam</th>
-                            <th class="text-center">Hadir</th>
-                            <th class="text-center">Izin</th>
-                            <th class="text-center">Alpha</th>
-                        </tr>
-                    </thead>
-                    <tbody id="riwayat-tbody"></tbody>
-                </table>
             </div>
         </div>
     </main>
@@ -855,7 +899,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-    <script>
+<script>
         const token = localStorage.getItem('token');
         const userData = JSON.parse(localStorage.getItem('userData') || '{}');
 
@@ -870,262 +914,440 @@
 
         const toastEl = document.getElementById('notification');
         const toast = new bootstrap.Toast(toastEl, { delay: 5000 });
+        
+        let allClassData = [];
+        let capturedImageData = null;
+        let cameraStream = null;
 
-        const socket = io();
-        socket.emit('join-role', { role: userData.role, userId: userData.id });
+        // Camera specific elements
+        const videoEl = document.getElementById('camera-feed');
+        const canvasEl = document.getElementById('camera-canvas');
+        const previewEl = document.getElementById('photo-preview');
+        const placeholderEl = document.getElementById('camera-placeholder');
+        const startCameraBtn = document.getElementById('start-camera-btn');
+        const takePhotoBtn = document.getElementById('take-photo-btn');
 
-        TabSync.init('absen-digital');
-        initStorageSync();
-        setupAutoRefresh('guru', loadRiwayat);
+        document.addEventListener('DOMContentLoaded', () => {
+            loadKelas();
+            loadRiwayatAbsen();
+            loadRiwayatNilai();
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            
+            // Set default month for export
+            const exportBulanEl = document.getElementById('export-bulan');
+            if (exportBulanEl && !exportBulanEl.value) {
+                const today = new Date();
+                exportBulanEl.value = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
+            }
 
-        socket.on('admin-response', (data) => {
-            showNotification(`Admin merespons: ${data.message}`);
+            // Add event listeners for export filters
+            document.getElementById('export-kelas').addEventListener('change', updateMapelOptions);
+            document.getElementById('export-bulan').addEventListener('change', updateMapelOptions);
+
+            startCameraBtn.addEventListener('click', startCamera);
+            placeholderEl.addEventListener('click', startCamera);
+            takePhotoBtn.addEventListener('click', takePhoto);
         });
 
-        TabSync.on('new-absen', (data) => {
-            showNotification(`Guru lain mengabsen kelas ${data.kelas_name || ''}`);
-            loadRiwayat();
-        });
-
-        loadKelas();
-        loadRiwayat();
-
-        // Update datetime realtime
         function updateDateTime() {
             const now = new Date();
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-            document.getElementById('current-datetime').textContent = now.toLocaleDateString('id-ID', options);
-
-            const jamMulaiInput = document.getElementById('jam-mulai');
-            const absenSection = document.getElementById('absen-section');
-            if (absenSection && absenSection.style.display !== 'none') {
-                jamMulaiInput.value = now.toTimeString().slice(0, 5);
+            const dtDisplay = document.getElementById('current-datetime');
+            if(dtDisplay) dtDisplay.textContent = now.toLocaleDateString('id-ID', options);
+            
+            if (document.getElementById('absen-section').style.display !== 'none') {
+                document.getElementById('jam-mulai').value = now.toTimeString().slice(0, 5);
             }
         }
-        updateDateTime();
-        setInterval(updateDateTime, 1000);
-
+        
         async function loadKelas() {
             try {
-                const response = await fetch('/api/guru/kelas', {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                const response = await fetch('/api/guru/kelas', { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!response.ok) throw new Error('Failed to load kelas');
+                allClassData = await response.json();
+                
+                const selects = [
+                    document.getElementById('kelas-select-absen'),
+                    document.getElementById('kelas-select-nilai'),
+                    document.getElementById('export-kelas')
+                ];
+                
+                selects.forEach(select => {
+                    if(select) select.innerHTML = '<option value="">-- Pilih Kelas --</option>';
                 });
 
-                if (!response.ok) throw new Error('Failed to load kelas');
-
-                const kelas = await response.json();
-                const select = document.getElementById('kelas-select');
-
-                kelas.forEach(k => {
+                allClassData.forEach(k => {
                     const option = document.createElement('option');
                     option.value = k.id;
                     option.textContent = k.nama;
                     if (k.mata_pelajaran) {
                         option.setAttribute('data-mapel', k.mata_pelajaran);
                     }
-                    select.appendChild(option);
+                    selects.forEach(select => {
+                        if(select) select.appendChild(option.cloneNode(true));
+                    });
                 });
+
+                // Trigger mapel options load for the default selected class
+                updateMapelOptions();
             } catch (error) {
                 showNotification('Error loading kelas: ' + error.message, 'error');
             }
         }
+        
+        // --- CAMERA LOGIC ---
+        function resetCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            capturedImageData = null;
+            videoEl.style.display = 'none';
+            previewEl.style.display = 'none';
+            previewEl.src = '';
+            placeholderEl.style.display = 'block';
+            takePhotoBtn.style.display = 'none';
+            startCameraBtn.textContent = 'Buka Kamera';
+            startCameraBtn.style.display = 'inline-block';
+        }
 
-        async function loadSiswa() {
-            const kelasId = document.getElementById('kelas-select').value;
+        async function startCamera(event) {
+            event.stopPropagation();
+            if (cameraStream) { // If stream is active, just stop it. Let user click again to start.
+                 resetCamera();
+                 return;
+            }
+            resetCamera();
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                videoEl.srcObject = cameraStream;
+                placeholderEl.style.display = 'none';
+                videoEl.style.display = 'block';
+                takePhotoBtn.style.display = 'inline-block';
+                startCameraBtn.style.display = 'none';
+                videoEl.play();
+            } catch (err) {
+                showNotification('Tidak bisa mengakses kamera: ' + err.message, 'error');
+                placeholderEl.style.display = 'block';
+            }
+        }
+
+        function takePhoto() {
+            const videoWidth = videoEl.videoWidth;
+            const videoHeight = videoEl.videoHeight;
+            if (videoWidth === 0 || videoHeight === 0) {
+                return showNotification('Gagal mengambil gambar, stream kamera tidak siap.', 'error');
+            }
+            canvasEl.width = videoWidth;
+            canvasEl.height = videoHeight;
+            canvasEl.getContext('2d').drawImage(videoEl, 0, 0, videoWidth, videoHeight);
+            capturedImageData = canvasEl.toDataURL('image/jpeg', 0.8);
+            previewEl.src = capturedImageData;
+            
+            videoEl.style.display = 'none';
+            previewEl.style.display = 'block';
+            takePhotoBtn.style.display = 'none';
+            startCameraBtn.textContent = 'Ambil Ulang';
+            startCameraBtn.style.display = 'inline-block';
+            
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+        }
+
+        // --- ABSENSI & JURNAL ---
+        async function loadSiswaForAbsen() {
+            resetCamera(); 
+            const kelasId = document.getElementById('kelas-select-absen').value;
             const absenSection = document.getElementById('absen-section');
-
             if (!kelasId) {
                 absenSection.style.display = 'none';
                 return;
             }
 
+            const selectedOption = document.getElementById('kelas-select-absen').selectedOptions[0];
+            const mataPelajaran = selectedOption.getAttribute('data-mapel') || '';
+            document.getElementById('mata-pelajaran').value = mataPelajaran;
+
             try {
-                const response = await fetch(`/api/guru/kelas/${kelasId}/siswa`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (!response.ok) throw new Error('Failed to load siswa');
-
+                const response = await fetch(`/api/guru/kelas/${kelasId}/siswa`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!response.ok) throw new Error('Gagal memuat siswa');
                 const siswa = await response.json();
-                const kelasTitle = document.getElementById('kelas-select').selectedOptions[0].textContent;
-                const selectedOption = document.getElementById('kelas-select').selectedOptions[0];
-                const mataPelajaran = selectedOption.getAttribute('data-mapel');
-
-                document.getElementById('kelas-title').textContent = `Kelas ${kelasTitle}`;
-                document.getElementById('jam-mulai').value = new Date().toTimeString().slice(0, 5);
+                
+                document.getElementById('kelas-title-absen').textContent = selectedOption.textContent;
                 document.getElementById('jam-selesai').value = new Date(Date.now() + 2 * 60 * 60 * 1000).toTimeString().slice(0, 5);
 
-                if (mataPelajaran) {
-                    document.getElementById('mata-pelajaran').value = mataPelajaran;
-                }
-
-                const listDiv = document.getElementById('siswa-list');
+                const listDiv = document.getElementById('siswa-list-absen');
                 listDiv.innerHTML = '';
-
                 if (siswa.length === 0) {
-                    listDiv.innerHTML = `
-                        <div class="empty-state">
-                            <i class="bi bi-inbox"></i>
-                            <h5>Tidak ada siswa</h5>
-                            <p>Tidak ada siswa di kelas ini</p>
-                        </div>`;
+                    listDiv.innerHTML = `<div class="text-center p-4"><h5>Tidak ada siswa di kelas ini</h5></div>`;
                 } else {
                     siswa.forEach(s => {
-                        const item = document.createElement('div');
-                        item.className = 'siswa-item';
-                        item.innerHTML = `
-                            <div class="siswa-info">
-                                <div class="siswa-avatar">${s.nama.charAt(0).toUpperCase()}</div>
-                                <div class="siswa-details">
-                                    <h6>${s.nama}</h6>
-                                    <span>NIS: ${s.nis}</span>
-                                </div>
-                            </div>
-                            <select class="status-select" id="status-${s.id}">
-                                <option value="hadir">Hadir</option>
-                                <option value="izin">Izin</option>
-                                <option value="tanpa_ket">Tanpa Keterangan</option>
-                            </select>
-                        `;
-                        listDiv.appendChild(item);
+                        listDiv.innerHTML += `<div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2"><span>${s.nama}</span><select class="form-select w-auto" id="status-absen-${s.id}"><option value="hadir">Hadir</option><option value="izin">Izin</option><option value="tanpa_ket">Tanpa Ket.</option></select></div>`;
                     });
                 }
-
                 absenSection.style.display = 'block';
             } catch (error) {
-                showNotification('Error loading siswa: ' + error.message, 'error');
+                showNotification('Error: ' + error.message, 'error');
             }
         }
 
         async function submitAbsen() {
-            const kelasId = document.getElementById('kelas-select').value;
+            if (!capturedImageData) {
+                return showNotification('Tolong ambil gambar kegiatan terlebih dahulu.', 'error');
+            }
+
+            const kelasId = document.getElementById('kelas-select-absen').value;
             const mataPelajaran = document.getElementById('mata-pelajaran').value;
             const materi = document.getElementById('materi').value;
             const jamMulai = document.getElementById('jam-mulai').value;
             const jamSelesai = document.getElementById('jam-selesai').value;
 
-            if (!kelasId || !mataPelajaran || !materi || !jamMulai || !jamSelesai) {
-                showNotification('Mohon lengkapi semua field!', 'error');
-                return;
+            if (![kelasId, mataPelajaran, materi, jamMulai, jamSelesai].every(Boolean)) {
+                return showNotification('Mohon lengkapi semua field jurnal!', 'error');
             }
 
-            const siswaList = [];
-            document.querySelectorAll('#siswa-list .siswa-item').forEach(item => {
-                const select = item.querySelector('select');
-                const siswaId = select.id.replace('status-', '');
-                siswaList.push({
-                    siswa_id: parseInt(siswaId),
-                    status: select.value
-                });
-            });
+            const siswaList = Array.from(document.querySelectorAll('#siswa-list-absen select')).map(select => ({
+                siswa_id: parseInt(select.id.replace('status-absen-', '')),
+                status: select.value
+            }));
 
             try {
                 const response = await fetch('/api/guru/absen', {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         kelas_id: parseInt(kelasId),
                         siswa_list: siswaList,
-                        jurnal_data: {
-                            mata_pelajaran: mataPelajaran,
-                            materi: materi,
-                            jam_mulai: jamMulai,
-                            jam_selesai: jamSelesai
-                        }
+                        jurnal_data: { mata_pelajaran: mataPelajaran, materi, jam_mulai: jamMulai, jam_selesai: jamSelesai, foto_kegiatan: capturedImageData }
                     })
                 });
-
                 const data = await response.json();
-
                 if (data.success) {
-                    showNotification('Absen berhasil disubmit! Admin dan Orang Tua telah dinotifikasi.');
+                    showNotification('Absen berhasil disubmit!');
                     document.getElementById('absen-section').style.display = 'none';
-                    document.getElementById('kelas-select').value = '';
-                    loadRiwayat();
-                    notifyOtherTabs('guru', 'new-absen', {
-                        guru_name: userData.nama,
-                        kelas_name: document.getElementById('kelas-title').textContent.replace('Kelas ', '')
-                    });
+                    document.getElementById('kelas-select-absen').value = '';
+                    loadRiwayatAbsen();
+                    resetCamera();
                 } else {
-                    showNotification('Error: ' + data.error, 'error');
+                    throw new Error(data.error || 'Terjadi kesalahan');
                 }
             } catch (error) {
-                showNotification('Error submitting absen: ' + error.message, 'error');
+                showNotification('Error: ' + error.message, 'error');
             }
         }
 
-        async function loadRiwayat() {
-            try {
-                const response = await fetch('/api/guru/riwayat', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (!response.ok) throw new Error('Failed to load riwayat');
-
+        async function loadRiwayatAbsen() {
+             try {
+                const response = await fetch('/api/guru/riwayat', { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!response.ok) throw new Error('Gagal memuat riwayat absen');
                 const jurnal = await response.json();
-                const tbody = document.getElementById('riwayat-tbody');
-
+                const tbody = document.getElementById('riwayat-absen-tbody');
                 tbody.innerHTML = '';
-
                 if (!jurnal || jurnal.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="7">
-                                <div class="empty-state">
-                                    <i class="bi bi-inbox"></i>
-                                    <h5>Belum ada riwayat</h5>
-                                    <p>Mulai absen kelas untuk melihat riwayat</p>
-                                </div>
-                            </td>
-                        </tr>`;
-                    return;
+                   tbody.innerHTML = `<tr><td colspan="7"><div class="text-center p-5"><h5>Belum ada riwayat</h5></div></td></tr>`;
+                   return;
                 }
-
                 jurnal.forEach(j => {
                     const hadir = j.Absensis ? j.Absensis.filter(a => a.status === 'hadir').length : 0;
                     const izin = j.Absensis ? j.Absensis.filter(a => a.status === 'izin').length : 0;
                     const alpha = j.Absensis ? j.Absensis.filter(a => a.status === 'tanpa_ket').length : 0;
-
-                    const tanggal = j.tanggal ? new Date(j.tanggal).toLocaleDateString('id-ID', {
-                        weekday: 'short',
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric'
-                    }) : '-';
-                    const kelasNama = j.Kelas ? j.Kelas.nama : 'N/A';
-
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td><i class="bi bi-calendar text-muted me-1"></i>${tanggal}</td>
-                        <td><span class="badge-modern badge-hadir">${kelasNama}</span></td>
-                        <td>${j.mata_pelajaran || '-'}</td>
-                        <td><i class="bi bi-clock text-muted me-1"></i>${j.jam_mulai || '-'} - ${j.jam_selesai || '-'}</td>
-                        <td class="text-center"><span class="badge-modern badge-hadir">${hadir}</span></td>
-                        <td class="text-center"><span class="badge-modern badge-izin">${izin}</span></td>
-                        <td class="text-center"><span class="badge-modern badge-alpha">${alpha}</span></td>
-                    `;
-                    tbody.appendChild(row);
+                    const tanggal = new Date(j.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+                    tbody.innerHTML += `<tr><td>${tanggal}</td><td>${j.Kelas ? j.Kelas.nama : 'N/A'}</td><td>${j.mata_pelajaran}</td><td>${j.jam_mulai}-${j.jam_selesai}</td><td class="text-center">${hadir}</td><td class="text-center">${izin}</td><td class="text-center">${alpha}</td></tr>`;
                 });
             } catch (error) {
-                console.error('Error loading riwayat:', error);
-                document.getElementById('riwayat-tbody').innerHTML = `
-                    <tr>
-                        <td colspan="7">
-                            <div class="empty-state">
-                                <i class="bi bi-exclamation-triangle"></i>
-                                <h5>Error memuat riwayat</h5>
-                                <p>Silakan coba lagi nanti</p>
-                            </div>
-                        </td>
-                    </tr>`;
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function loadSiswaForNilai() {
+            const kelasId = document.getElementById('kelas-select-nilai').value;
+            const nilaiSection = document.getElementById('nilai-section');
+            if (!kelasId) {
+                nilaiSection.style.display = 'none';
+                return;
+            }
+
+            const selectedOption = document.getElementById('kelas-select-nilai').selectedOptions[0];
+
+            try {
+                const response = await fetch(`/api/guru/kelas/${kelasId}/siswa`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!response.ok) throw new Error('Gagal memuat siswa untuk nilai');
+                const siswa = await response.json();
+                
+                document.getElementById('kelas-title-nilai').textContent = selectedOption.textContent;
+
+                const tbody = document.getElementById('siswa-list-nilai');
+                tbody.innerHTML = '';
+                if (siswa.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="3"><div class="text-center p-4"><h5>Tidak ada siswa di kelas ini</h5></div></td></tr>`;
+                } else {
+                    siswa.forEach(s => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${s.nama}</td>
+                                <td>${s.nis}</td>
+                                <td><input type="number" class="form-control form-control-sm nilai-input" data-siswa-id="${s.id}" min="0" max="100" placeholder="Nilai"></td>
+                            </tr>
+                        `;
+                    });
+                }
+                nilaiSection.style.display = 'block';
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+                nilaiSection.style.display = 'none';
+            }
+        }
+        async function submitNilai() {
+            const kelasId = document.getElementById('kelas-select-nilai').value;
+            const mataPelajaran = document.getElementById('nilai-mapel').value;
+            const keterangan = document.getElementById('nilai-keterangan').value;
+
+            if (!kelasId || !mataPelajaran || !keterangan) {
+                return showNotification('Mohon lengkapi semua field: Kelas, Mata Pelajaran, dan Keterangan Penilaian.', 'error');
+            }
+
+            const nilaiInputs = document.querySelectorAll('.nilai-input');
+            const nilai_list = Array.from(nilaiInputs).map(input => {
+                const nilai = input.value === '' ? null : parseFloat(input.value);
+                return {
+                    siswa_id: parseInt(input.dataset.siswaId),
+                    nilai: nilai,
+                    keterangan: keterangan // Add keterangan to each nilai item
+                };
+            }).filter(item => item.nilai !== null); // Only send values that are not empty
+
+            if (nilai_list.length === 0) {
+                return showNotification('Mohon masukkan setidaknya satu nilai.', 'error');
+            }
+
+            try {
+                const response = await fetch('/api/guru/nilai', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        kelas_id: parseInt(kelasId),
+                        mata_pelajaran: mataPelajaran,
+                        nilai_list: nilai_list
+                    })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    showNotification('Nilai berhasil disimpan!');
+                    // Clear form after successful submission
+                    document.getElementById('kelas-select-nilai').value = '';
+                    document.getElementById('nilai-mapel').value = '';
+                    document.getElementById('nilai-keterangan').value = '';
+                    document.getElementById('nilai-section').style.display = 'none';
+                    loadRiwayatNilai();
+                } else {
+                    throw new Error(data.message || 'Terjadi kesalahan saat menyimpan nilai');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+        async function loadRiwayatNilai() {
+            try {
+                const response = await fetch('/api/guru/riwayat-nilai', { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!response.ok) throw new Error('Gagal memuat riwayat nilai');
+                const nilaiHistory = await response.json();
+                const tbody = document.getElementById('riwayat-nilai-tbody');
+                tbody.innerHTML = '';
+                if (!nilaiHistory || nilaiHistory.length === 0) {
+                   tbody.innerHTML = `<tr><td colspan="6"><div class="text-center p-5"><h5>Belum ada riwayat input nilai</h5></div></td></tr>`;
+                   return;
+                }
+                nilaiHistory.forEach(n => {
+                    const tanggal = new Date(n.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+                    tbody.innerHTML += `<tr><td>${tanggal}</td><td>${n.Siswa ? n.Siswa.nama : 'N/A'}</td><td>${n.Kelas ? n.Kelas.nama : 'N/A'}</td><td>${n.mata_pelajaran}</td><td>${n.keterangan}</td><td>${n.nilai}</td></tr>`;
+                });
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function updateMapelOptions() {
+            const kelasId = document.getElementById('export-kelas').value;
+            const bulan = document.getElementById('export-bulan').value;
+            const mapelSelect = document.getElementById('export-mapel');
+
+            if (!kelasId || !bulan) {
+                mapelSelect.innerHTML = '<option value="">-- Pilih Mapel --</option>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/rekap/filter-options/mapel?kelas_id=${kelasId}&bulan=${bulan}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) throw new Error('Gagal memuat mata pelajaran');
+                const result = await response.json();
+                
+                mapelSelect.innerHTML = '<option value="">-- Pilih Mapel --</option>';
+                if (result.success && result.data.length > 0) {
+                    result.data.forEach(mapel => {
+                        const option = document.createElement('option');
+                        option.value = mapel;
+                        option.textContent = mapel;
+                        mapelSelect.appendChild(option);
+                    });
+                } else {
+                    mapelSelect.innerHTML = '<option value="">-- Tidak ada mapel dengan nilai di bulan ini --</option>';
+                }
+            } catch (error) {
+                showNotification(error.message, 'error');
+                mapelSelect.innerHTML = '<option value="">-- Error --</option>';
             }
         }
 
+        async function exportNilai() {
+            const kelasId = document.getElementById('export-kelas').value;
+            const bulan = document.getElementById('export-bulan').value;
+            const mataPelajaran = document.getElementById('export-mapel').value;
+
+            if (!kelasId || !bulan || !mataPelajaran) {
+                return showNotification('Mohon pilih Kelas, Bulan, dan Mata Pelajaran untuk export.', 'error');
+            }
+
+            let queryParams = `kelas_id=${kelasId}&bulan=${bulan}&tahun=${bulan.split('-')[0]}&mata_pelajaran=${encodeURIComponent(mataPelajaran)}`;
+            
+            const exportUrl = `/api/rekap/export/nilai-bulanan/excel?${queryParams}`;
+
+            try {
+                const response = await fetch(exportUrl, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    let filename = 'rekap_nilai.xlsx';
+                    if (contentDisposition && contentDisposition.indexOf('filename=') !== -1) {
+                        filename = contentDisposition.split('filename=')[1].split(';')[0].replace(/"/g, '');
+                    }
+
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                    showNotification('Rekap nilai berhasil diunduh!');
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Gagal mengunduh rekap nilai.');
+                }
+            } catch (error) {
+                showNotification('Error: ' + error.message, 'error');
+            }
+        }
+        
         function logout() {
-            TabSync.broadcast('logout', { role: userData.role });
             localStorage.clear();
             window.location.href = 'index.html';
         }
@@ -1133,19 +1355,18 @@
         function showNotification(message, type = 'success') {
             const notifIcon = document.getElementById('notification-icon');
             const notifMsg = document.getElementById('notification-message');
-
-            notifMsg.textContent = message;
-            toastEl.classList.remove('success', 'error');
-
-            if (type === 'error') {
-                toastEl.classList.add('error');
-                notifIcon.className = 'bi bi-x-circle-fill text-danger me-2 fs-5';
-            } else {
-                toastEl.classList.add('success');
-                notifIcon.className = 'bi bi-check-circle-fill text-success me-2 fs-5';
+            if(notifIcon && notifMsg) {
+                notifMsg.textContent = message;
+                toastEl.className = 'toast toast-custom';
+                if (type === 'error') {
+                    toastEl.classList.add('error');
+                    notifIcon.className = 'bi bi-x-circle-fill text-danger me-2 fs-5';
+                } else {
+                    toastEl.classList.add('success');
+                    notifIcon.className = 'bi bi-check-circle-fill text-success me-2 fs-5';
+                }
+                toast.show();
             }
-
-            toast.show();
         }
     </script>
 </body>

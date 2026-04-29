@@ -16,12 +16,12 @@ const Siswa = sequelize.define('Siswa', {
     type: DataTypes.STRING,
     allowNull: false
   },
-  email: {
-    type: DataTypes.STRING,
-    unique: true
-  },
-  phone: {
+  kelamin: {
     type: DataTypes.STRING
+  },
+  status: {
+    type: DataTypes.STRING,
+    defaultValue: 'aktif'
   }
 }, {
   tableName: 'siswa',

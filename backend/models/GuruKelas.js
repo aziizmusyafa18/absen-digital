@@ -18,6 +18,10 @@ const GuruKelas = sequelize.define('GuruKelas', {
   mata_pelajaran: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  jam_mulai: {
+    type: DataTypes.TIME,
+    allowNull: false
   }
 }, {
   tableName: 'guru_kelas',
