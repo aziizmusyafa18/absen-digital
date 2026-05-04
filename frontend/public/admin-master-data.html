@@ -1084,7 +1084,7 @@
 
         .filter-dropdown {
             position: relative;
-            z-index: 1001;
+            z-index: 10;
         }
 
         .filter-btn {
@@ -1114,9 +1114,9 @@
         }
 
         .filter-menu {
-            position: fixed;
-            top: auto;
-            left: auto;
+            position: absolute;
+            top: 100%;
+            right: 0;
             margin-top: 0.5rem;
             background: white;
             border-radius: 12px;
@@ -1125,7 +1125,7 @@
             min-width: 280px;
             max-height: 300px;
             overflow-y: auto;
-            z-index: 1002;
+            z-index: 50;
             display: none;
         }
 
@@ -3431,11 +3431,6 @@
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
 
             if (!isOpen) {
-                // Calculate position
-                const btnRect = btn.getBoundingClientRect();
-                menu.style.top = btnRect.bottom + 5 + 'px';
-                menu.style.left = btnRect.right - 280 + 'px'; // 280 is min-width of menu
-
                 menu.classList.add('show');
                 btn.classList.add('active');
             }
@@ -3648,17 +3643,14 @@
             }
         }
 
-        // Populate filter dropdowns when loading data
-        async function populateFilterOptions() {
-            // Load kelas options for filter
-            try {
-                const response = await fetch('/api/master-data/kelas/all', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const kelas = await response.json();
+        // Populate filter dropdowns from cached data (no extra fetch)
+        function populateFilterOptions() {
+            const kelas = window.allKelas || [];
+            const jurusan = window.allJurusan || [];
 
-                // Update siswa filter
-                const siswaKelasSelect = document.getElementById('filter-siswa-kelas');
+            // Update siswa filter (kelas list)
+            const siswaKelasSelect = document.getElementById('filter-siswa-kelas');
+            if (siswaKelasSelect) {
                 const currentSiswaKelas = siswaKelasSelect.value;
                 siswaKelasSelect.innerHTML = '<option value="">Semua Kelas</option>';
                 kelas.forEach(k => {
@@ -3668,10 +3660,13 @@
                     siswaKelasSelect.appendChild(option);
                 });
                 if (currentSiswaKelas) siswaKelasSelect.value = currentSiswaKelas;
+            }
 
-                // Update kelas filter for tahun ajaran
-                const kelasTahunSelect = document.getElementById('filter-kelas-tahun');
-                const uniqueYears = [...new Set(kelas.map(k => k.tahun_ajaran))].sort().reverse();
+            // Update kelas filter for tahun ajaran
+            const kelasTahunSelect = document.getElementById('filter-kelas-tahun');
+            if (kelasTahunSelect) {
+                const currentTahun = kelasTahunSelect.value;
+                const uniqueYears = [...new Set(kelas.map(k => k.tahun_ajaran).filter(Boolean))].sort().reverse();
                 kelasTahunSelect.innerHTML = '<option value="">Semua Tahun</option>';
                 uniqueYears.forEach(year => {
                     const option = document.createElement('option');
@@ -3679,28 +3674,35 @@
                     option.textContent = year;
                     kelasTahunSelect.appendChild(option);
                 });
+                if (currentTahun) kelasTahunSelect.value = currentTahun;
+            }
 
-                // Update kelas filter for jurusan
-                const kelasJurusanSelect = document.getElementById('filter-kelas-jurusan');
+            // Update kelas filter for jurusan
+            const kelasJurusanSelect = document.getElementById('filter-kelas-jurusan');
+            if (kelasJurusanSelect) {
                 const currentKelasJurusan = kelasJurusanSelect.value;
                 kelasJurusanSelect.innerHTML = '<option value="">Semua Jurusan</option>';
-                allJurusan.forEach(j => {
+                jurusan.forEach(j => {
                     const option = document.createElement('option');
                     option.value = j.id;
                     option.textContent = j.nama;
                     kelasJurusanSelect.appendChild(option);
                 });
                 if (currentKelasJurusan) kelasJurusanSelect.value = currentKelasJurusan;
-            } catch (error) {
-                console.error('Error populating filter options:', error);
             }
         }
 
-        // Call populate filter options after load
+        // Refresh filter dropdowns whenever kelas or jurusan data is reloaded
         const originalLoadKelas = loadKelas;
         loadKelas = async function() {
             await originalLoadKelas();
-            await populateFilterOptions();
+            populateFilterOptions();
+        };
+
+        const originalLoadJurusan = loadJurusan;
+        loadJurusan = async function() {
+            await originalLoadJurusan();
+            populateFilterOptions();
         };
     </script>
 </body>
