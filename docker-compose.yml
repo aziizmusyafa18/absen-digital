@@ -4,9 +4,9 @@ services:
     restart: always
     environment:
       MYSQL_DATABASE: absen_digital
-      MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_USER: user_absen
-      MYSQL_PASSWORD: user_password
+      MYSQL_ROOT_PASSWORD: delapanbelas
+      MYSQL_USER: dbabsen
+      MYSQL_PASSWORD: absensmk2026
     ports:
       - "3307:3306"
     volumes:
@@ -24,8 +24,8 @@ services:
     environment:
       - NODE_ENV=production
       - DB_HOST=db
-      - DB_USER=user_absen
-      - DB_PASSWORD=user_password
+      - DB_USER=dbabsen
+      - DB_PASSWORD=absensmk2026
       - DB_NAME=absen_digital
       - PORT=3000
       - JWT_SECRET=your_jwt_secret_key_here

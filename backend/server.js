@@ -32,10 +32,14 @@ const initializeDatabase = async () => {
     await sequelize.authenticate();
     console.log('✅ Database connection established successfully.');
 
-    // Sync models (creates tables if not exist)
-    // Use sync() without alter to avoid duplicate index issues
-    await sequelize.sync();
-    console.log('✅ Database synchronized successfully.');
+    // Di Docker/Produksi dengan data yang sudah di-import manual, 
+    // kita matikan sync() agar tidak bentrok dengan constraint SQL lokal.
+    if (process.env.NODE_ENV !== 'production') {
+      await sequelize.sync();
+      console.log('✅ Database synchronized successfully.');
+    } else {
+      console.log('ℹ️  Skipping database sync in production mode.');
+    }
 
   } catch (error) {
     console.error('❌ Unable to connect to the database:', error);

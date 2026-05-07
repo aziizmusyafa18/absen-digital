@@ -1,708 +1,167 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Portal Orang Tua - Absen Digital</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
-:root {
-    --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
-    --glass-bg: rgba(255, 255, 255, 0.95);
-}
-
-* {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-}
-
-body {
-    min-height: 100vh;
-    background: var(--primary-gradient);
-    position: relative;
-}
-
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background:
-        radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.2) 0%, transparent 50%);
-    animation: bgFloat 15s ease-in-out infinite;
-    z-index: 0;
-}
-
-@keyframes bgFloat {
-    0%, 100% { transform: scale(1) rotate(0deg); }
-    50% { transform: scale(1.1) rotate(3deg); }
-}
-
-.navbar {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-}
-
-.navbar-brand {
-    font-weight: 800;
-    font-size: 1.5rem;
-    background: var(--primary-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.nav-link {
-    font-weight: 600;
-    color: #475569;
-    transition: color 0.3s ease;
-    position: relative;
-}
-
-.nav-link:hover, .nav-link.active {
-    color: #6366f1;
-}
-
-.nav-link.active::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 30px;
-    height: 3px;
-    background: var(--primary-gradient);
-    border-radius: 2px;
-}
-
-.container-main {
-    position: relative;
-    z-index: 1;
-    padding: 2rem 0;
-}
-
-.hero-section {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 24px;
-    padding: 3rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-    text-align: center;
-}
-
-.hero-section h1 {
-    font-size: 2.5rem;
-    font-weight: 800;
-    background: var(--primary-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 1rem;
-}
-
-.hero-section p {
-    font-size: 1.1rem;
-    color: #64748b;
-}
-
-.feature-card {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 2rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
-}
-
-.feature-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 20px 40px rgba(99, 102, 241, 0.2);
-    border-color: #6366f1;
-}
-
-.feature-icon {
-    width: 60px;
-    height: 60px;
-    background: var(--primary-gradient);
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.8rem;
-    color: white;
-    margin-bottom: 1rem;
-}
-
-.feature-card h3 {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: #1e293b;
-    margin-bottom: 0.75rem;
-}
-
-.feature-card p {
-    color: #64748b;
-    margin: 0;
-}
-
-.search-section {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 24px;
-    padding: 2.5rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-}
-
-.search-header {
-    text-align: center;
-    margin-bottom: 2rem;
-}
-
-.search-header h2 {
-    font-size: 2rem;
-    font-weight: 800;
-    color: #1e293b;
-    margin-bottom: 0.5rem;
-}
-
-.search-header p {
-    color: #64748b;
-    font-size: 1rem;
-}
-
-.search-box {
-    position: relative;
-    max-width: 600px;
-    margin: 0 auto 2rem;
-}
-
-.search-box input {
-    width: 100%;
-    padding: 1.25rem 1.25rem 1.25rem 3.5rem;
-    border: 2px solid #e2e8f0;
-    border-radius: 16px;
-    font-size: 1.05rem;
-    transition: all 0.3s ease;
-}
-
-.search-box input:focus {
-    outline: none;
-    border-color: #6366f1;
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-}
-
-.search-box i {
-    position: absolute;
-    left: 1.25rem;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 1.3rem;
-    color: #94a3b8;
-}
-
-.student-profile {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    border-radius: 20px;
-    padding: 2rem;
-    margin-bottom: 2rem;
-    border: 2px solid #e2e8f0;
-}
-
-.profile-header {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-
-.profile-avatar {
-    width: 80px;
-    height: 80px;
-    background: var(--primary-gradient);
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.5rem;
-    color: white;
-    flex-shrink: 0;
-}
-
-.profile-info h3 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #1e293b;
-    margin-bottom: 0.25rem;
-}
-
-.profile-info p {
-    color: #64748b;
-    margin: 0;
-}
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
-
-.stat-card {
-    background: white;
-    border-radius: 16px;
-    padding: 1.5rem;
-    text-align: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.stat-card.hadir {
-    border-left: 4px solid #10b981;
-}
-
-.stat-card.izin {
-    border-left: 4px solid #f59e0b;
-}
-
-.stat-card.alpha {
-    border-left: 4px solid #ef4444;
-}
-
-.stat-number {
-    font-size: 2.5rem;
-    font-weight: 800;
-    margin-bottom: 0.25rem;
-}
-
-.stat-card.hadir .stat-number { color: #10b981; }
-.stat-card.izin .stat-number { color: #f59e0b; }
-.stat-card.alpha .stat-number { color: #ef4444; }
-
-.stat-label {
-    color: #64748b;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.85rem;
-    letter-spacing: 0.5px;
-}
-
-.attendance-table {
-    background: white;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.table-header {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    color: white;
-    padding: 1.5rem;
-    font-weight: 700;
-    font-size: 1.1rem;
-}
-
-.table-body {
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.table {
-    margin: 0;
-}
-
-.table thead th {
-    background: #f8fafc;
-    color: #475569;
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: 0.85rem;
-    letter-spacing: 0.5px;
-    padding: 1rem;
-    border: none;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-.table tbody td {
-    padding: 1rem;
-    vertical-align: middle;
-    border-color: #f1f5f9;
-}
-
-.badge-status {
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-weight: 700;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.badge-hadir {
-    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-    color: #065f46;
-}
-
-.badge-izin {
-    background: linear-gradient(135deg, #fef3c7, #fde68a);
-    color: #78350f;
-}
-
-.badge-alpha {
-    background: linear-gradient(135deg, #fee2e2, #fecaca);
-    color: #991b1b;
-}
-
-.empty-state, .error-state {
-    text-align: center;
-    padding: 3rem 2rem;
-    color: #94a3b8;
-}
-
-.empty-state i, .error-state i {
-    font-size: 4rem;
-    margin-bottom: 1rem;
-    opacity: 0.5;
-}
-
-.empty-state p, .error-state p {
-    font-size: 1.1rem;
-    margin: 0;
-}
-
-.loading {
-    text-align: center;
-    padding: 2rem;
-}
-
-.spinner-border {
-    color: #6366f1;
-}
-
-@media (max-width: 768px) {
-    .hero-section {
-        padding: 2rem;
-    }
-
-    .hero-section h1 {
-        font-size: 2rem;
-    }
-
-    .profile-header {
-        flex-direction: column;
-        text-align: center;
-    }
-
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absen Digital - Portal Orang Tua</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="css/style.css?v=1.2" rel="stylesheet">
+    <style>
+        .hero-banner { background: var(--primary-gradient); padding: 4rem 1.5rem; color: #fff; text-align: center; border-radius: 0 0 40px 40px; margin-bottom: -40px; }
+        .search-container { max-width: 600px; margin: 0 auto; background: var(--bg-surface); padding: 2rem; border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); border: 1px solid var(--border-color); }
+        .search-input-lg { padding: 1.25rem 1.5rem; font-size: 1.1rem; border-radius: var(--radius-md); border: 2px solid var(--border-color); }
+        .search-input-lg:focus { border-color: var(--primary-light); box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.1); }
+        .result-profile { background: var(--bg-alt); padding: 2rem; border-radius: var(--radius-lg); display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2rem; }
+        .result-avatar { width: 72px; height: 72px; background: var(--primary-gradient); color: #fff; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 2rem; }
+    </style>
 </head>
-<body>
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg">
-    <div class="container">
-        <a class="navbar-brand" href="#">
-            <i class="bi bi-mortarboard-fill me-2"></i>Absen Digital
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item">
-                    <a class="nav-link active" href="#beranda">
-                        <i class="bi bi-house-fill me-1"></i> Beranda
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#cari-siswa">
-                        <i class="bi bi-search me-1"></i> Cari Siswa
-                    </a>
-                </li>
-            </ul>
-        </div>
-    </div>
-</nav>
-
-<!-- Main Container -->
-<div class="container container-main">
-    <!-- Hero Section -->
-    <section id="beranda" class="hero-section">
-        <h1><i class="bi bi-heart-fill me-2"></i>Portal Orang Tua</h1>
-        <p class="lead">Pantau kehadiran dan aktivitas belajar putra-putri Anda secara real-time</p>
-    </section>
-
-    <!-- Features Grid -->
-    <div class="row">
-        <div class="col-md-6">
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="bi bi-search"></i>
-                </div>
-                <h3>Pencarian Mudah</h3>
-                <p>Cari data kehadiran siswa berdasarkan nama atau NIS dengan cepat dan akurat</p>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="bi bi-clock-history"></i>
-                </div>
-                <h3>Riwayat Real-time</h3>
-                <p>Lihat riwayat kehadiran terkini dengan update otomatis dari sistem absensi</p>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="bi bi-graph-up-arrow"></i>
-                </div>
-                <h3>Statistik Lengkap</h3>
-                <p>Monitor statistik kehadiran bulanan: hadir, izin, dan tanpa keterangan</p>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="bi bi-calendar-check"></i>
-                </div>
-                <h3>Laporan Terperinci</h3>
-                <p>Akses detail setiap sesi pelajaran dengan informasi mata pelajaran dan jam belajar</p>
-            </div>
+<body class="bg-main">
+    <!-- Hero Banner -->
+    <div class="hero-banner">
+        <div class="container">
+            <h1 class="fw-bold mb-2">Portal Informasi Kehadiran</h1>
+            <p class="opacity-75">Pantau absensi harian putra-putri Anda dengan mudah dan cepat</p>
         </div>
     </div>
 
     <!-- Search Section -->
-    <section id="cari-siswa" class="search-section">
-        <div class="search-header">
-            <h2><i class="bi bi-person-search me-2"></i>Cari Data Siswa</h2>
-            <p>Masukkan nama atau NIS siswa untuk melihat data kehadiran</p>
-        </div>
-
-        <div class="search-box">
-            <i class="bi bi-search"></i>
-            <input
-                type="text"
-                id="searchInput"
-                class="form-control"
-                placeholder="Ketik nama atau NIS siswa..."
-                autocomplete="off"
-            >
-        </div>
-
-        <!-- Loading State -->
-        <div id="loadingState" class="loading" style="display: none;">
-            <div class="spinner-border" role="status">
-                <span class="visually-hidden">Loading...</span>
+    <div class="container px-3">
+        <div class="search-container shadow-lg mb-5">
+            <div class="text-center mb-4">
+                <i class="bi bi-person-search text-primary fs-1 mb-3"></i>
+                <h5 class="fw-bold">Cari Data Siswa</h5>
+                <p class="small text-muted">Masukkan Nama Lengkap atau NIS siswa</p>
             </div>
-            <p class="mt-2 text-muted">Mencari data siswa...</p>
+            <div class="position-relative">
+                <input type="text" id="searchInput" class="form-control search-input-lg" placeholder="Contoh: Budi Santoso atau 22230101" autocomplete="off">
+            </div>
+            
+            <div id="loadingState" class="text-center p-5 d-none">
+                <div class="spinner-border text-primary mb-2"></div>
+                <p class="text-muted small">Mencari data...</p>
+            </div>
+
+            <div id="emptyState" class="text-center p-5 opacity-50">
+                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                <p class="small">Belum ada pencarian</p>
+            </div>
+
+            <div id="errorState" class="text-center p-5 text-danger d-none">
+                <i class="bi bi-exclamation-triangle fs-1 d-block mb-2"></i>
+                <p id="errorMessage" class="small"></p>
+            </div>
         </div>
 
-        <!-- Empty State -->
-        <div id="emptyState" class="empty-state">
-            <i class="bi bi-inbox"></i>
-            <p>Masukkan nama atau NIS siswa untuk memulai pencarian</p>
-        </div>
+        <!-- Result Section -->
+        <div id="studentData" class="d-none" style="max-width: 800px; margin: 0 auto;">
+            <div class="result-profile shadow-sm">
+                <div class="result-avatar"><i class="bi bi-person"></i></div>
+                <div>
+                    <h3 class="fw-bold m-0" id="studentName">-</h3>
+                    <p class="text-muted m-0">NIS: <span id="studentNis">-</span> | Kelas: <span id="studentKelas">-</span></p>
+                </div>
+            </div>
 
-        <!-- Error State -->
-        <div id="errorState" class="error-state" style="display: none;">
-            <i class="bi bi-exclamation-circle"></i>
-            <p id="errorMessage">Terjadi kesalahan</p>
-        </div>
-
-        <!-- Student Profile & Data -->
-        <div id="studentData" style="display: none;">
-            <!-- Profile -->
-            <div class="student-profile">
-                <div class="profile-header">
-                    <div class="profile-avatar">
-                        <i class="bi bi-person-fill"></i>
-                    </div>
-                    <div class="profile-info">
-                        <h3 id="studentName">-</h3>
-                        <p><strong>NIS:</strong> <span id="studentNis">-</span></p>
-                        <p><strong>Kelas:</strong> <span id="studentKelas">-</span></p>
+            <div class="stat-grid mb-4">
+                <div class="stat-card">
+                    <div class="stat-details text-center w-100">
+                        <h3 id="statHadir" class="text-success">0</h3>
+                        <p>Total Hadir</p>
                     </div>
                 </div>
-
-                <!-- Statistics -->
-                <div class="stats-grid">
-                    <div class="stat-card hadir">
-                        <div class="stat-number" id="statHadir">0</div>
-                        <div class="stat-label">Hadir</div>
+                <div class="stat-card">
+                    <div class="stat-details text-center w-100">
+                        <h3 id="statIzin" class="text-warning">0</h3>
+                        <p>Total Izin</p>
                     </div>
-                    <div class="stat-card izin">
-                        <div class="stat-number" id="statIzin">0</div>
-                        <div class="stat-label">Izin</div>
-                    </div>
-                    <div class="stat-card alpha">
-                        <div class="stat-number" id="statAlpha">0</div>
-                        <div class="stat-label">Alpha</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-details text-center w-100">
+                        <h3 id="statAlpha" class="text-danger">0</h3>
+                        <p>Tanpa Ket.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Attendance Table -->
-            <div class="attendance-table">
-                <div class="table-header">
-                    <i class="bi bi-list-ul me-2"></i>Riwayat Kehadiran (20 Data Terakhir)
+            <div class="card mb-5">
+                <div class="card-header border-0 bg-transparent px-0 pb-3">
+                    <h6 class="fw-bold m-0"><i class="bi bi-list-check me-2 text-primary"></i>Riwayat Kehadiran Terakhir</h6>
                 </div>
-                <div class="table-body">
-                    <table class="table">
+                <div class="table-responsive">
+                    <table class="table-custom">
                         <thead>
                             <tr>
                                 <th>Tanggal</th>
                                 <th>Mata Pelajaran</th>
-                                <th>Jam</th>
-                                <th>Kelas</th>
                                 <th>Status</th>
                             </tr>
                         </thead>
-                        <tbody id="attendanceTableBody">
-                        </tbody>
+                        <tbody id="attendanceTableBody"></tbody>
                     </table>
                 </div>
             </div>
         </div>
-    </section>
-</div>
+    </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-let searchTimeout;
+    <!-- Footer -->
+    <footer class="text-center p-5 text-muted small">
+        <p class="m-0">&copy; 2026 Absen Digital SMK. Semua hak dilindungi.</p>
+    </footer>
 
-// Smooth scroll for navigation
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    });
-});
-
-// Search input with debounce
-document.getElementById('searchInput').addEventListener('input', function(e) {
-    const query = e.target.value.trim();
-
-    clearTimeout(searchTimeout);
-
-    if (query.length < 2) {
-        showEmptyState();
-        return;
-    }
-
-    searchTimeout = setTimeout(() => {
-        searchStudent(query);
-    }, 500);
-});
-
-async function searchStudent(query) {
-    const loadingState = document.getElementById('loadingState');
-    const emptyState = document.getElementById('emptyState');
-    const errorState = document.getElementById('errorState');
-    const studentData = document.getElementById('studentData');
-
-    // Show loading
-    loadingState.style.display = 'block';
-    emptyState.style.display = 'none';
-    errorState.style.display = 'none';
-    studentData.style.display = 'none';
-
-    try {
-        const response = await fetch(`/api/public/search/${encodeURIComponent(query)}`);
-
-        if (!response.ok) {
-            if (response.status === 404) {
-                throw new Error('Siswa tidak ditemukan. Periksa kembali nama atau NIS yang dimasukkan.');
-            }
-            throw new Error('Terjadi kesalahan saat mengambil data');
-        }
-
-        const data = await response.json();
-
-        // Hide loading
-        loadingState.style.display = 'none';
-
-        // Display student data
-        displayStudentData(data);
-
-    } catch (error) {
-        console.error('Search error:', error);
-        loadingState.style.display = 'none';
-        errorState.style.display = 'block';
-        document.getElementById('errorMessage').textContent = error.message;
-    }
-}
-
-function displayStudentData(data) {
-    // Show student data section
-    document.getElementById('studentData').style.display = 'block';
-
-    // Fill profile info
-    document.getElementById('studentName').textContent = data.nama;
-    document.getElementById('studentNis').textContent = data.nis;
-    document.getElementById('studentKelas').textContent = data.kelas;
-
-    // Fill statistics
-    document.getElementById('statHadir').textContent = data.hadir;
-    document.getElementById('statIzin').textContent = data.izin;
-    document.getElementById('statAlpha').textContent = data.alpha;
-
-    // Fill attendance table
-    const tableBody = document.getElementById('attendanceTableBody');
-    tableBody.innerHTML = '';
-
-    if (data.riwayat && data.riwayat.length > 0) {
-        data.riwayat.forEach(item => {
-            const row = document.createElement('tr');
-
-            const statusClass = item.status === 'hadir' ? 'badge-hadir' :
-                              item.status === 'izin' ? 'badge-izin' : 'badge-alpha';
-            const statusText = item.status === 'hadir' ? 'Hadir' :
-                             item.status === 'izin' ? 'Izin' : 'Alpha';
-
-            row.innerHTML = `
-                <td>${formatDate(item.tanggal)}</td>
-                <td>${item.mapel}</td>
-                <td>${item.jam}</td>
-                <td>${item.kelas}</td>
-                <td><span class="badge-status ${statusClass}">${statusText}</span></td>
-            `;
-
-            tableBody.appendChild(row);
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let searchTimeout;
+        document.getElementById('searchInput').addEventListener('input', e => {
+            const query = e.target.value.trim();
+            clearTimeout(searchTimeout);
+            if (query.length < 3) return resetUI();
+            searchTimeout = setTimeout(() => searchStudent(query), 500);
         });
-    } else {
-        tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Belum ada data kehadiran</td></tr>';
-    }
-}
 
-function formatDate(dateString) {
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('id-ID', options);
-}
+        async function searchStudent(q) {
+            toggleStates('loading');
+            try {
+                const res = await fetch(`/api/public/search/${encodeURIComponent(q)}`);
+                if (!res.ok) throw new Error(res.status === 404 ? 'Siswa tidak ditemukan' : 'Terjadi kesalahan sistem');
+                const data = await res.json();
+                displayData(data);
+            } catch (err) {
+                document.getElementById('errorMessage').textContent = err.message;
+                toggleStates('error');
+            }
+        }
 
-function showEmptyState() {
-    document.getElementById('loadingState').style.display = 'none';
-    document.getElementById('emptyState').style.display = 'block';
-    document.getElementById('errorState').style.display = 'none';
-    document.getElementById('studentData').style.display = 'none';
-}
-</script>
+        function displayData(data) {
+            document.getElementById('studentName').textContent = data.nama;
+            document.getElementById('studentNis').textContent = data.nis;
+            document.getElementById('studentKelas').textContent = data.kelas;
+            document.getElementById('statHadir').textContent = data.hadir;
+            document.getElementById('statIzin').textContent = data.izin;
+            document.getElementById('statAlpha').textContent = data.alpha;
+            
+            const tbody = document.getElementById('attendanceTableBody');
+            tbody.innerHTML = data.riwayat.map(item => `
+                <tr>
+                    <td>${new Date(item.tanggal).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'})}</td>
+                    <td class="small">${item.mapel}</td>
+                    <td><span class="badge ${item.status === 'hadir' ? 'badge-success' : item.status === 'izin' ? 'badge-warning' : 'badge-danger'}">${item.status}</span></td>
+                </tr>
+            `).join('') || '<tr><td colspan="3" class="text-center p-4 opacity-50">Belum ada data</td></tr>';
+            
+            toggleStates('data');
+        }
+
+        function toggleStates(state) {
+            document.getElementById('loadingState').classList.toggle('d-none', state !== 'loading');
+            document.getElementById('emptyState').classList.toggle('d-none', state !== 'empty');
+            document.getElementById('errorState').classList.toggle('d-none', state !== 'error');
+            document.getElementById('studentData').classList.toggle('d-none', state !== 'data');
+        }
+
+        function resetUI() { toggleStates('empty'); }
+    </script>
 </body>
 </html>
