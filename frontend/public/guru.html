@@ -30,8 +30,8 @@
         <!-- Top Header -->
         <header class="top-bar border-0 shadow-sm" style="position: sticky; width: 100%; margin: 0; left: 0;">
             <div class="d-flex align-items-center gap-3">
-                <div class="sidebar-logo" style="width: 36px; height: 36px;">
-                    <i class="bi bi-mortarboard-fill text-white fs-5"></i>
+                <div class="sidebar-logo" style="background: transparent;">
+                    <img src="img/logo.png" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;">
                 </div>
                 <div class="page-info">
                     <h5 class="fw-bold m-0">Panel Guru</h5>
@@ -43,11 +43,9 @@
                     <div class="fw-bold" id="user-name">Guru</div>
                     <small class="text-muted" id="user-role">Pengajar</small>
                 </div>
-                <div class="dropdown">
-                    <div class="stat-icon primary m-0" id="user-avatar" style="width:40px;height:40px;font-size:1rem;font-weight:700; cursor: pointer;" data-bs-toggle="dropdown">G</div>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0">
-                        <li><a class="dropdown-item text-danger" href="#" onclick="logout()"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-                    </ul>
+                <div id="user-avatar-container" class="stat-icon primary m-0" style="width:40px;height:40px;font-size:1rem;font-weight:700; cursor: pointer; overflow: hidden;" data-bs-toggle="modal" data-bs-target="#accountModal" title="Akun saya">
+                    <span id="user-avatar-initial">G</span>
+                    <img id="user-avatar-img" src="" alt="Profile" class="d-none" style="width: 100%; height: 100%; object-fit: cover;">
                 </div>
             </div>
         </header>
@@ -207,6 +205,57 @@
         </div>
     </div>
 
+    <!-- Account Modal (Pilihan Akun) -->
+    <div class="modal fade" id="accountModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: var(--radius-lg);">
+                <div class="modal-header border-0 pb-0">
+                    <h6 class="fw-bold m-0">Akun Saya</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-3 d-grid gap-2">
+                    <button type="button" class="btn btn-outline text-start py-2" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#profileModal">
+                        <i class="bi bi-person-gear me-2 text-primary"></i>Edit Profil
+                    </button>
+                    <button type="button" class="btn btn-outline text-start py-2 text-danger" onclick="logout()">
+                        <i class="bi bi-box-arrow-right me-2"></i>Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal (Edit Foto Profil) -->
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: var(--radius-lg);">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="fw-bold m-0"><i class="bi bi-person-circle me-2 text-primary"></i>Edit Foto Profil</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="profileForm" class="modal-body p-4">
+                    <div class="text-center mb-4">
+                        <div class="position-relative d-inline-block">
+                            <div class="stat-icon primary mx-auto" style="width:120px;height:120px;font-size:2.5rem;font-weight:700;overflow:hidden;border-radius:50%;">
+                                <span id="profile-preview-initial">G</span>
+                                <img id="profile-preview-img" src="" alt="Preview" class="d-none" style="width:100%;height:100%;object-fit:cover;">
+                            </div>
+                            <label for="foto-input" class="position-absolute bottom-0 end-0 btn btn-primary btn-sm rounded-circle shadow" style="width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;" title="Ganti foto">
+                                <i class="bi bi-camera-fill"></i>
+                            </label>
+                        </div>
+                        <input type="file" id="foto-input" accept="image/*" class="d-none" onchange="previewProfilePhoto(this)">
+                        <p class="text-muted small mt-3 mb-0">Klik ikon kamera untuk memilih foto baru</p>
+                    </div>
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3">
         <div id="notification" class="toast border-0 shadow-lg" role="alert" style="border-radius: var(--radius-md);">
@@ -225,7 +274,91 @@
 
         document.getElementById('user-name').textContent = userData.nama || 'Guru';
         document.getElementById('user-role').textContent = userData.role === 'admin' ? 'Administrator' : 'Guru';
-        document.getElementById('user-avatar').textContent = (userData.nama || 'G').charAt(0).toUpperCase();
+        
+        function updateAvatarUI(nama, foto) {
+            const avatarInitial = document.getElementById('user-avatar-initial');
+            const avatarImg = document.getElementById('user-avatar-img');
+            const previewInitial = document.getElementById('profile-preview-initial');
+            const previewImg = document.getElementById('profile-preview-img');
+
+            const initial = (nama || 'G').charAt(0).toUpperCase();
+            avatarInitial.textContent = initial;
+            previewInitial.textContent = initial;
+
+            if (foto) {
+                const photoUrl = foto.startsWith('http') ? foto : `/${foto}`;
+                avatarImg.src = photoUrl;
+                avatarImg.classList.remove('d-none');
+                avatarInitial.classList.add('d-none');
+                
+                previewImg.src = photoUrl;
+                previewImg.classList.remove('d-none');
+                previewInitial.classList.add('d-none');
+            } else {
+                avatarImg.classList.add('d-none');
+                avatarInitial.classList.remove('d-none');
+                previewImg.classList.add('d-none');
+                previewInitial.classList.remove('d-none');
+            }
+        }
+
+        updateAvatarUI(userData.nama, userData.foto);
+
+        function previewProfilePhoto(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = document.getElementById('profile-preview-img');
+                    const initial = document.getElementById('profile-preview-initial');
+                    img.src = e.target.result;
+                    img.classList.remove('d-none');
+                    initial.classList.add('d-none');
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            const fotoInput = document.getElementById('foto-input');
+
+            if (!fotoInput.files[0]) {
+                showNotification('Silakan pilih foto terlebih dahulu', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
+
+            const formData = new FormData();
+            formData.append('foto', fotoInput.files[0]);
+
+            try {
+                const res = await fetch('/api/auth/profile', {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showNotification('Foto profil berhasil diperbarui');
+                    const updatedUser = { ...userData, ...result.user };
+                    localStorage.setItem('userData', JSON.stringify(updatedUser));
+                    updateAvatarUI(updatedUser.nama, updatedUser.foto);
+                    bootstrap.Modal.getInstance(document.getElementById('profileModal')).hide();
+                    fotoInput.value = '';
+                } else {
+                    showNotification(result.error || 'Gagal memperbarui foto profil', 'error');
+                }
+            } catch (error) {
+                showNotification('Terjadi kesalahan koneksi', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        });
 
         const toast = new bootstrap.Toast(document.getElementById('notification'));
         let capturedImageData = null;
@@ -244,19 +377,36 @@
         async function loadKelas() {
             try {
                 const res = await fetch('/api/guru/kelas', { headers: { 'Authorization': `Bearer ${token}` } });
-                const classes = await res.json();
+                const result = await res.json();
+                
+                if (!res.ok) {
+                    throw new Error(result.error || 'Gagal memuat data kelas');
+                }
+
+                if (!Array.isArray(result)) {
+                    console.error('Data kelas bukan array:', result);
+                    return;
+                }
+
+                if (result.length === 0) {
+                    showNotification('Belum ada data kelas di database. Hubungi Admin.', 'error');
+                }
+
                 const selects = ['kelas-select-absen', 'kelas-select-nilai', 'export-kelas'];
                 selects.forEach(id => {
                     const el = document.getElementById(id);
                     el.innerHTML = '<option value="">-- Pilih Kelas --</option>';
-                    classes.forEach(k => {
+                    result.forEach(k => {
                         const opt = document.createElement('option');
                         opt.value = k.id; opt.textContent = k.nama;
                         if (k.mata_pelajaran) opt.dataset.mapel = k.mata_pelajaran;
                         el.appendChild(opt);
                     });
                 });
-            } catch (e) {}
+            } catch (e) {
+                console.error('Error loadKelas:', e);
+                showNotification(e.message, 'error');
+            }
         }
 
         async function loadSiswaForAbsen() {

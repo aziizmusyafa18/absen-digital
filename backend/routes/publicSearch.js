@@ -68,6 +68,7 @@ router.get('/search/:query', async (req, res) => {
     res.json({
       nama: siswa.nama,
       nis: siswa.nis,
+      foto: siswa.foto,
       kelas: siswa.Kela ? siswa.Kela.nama : (siswa.Kelas ? siswa.Kelas.nama : '-'),
       hadir,
       izin,

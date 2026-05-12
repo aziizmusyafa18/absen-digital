@@ -26,6 +26,10 @@ const OrangTua = sequelize.define('OrangTua', {
   },
   phone: {
     type: DataTypes.STRING
+  },
+  foto: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 }, {
   tableName: 'orang_tua',

@@ -18,7 +18,7 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo">
-                    <i class="bi bi-mortarboard-fill text-white"></i>
+                     <img src="img/logo.png" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;">
                 </div>
                 <div class="sidebar-brand text-white">
                     <h5>Absen Digital</h5>
@@ -73,7 +73,17 @@
                         <div class="fw-bold" id="user-name">Admin</div>
                         <small class="text-muted">Administrator</small>
                     </div>
-                    <div class="stat-icon primary m-0" id="user-avatar" style="width:40px;height:40px;font-size:1rem;font-weight:700;">A</div>
+                    <div class="dropdown">
+                        <div id="user-avatar-container" class="stat-icon primary m-0 dropdown-toggle" style="width:40px;height:40px;font-size:1rem;font-weight:700; cursor: pointer; overflow: hidden;" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span id="user-avatar-initial">A</span>
+                            <img id="user-avatar-img" src="" alt="Profile" class="d-none" style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0">
+                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#profileModal"><i class="bi bi-person-gear me-2"></i>Edit Profil</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="logout()"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                        </ul>
+                    </div>
                 </div>
             </header>
 
@@ -561,6 +571,55 @@
             loadData(tab);
         }
 
+        function previewOwnProfilePhoto(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewImg = document.getElementById('profile-edit-preview-img');
+                    const previewInitial = document.getElementById('profile-edit-preview-initial');
+                    previewImg.src = e.target.result;
+                    previewImg.classList.remove('d-none');
+                    previewInitial.classList.add('d-none');
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
+
+            const formData = new FormData();
+            formData.append('nama', document.getElementById('profile-own-nama').value);
+            const password = document.getElementById('profile-own-password').value;
+            if (password) formData.append('password', password);
+            
+            const fotoInput = document.getElementById('profile-foto-input');
+            if (fotoInput.files[0]) formData.append('foto', fotoInput.files[0]);
+
+            try {
+                const res = await fetch('/api/auth/profile', {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showNotification('Profil berhasil diperbarui');
+                    const updatedUser = { ...userData, ...result.user };
+                    localStorage.setItem('userData', JSON.stringify(updatedUser));
+                    document.getElementById('user-name').textContent = updatedUser.nama;
+                    updateOwnAvatarUI(updatedUser.nama, updatedUser.foto);
+                    bootstrap.Modal.getInstance(document.getElementById('profileModal')).hide();
+                    document.getElementById('profile-own-password').value = '';
+                } else { showNotification(result.error || 'Gagal memperbarui profil', 'error'); }
+            } catch (error) { showNotification('Terjadi kesalahan koneksi', 'error'); }
+            finally { btn.disabled = false; btn.innerHTML = originalText; }
+        });
+
         function logout() { localStorage.clear(); window.location.href = 'index.html'; }
 
         function showNotification(message, type = 'success') {
@@ -643,7 +702,7 @@
                         <td>${index + 1}</td>
                         <td class="fw-medium">${item.nis}</td>
                         <td class="fw-bold">${item.nama}</td>
-                        <td><span class="badge badge-info">${item.Kela ? item.Kela.nama : '-'}</span></td>
+                        <td><span class="badge badge-info">${item.Kelas ? item.Kelas.nama : '-'}</span></td>
                         <td>${item.kelamin || '-'}</td>
                         <td class="text-center">
                             <button class="btn btn-outline btn-sm py-1 px-2 me-1" onclick="editSiswa(${item.id})"><i class="bi bi-pencil"></i></button>
@@ -787,18 +846,61 @@
             modals.kelas.show();
         }
 
+        function previewPhoto(input, type) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById(`${type}-photo-preview-img`);
+                    const icon = document.getElementById(`${type}-photo-preview-icon`);
+                    img.src = e.target.result;
+                    img.classList.remove('d-none');
+                    icon.classList.add('d-none');
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function resetPhotoPreview(type, fotoUrl = null) {
+            const img = document.getElementById(`${type}-photo-preview-img`);
+            const icon = document.getElementById(`${type}-photo-preview-icon`);
+            const input = document.getElementById(`${type}-foto`);
+            
+            if (input) input.value = '';
+            
+            if (fotoUrl) {
+                img.src = fotoUrl.startsWith('http') ? fotoUrl : `/${fotoUrl}`;
+                img.classList.remove('d-none');
+                icon.classList.add('d-none');
+            } else {
+                img.classList.add('d-none');
+                icon.classList.remove('d-none');
+            }
+        }
+
         // Form Siswa
         document.getElementById('siswa-form').onsubmit = async (e) => {
             e.preventDefault();
             const id = document.getElementById('siswa-id').value;
-            const body = {
-                nis: document.getElementById('siswa-nis').value,
-                nama: document.getElementById('siswa-nama').value,
-                kelamin: document.getElementById('siswa-kelamin').value,
-                kelas_id: document.getElementById('siswa-kelas').value
-            };
+            
+            const formData = new FormData();
+            formData.append('nis', document.getElementById('siswa-nis').value);
+            formData.append('nama', document.getElementById('siswa-nama').value);
+            formData.append('kelamin', document.getElementById('siswa-kelamin').value);
+            formData.append('kelas_id', document.getElementById('siswa-kelas').value);
+            
+            const fotoInput = document.getElementById('siswa-foto');
+            if (fotoInput.files[0]) {
+                formData.append('foto', fotoInput.files[0]);
+            }
+
             try {
-                await apiCall(id ? `siswa/${id}` : 'siswa', id ? 'PUT' : 'POST', body);
+                const res = await fetch(`/api/master-data/siswa${id ? `/${id}` : ''}`, {
+                    method: id ? 'PUT' : 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                if (!res.ok) throw new Error(await res.text());
+                
                 modals.siswa.hide();
                 loadData('siswa');
                 showNotification('Data siswa berhasil disimpan');
@@ -808,6 +910,7 @@
         function openSiswaModal() {
             document.getElementById('siswa-form').reset();
             document.getElementById('siswa-id').value = '';
+            resetPhotoPreview('siswa');
             document.getElementById('siswa-modal-title').textContent = 'Tambah Siswa';
             modals.siswa.show();
         }
@@ -820,6 +923,7 @@
             document.getElementById('siswa-nama').value = item.nama;
             document.getElementById('siswa-kelamin').value = item.kelamin;
             document.getElementById('siswa-kelas').value = item.kelas_id;
+            resetPhotoPreview('siswa', item.foto);
             document.getElementById('siswa-modal-title').textContent = 'Edit Siswa';
             modals.siswa.show();
         }
@@ -870,8 +974,10 @@
                 const res = await apiCall(id ? `guru/${id}` : 'guru', id ? 'PUT' : 'POST', body);
                 const guruId = id || res.data.id;
 
-                // Sync classes (simplified for now: just save relation if basic info success)
-                // In a real app, you might want to send this as part of one request or handle it specifically
+                // Sync classes
+                await apiCall(`guru/sync-kelas/${guruId}`, 'POST', {
+                    kelas_list: guruKelasList
+                });
                 
                 modals.guru.hide();
                 loadData('guru');
@@ -905,7 +1011,7 @@
                 const relations = await apiCall(`guru-kelas/guru/${id}`);
                 guruKelasList = relations.map(gk => ({
                     kelas_id: gk.kelas_id,
-                    kelas_nama: gk.Kela ? gk.Kela.nama : 'N/A',
+                    kelas_nama: gk.Kelas ? gk.Kelas.nama : 'N/A',
                     mata_pelajaran: gk.mata_pelajaran
                 }));
                 renderGuruKelasList();

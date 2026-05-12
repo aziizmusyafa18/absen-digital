@@ -37,6 +37,10 @@ const Guru = sequelize.define('Guru', {
   role: {
     type: DataTypes.ENUM('guru', 'admin'),
     defaultValue: 'guru'
+  },
+  foto: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 }, {
   tableName: 'guru',

@@ -1,9 +1,40 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
 const { Guru, Kelas, Siswa, Jurnal, Absensi, GuruKelas, Jurusan, sequelize } = require('../models');
 const { Op } = require('sequelize');
 const router = express.Router();
+
+// Configure multer for photos
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../uploads/profiles');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'profile-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Hanya file gambar yang diizinkan'), false);
+    }
+  },
+  limits: { fileSize: 2 * 1024 * 1024 }
+});
 
 // ========================================
 // CRUD JURUSAN
@@ -162,7 +193,7 @@ router.get('/guru/:id', authMiddleware, adminOnly, async (req, res) => {
 });
 
 // Create new guru
-router.post('/guru', authMiddleware, adminOnly, async (req, res) => {
+router.post('/guru', authMiddleware, adminOnly, upload.single('foto'), async (req, res) => {
   try {
     const { username, password, nama, nip, mapel, jam_mulai, role = 'guru' } = req.body;
 
@@ -177,6 +208,7 @@ router.post('/guru', authMiddleware, adminOnly, async (req, res) => {
     });
 
     if (existingGuru) {
+      if (req.file) fs.unlinkSync(req.file.path);
       return res.status(400).json({
         error: 'Username atau NIP sudah digunakan'
       });
@@ -185,8 +217,7 @@ router.post('/guru', authMiddleware, adminOnly, async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create guru
-    const guru = await Guru.create({
+    const createData = {
       username,
       password: hashedPassword,
       nama,
@@ -194,7 +225,14 @@ router.post('/guru', authMiddleware, adminOnly, async (req, res) => {
       mapel,
       jam_mulai: jam_mulai || null,
       role
-    });
+    };
+
+    if (req.file) {
+      createData.foto = 'uploads/profiles/' + req.file.filename;
+    }
+
+    // Create guru
+    const guru = await Guru.create(createData);
 
     // Return without password
     const { password: _, ...guruWithoutPassword } = guru.toJSON();
@@ -205,12 +243,13 @@ router.post('/guru', authMiddleware, adminOnly, async (req, res) => {
       data: guruWithoutPassword
     });
   } catch (error) {
+    if (req.file) fs.unlinkSync(req.file.path);
     res.status(500).json({ error: error.message });
   }
 });
 
 // Update guru
-router.put('/guru/:id', authMiddleware, adminOnly, async (req, res) => {
+router.put('/guru/:id', authMiddleware, adminOnly, upload.single('foto'), async (req, res) => {
   try {
     const { id } = req.params;
     const { username, password, nama, nip, mapel, jam_mulai, role } = req.body;
@@ -218,6 +257,7 @@ router.put('/guru/:id', authMiddleware, adminOnly, async (req, res) => {
     const guru = await Guru.findByPk(id);
 
     if (!guru) {
+      if (req.file) fs.unlinkSync(req.file.path);
       return res.status(404).json({ error: 'Guru not found' });
     }
 
@@ -234,6 +274,7 @@ router.put('/guru/:id', authMiddleware, adminOnly, async (req, res) => {
       });
 
       if (existingGuru) {
+        if (req.file) fs.unlinkSync(req.file.path);
         return res.status(400).json({
           error: 'Username atau NIP sudah digunakan oleh guru lain'
         });
@@ -252,6 +293,15 @@ router.put('/guru/:id', authMiddleware, adminOnly, async (req, res) => {
       updateData.password = await bcrypt.hash(password, 10);
     }
 
+    if (req.file) {
+      // Delete old photo if exists
+      if (guru.foto) {
+        const oldPath = path.join(__dirname, '..', guru.foto);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      updateData.foto = 'uploads/profiles/' + req.file.filename;
+    }
+
     // Update guru
     await guru.update(updateData);
 
@@ -264,6 +314,7 @@ router.put('/guru/:id', authMiddleware, adminOnly, async (req, res) => {
       data: guruWithoutPassword
     });
   } catch (error) {
+    if (req.file) fs.unlinkSync(req.file.path);
     res.status(500).json({ error: error.message });
   }
 });
@@ -294,6 +345,12 @@ router.delete('/guru/:id', authMiddleware, adminOnly, async (req, res) => {
       });
     }
 
+    // Delete photo if exists
+    if (guru.foto) {
+      const photoPath = path.join(__dirname, '..', guru.foto);
+      if (fs.existsSync(photoPath)) fs.unlinkSync(photoPath);
+    }
+
     // Delete guru
     await guru.destroy({ transaction: t });
     await t.commit();
@@ -307,6 +364,48 @@ router.delete('/guru/:id', authMiddleware, adminOnly, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// Sync kelas yang diajar oleh guru
+router.post('/guru/sync-kelas/:id', authMiddleware, adminOnly, async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const { id } = req.params;
+    const guruId = parseInt(id);
+    const { kelas_list } = req.body; // Array of { kelas_id, mata_pelajaran }
+
+    const guru = await Guru.findByPk(guruId);
+    if (!guru) {
+      await t.rollback();
+      return res.status(404).json({ error: 'Guru not found' });
+    }
+
+    // Delete existing relations
+    await GuruKelas.destroy({
+      where: { guru_id: guruId },
+      transaction: t
+    });
+
+    // Add new relations
+    if (kelas_list && Array.isArray(kelas_list) && kelas_list.length > 0) {
+      const relations = kelas_list.map(item => ({
+        guru_id: guruId,
+        kelas_id: parseInt(item.kelas_id),
+        mata_pelajaran: item.mata_pelajaran,
+        jam_mulai: item.jam_mulai || '07:00:00' // Default jam_mulai if not provided
+      }));
+
+      await GuruKelas.bulkCreate(relations, { transaction: t });
+    }
+
+    await t.commit();
+    res.json({ success: true, message: 'Relasi kelas berhasil disinkronisasi' });
+  } catch (error) {
+    await t.rollback();
+    console.error('Sync error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 // ========================================
 // CRUD SISWA
@@ -350,7 +449,7 @@ router.get('/siswa/:id', authMiddleware, adminOnly, async (req, res) => {
 });
 
 // Create new siswa
-router.post('/siswa', authMiddleware, adminOnly, async (req, res) => {
+router.post('/siswa', authMiddleware, adminOnly, upload.single('foto'), async (req, res) => {
   try {
     const { nis, nama, kelamin, status, kelas_id } = req.body;
 
@@ -358,6 +457,7 @@ router.post('/siswa', authMiddleware, adminOnly, async (req, res) => {
     const existingSiswa = await Siswa.findOne({ where: { nis } });
 
     if (existingSiswa) {
+      if (req.file) fs.unlinkSync(req.file.path);
       return res.status(400).json({
         error: 'NIS sudah digunakan'
       });
@@ -366,19 +466,26 @@ router.post('/siswa', authMiddleware, adminOnly, async (req, res) => {
     // Check if kelas exists
     const kelas = await Kelas.findByPk(kelas_id);
     if (!kelas) {
+      if (req.file) fs.unlinkSync(req.file.path);
       return res.status(400).json({
         error: 'Kelas tidak ditemukan'
       });
     }
 
-    // Create siswa
-    const siswa = await Siswa.create({
+    const createData = {
       nis,
       nama,
       kelamin,
       status,
       kelas_id
-    });
+    };
+
+    if (req.file) {
+      createData.foto = 'uploads/profiles/' + req.file.filename;
+    }
+
+    // Create siswa
+    const siswa = await Siswa.create(createData);
 
     // Return with kelas info
     const siswaWithKelas = await Siswa.findByPk(siswa.id, {
@@ -394,12 +501,13 @@ router.post('/siswa', authMiddleware, adminOnly, async (req, res) => {
       data: siswaWithKelas
     });
   } catch (error) {
+    if (req.file) fs.unlinkSync(req.file.path);
     res.status(500).json({ error: error.message });
   }
 });
 
 // Update siswa
-router.put('/siswa/:id', authMiddleware, adminOnly, async (req, res) => {
+router.put('/siswa/:id', authMiddleware, adminOnly, upload.single('foto'), async (req, res) => {
   try {
     const { id } = req.params;
     const { nis, nama, kelamin, status, kelas_id } = req.body;
@@ -407,6 +515,7 @@ router.put('/siswa/:id', authMiddleware, adminOnly, async (req, res) => {
     const siswa = await Siswa.findByPk(id);
 
     if (!siswa) {
+      if (req.file) fs.unlinkSync(req.file.path);
       return res.status(404).json({ error: 'Siswa not found' });
     }
 
@@ -420,6 +529,7 @@ router.put('/siswa/:id', authMiddleware, adminOnly, async (req, res) => {
       });
 
       if (existingSiswa) {
+        if (req.file) fs.unlinkSync(req.file.path);
         return res.status(400).json({
           error: 'NIS sudah digunakan oleh siswa lain'
         });
@@ -430,6 +540,7 @@ router.put('/siswa/:id', authMiddleware, adminOnly, async (req, res) => {
     if (kelas_id) {
       const kelas = await Kelas.findByPk(kelas_id);
       if (!kelas) {
+        if (req.file) fs.unlinkSync(req.file.path);
         return res.status(400).json({
           error: 'Kelas tidak ditemukan'
         });
@@ -443,6 +554,14 @@ router.put('/siswa/:id', authMiddleware, adminOnly, async (req, res) => {
     if (kelamin !== undefined) updateData.kelamin = kelamin;
     if (status !== undefined) updateData.status = status;
     if (kelas_id) updateData.kelas_id = kelas_id;
+
+    if (req.file) {
+      if (siswa.foto) {
+        const oldPath = path.join(__dirname, '..', siswa.foto);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      updateData.foto = 'uploads/profiles/' + req.file.filename;
+    }
 
     // Update siswa
     await siswa.update(updateData);
@@ -461,6 +580,7 @@ router.put('/siswa/:id', authMiddleware, adminOnly, async (req, res) => {
       data: siswaWithKelas
     });
   } catch (error) {
+    if (req.file) fs.unlinkSync(req.file.path);
     res.status(500).json({ error: error.message });
   }
 });
@@ -477,6 +597,12 @@ router.delete('/siswa/:id', authMiddleware, adminOnly, async (req, res) => {
     if (!siswa) {
       await t.rollback();
       return res.status(404).json({ error: 'Siswa not found' });
+    }
+
+    // Delete photo if exists
+    if (siswa.foto) {
+      const photoPath = path.join(__dirname, '..', siswa.foto);
+      if (fs.existsSync(photoPath)) fs.unlinkSync(photoPath);
     }
 
     // Delete all absensi records for this siswa first
@@ -709,7 +835,7 @@ router.get('/guru-kelas/guru/:guruId', authMiddleware, adminOnly, async (req, re
     const guruKelas = await GuruKelas.findAll({
       where: { guru_id: guruId },
       include: [
-        { model: Kelas, attributes: ['id', 'nama', 'tingkat'] }
+        { model: Kelas, as: 'Kelas', attributes: ['id', 'nama', 'tingkat'] }
       ]
     });
     res.json(guruKelas);

@@ -25,7 +25,7 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo">
-                    <i class="bi bi-mortarboard-fill text-white"></i>
+                     <img src="img/logo.png" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;">
                 </div>
                 <div class="sidebar-brand text-white">
                     <h5>Absen Digital</h5>
@@ -80,7 +80,17 @@
                         <div class="fw-bold" id="user-name">Admin</div>
                         <small class="text-muted">Administrator</small>
                     </div>
-                    <div class="stat-icon primary m-0" id="user-avatar" style="width:40px;height:40px;font-size:1rem;font-weight:700;">A</div>
+                    <div class="dropdown">
+                        <div id="user-avatar-container" class="stat-icon primary m-0 dropdown-toggle" style="width:40px;height:40px;font-size:1rem;font-weight:700; cursor: pointer; overflow: hidden;" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span id="user-avatar-initial">A</span>
+                            <img id="user-avatar-img" src="" alt="Profile" class="d-none" style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0">
+                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#profileModal"><i class="bi bi-person-gear me-2"></i>Edit Profil</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="logout()"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                        </ul>
+                    </div>
                 </div>
             </header>
 
@@ -506,6 +516,55 @@
             document.getElementById('filter-kelas-bulanan').value = '';
             loadRekapBulanan();
         }
+
+        function previewOwnProfilePhoto(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewImg = document.getElementById('profile-edit-preview-img');
+                    const previewInitial = document.getElementById('profile-edit-preview-initial');
+                    previewImg.src = e.target.result;
+                    previewImg.classList.remove('d-none');
+                    previewInitial.classList.add('d-none');
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
+
+            const formData = new FormData();
+            formData.append('nama', document.getElementById('profile-own-nama').value);
+            const password = document.getElementById('profile-own-password').value;
+            if (password) formData.append('password', password);
+            
+            const fotoInput = document.getElementById('profile-foto-input');
+            if (fotoInput.files[0]) formData.append('foto', fotoInput.files[0]);
+
+            try {
+                const res = await fetch('/api/auth/profile', {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showNotification('Profil berhasil diperbarui');
+                    const updatedUser = { ...userData, ...result.user };
+                    localStorage.setItem('userData', JSON.stringify(updatedUser));
+                    document.getElementById('user-name').textContent = updatedUser.nama;
+                    updateOwnAvatarUI(updatedUser.nama, updatedUser.foto);
+                    bootstrap.Modal.getInstance(document.getElementById('profileModal')).hide();
+                    document.getElementById('profile-own-password').value = '';
+                } else { showNotification(result.error || 'Gagal memperbarui profil', 'error'); }
+            } catch (error) { showNotification('Terjadi kesalahan koneksi', 'error'); }
+            finally { btn.disabled = false; btn.innerHTML = originalText; }
+        });
 
         function logout() { localStorage.clear(); window.location.href = 'index.html'; }
 

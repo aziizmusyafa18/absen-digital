@@ -22,6 +22,10 @@ const Siswa = sequelize.define('Siswa', {
   status: {
     type: DataTypes.STRING,
     defaultValue: 'aktif'
+  },
+  foto: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 }, {
   tableName: 'siswa',

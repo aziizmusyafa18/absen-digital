@@ -7,6 +7,7 @@ const router = express.Router();
 router.get('/kelas', authMiddleware, async (req, res) => {
   try {
     const guruId = req.user.id;
+    console.log(`[GET /api/guru/kelas] Fetching classes for guruId: ${guruId}`);
 
     // Get Guru info for default mata_pelajaran
     const guru = await Guru.findByPk(guruId);
@@ -17,9 +18,12 @@ router.get('/kelas', authMiddleware, async (req, res) => {
       where: { guru_id: guruId },
       include: [{
         model: Kelas,
+        as: 'Kelas',
         attributes: ['id', 'nama', 'tingkat', 'tahun_ajaran']
       }]
     });
+
+    console.log(`[GET /api/guru/kelas] Found ${guruKelas.length} specific class assignments`);
 
     // Create a map of kelas_id -> mata_pelajaran override
     const mapelMap = {};
@@ -34,6 +38,8 @@ router.get('/kelas', authMiddleware, async (req, res) => {
       order: [['nama', 'ASC']]
     });
 
+    console.log(`[GET /api/guru/kelas] Total classes in database: ${allKelas.length}`);
+
     // Format response - include mata_pelajaran from GuruKelas or default
     const kelasData = allKelas.map(kelas => ({
       id: kelas.id,
@@ -45,6 +51,7 @@ router.get('/kelas', authMiddleware, async (req, res) => {
 
     res.json(kelasData);
   } catch (error) {
+    console.error('[GET /api/guru/kelas] Error:', error);
     res.status(500).json({ error: error.message });
   }
 });

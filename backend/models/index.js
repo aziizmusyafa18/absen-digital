@@ -44,7 +44,7 @@ GuruKelas.belongsTo(Guru, { foreignKey: 'guru_id' });
 Guru.hasMany(GuruKelas, { foreignKey: 'guru_id', onDelete: 'CASCADE' });
 
 // GuruKelas - Kelas (belongsTo)
-GuruKelas.belongsTo(Kelas, { foreignKey: 'kelas_id' });
+GuruKelas.belongsTo(Kelas, { foreignKey: 'kelas_id', as: 'Kelas' });
 Kelas.hasMany(GuruKelas, { foreignKey: 'kelas_id', onDelete: 'CASCADE' });
 
 // Jurusan - Kelas (one-to-many)
