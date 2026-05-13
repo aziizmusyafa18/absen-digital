@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const { sequelize, Guru, Kelas, Siswa, OrangTua, GuruKelas } = require('./models');
 
 const seedDatabase = async () => {

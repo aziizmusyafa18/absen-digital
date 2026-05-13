@@ -5,10 +5,27 @@ require('dotenv').config();
 
 const app = express();
 
+// Disable cache for HTML files to prevent login stuck issues
+app.use((req, res, next) => {
+  if (req.url.endsWith('.html') || req.url === '/') {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+  }
+  next();
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Middleware untuk Socket.io
+app.use((req, res, next) => {
+  req.io = app.get('io');
+  next();
+});
 
 // Serve static files from frontend
 app.use(express.static(path.join(__dirname, '../frontend/public')));
@@ -34,7 +51,7 @@ app.use('/api/public', publicSearchRoutes);
 
 // Serve index.html for root
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/public/index.html'));
+  res.sendFile(path.join(__dirname, '../frontend/public/login.html'));
 });
 
 // Health check

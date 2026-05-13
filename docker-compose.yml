@@ -33,6 +33,8 @@ services:
       db:
         condition: service_healthy
     volumes:
+      - .:/app
+      - /app/node_modules
       - ./backend/uploads:/app/backend/uploads
 
 volumes:

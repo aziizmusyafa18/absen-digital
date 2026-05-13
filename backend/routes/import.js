@@ -449,7 +449,7 @@ router.post('/process', authMiddleware, adminOnly, async (req, res) => {
                             await guru.destroy();
                             continue;
                         }
-                        const bcrypt = require('bcrypt');
+                        const bcrypt = require('bcryptjs');
                         guru.password = await bcrypt.hash(guru.password, 10);
                         await guru.save();
                         results.success++; // Count guru creation as a success

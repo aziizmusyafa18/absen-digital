@@ -18,11 +18,8 @@ const io = socketIo(server, {
 // Initialize socket handler
 const socketHandler = setupSocket(io);
 
-// Make io accessible to routes via req.io
-app.use((req, res, next) => {
-  req.io = io;
-  next();
-});
+// Make io accessible to routes via app.set
+app.set('io', io);
 
 const PORT = process.env.PORT || 3000;
 

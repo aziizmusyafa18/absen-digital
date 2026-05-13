@@ -1,5 +1,5 @@
 const express = require('express');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
@@ -42,13 +42,24 @@ const upload = multer({
 router.post('/login/guru', async (req, res) => {
   try {
     const { username, password } = req.body;
+    console.log(`Login attempt for username: ${username}`);
 
     const guru = await Guru.findOne({ where: { username } });
 
-    if (!guru || !await bcrypt.compare(password, guru.password)) {
+    if (!guru) {
+      console.log(`Login failed: User ${username} not found`);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    console.log(`User found, comparing password for: ${username}`);
+    const isMatch = await bcrypt.compare(password, guru.password);
+    
+    if (!isMatch) {
+      console.log(`Login failed: Password mismatch for ${username}`);
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    console.log(`Login success: ${username}, generating token...`);
     const token = jwt.sign(
       { id: guru.id, role: guru.role, nama: guru.nama },
       process.env.JWT_SECRET,
