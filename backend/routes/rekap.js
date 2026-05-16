@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
 const { Absensi, Siswa, Kelas, Jurnal, Guru, Jurusan, Nilai, sequelize } = require('../models');
 const { Op } = require('sequelize');
@@ -229,20 +229,36 @@ router.get('/export/excel', authMiddleware, adminOnly, async (req, res) => {
         const { tanggal, kelas_id, jurusan_id } = req.query;
         const { targetDate, kelasList, absensiList } = await getRekapData(tanggal, kelas_id, jurusan_id);
 
-        const wb = XLSX.utils.book_new();
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Rekap Harian');
+        
         const tanggalStr = targetDate.toISOString().split('T')[0];
         const tanggalFormatted = targetDate.toLocaleDateString('id-ID', {
             weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
         });
 
-        // --- Data for the single sheet ---
-        const rekapData = [
-            ['REKAP ABSENSI HARIAN'],
-            [`Tanggal: ${tanggalFormatted}`],
-            [],
-            ['No', 'Kelas', 'NIS', 'Nama Siswa', 'Status', 'Jumlah Mapel Absen', 'Keterangan']
-        ];
-        
+        // Styling untuk Header
+        worksheet.mergeCells('A1:G1');
+        worksheet.getCell('A1').value = 'REKAP ABSENSI HARIAN';
+        worksheet.getCell('A1').font = { bold: true, size: 14 };
+        worksheet.getCell('A1').alignment = { horizontal: 'center' };
+
+        worksheet.mergeCells('A2:G2');
+        worksheet.getCell('A2').value = `Tanggal: ${tanggalFormatted}`;
+        worksheet.getCell('A2').alignment = { horizontal: 'center' };
+
+        // Table Header
+        const headerRow = worksheet.addRow(['No', 'Kelas', 'NIS', 'Nama Siswa', 'Status', 'Jumlah Mapel Absen', 'Keterangan']);
+        headerRow.font = { bold: true };
+        headerRow.eachCell(cell => {
+            cell.border = {
+                top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'}
+            };
+            cell.fill = {
+                type: 'pattern', pattern:'solid', fgColor: { argb: 'FFE0E0E0' }
+            };
+        });
+
         let grandTotalSiswa = 0;
         let grandTotalHadir = 0;
         let grandTotalIzin = 0;
@@ -290,7 +306,7 @@ router.get('/export/excel', authMiddleware, adminOnly, async (req, res) => {
                     grandTotalBelum++;
                 }
                 
-                rekapData.push([
+                const row = worksheet.addRow([
                     no++,
                     kelas.nama,
                     siswa.nis,
@@ -299,33 +315,33 @@ router.get('/export/excel', authMiddleware, adminOnly, async (req, res) => {
                     jumlahMapel,
                     keterangan
                 ]);
+                row.eachCell(cell => {
+                    cell.border = {
+                        top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'}
+                    };
+                });
             });
         });
 
-        // Add summary row at the bottom
-        rekapData.push([]); // Spacer row
+        // Add summary row
+        worksheet.addRow([]);
         const totalPersen = grandTotalSiswa > 0 ? Math.round((grandTotalHadir / grandTotalSiswa) * 100) : 0;
         const summaryText = `TOTAL KESELURUHAN: Hadir: ${grandTotalHadir} | Izin: ${grandTotalIzin} | Alpha: ${grandTotalAlpha} | Belum Absen: ${grandTotalBelum} | Tingkat Kehadiran: ${totalPersen}%`;
-        rekapData.push(['', '', '', summaryText]);
-
-        const ws = XLSX.utils.aoa_to_sheet(rekapData);
-        ws['!cols'] = [ { wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 40 } ];
         
-        // Merge title and total cells
-        const merges = [
-            { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }, 
-            { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } },
-            { s: { r: rekapData.length - 1, c: 3 }, e: { r: rekapData.length - 1, c: 6 } }
+        const summaryRow = worksheet.addRow(['', '', '', summaryText]);
+        worksheet.mergeCells(`D${summaryRow.number}:G${summaryRow.number}`);
+        worksheet.getCell(`D${summaryRow.number}`).font = { bold: true };
+
+        // Column Widths
+        worksheet.columns = [
+            { width: 5 }, { width: 15 }, { width: 15 }, { width: 30 }, { width: 15 }, { width: 15 }, { width: 40 }
         ];
-        ws['!merges'] = merges;
         
-        XLSX.utils.book_append_sheet(wb, ws, 'Rekap Harian');
-
-        // Generate buffer and send response
-        const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename=rekap_absensi_harian_${tanggalStr}.xlsx`);
-        res.send(buffer);
+        
+        await workbook.xlsx.write(res);
+        res.end();
 
     } catch (error) {
         console.error('Export Excel error:', error);
@@ -617,23 +633,36 @@ router.get('/export/nilai-bulanan/excel', authMiddleware, async (req, res) => {
             }
         });
 
-        // 3. Prepare Excel data
-        const wb = XLSX.utils.book_new();
-        const namaBulan = startOfMonth.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
-        const wsData = [];
+        // 3. Prepare Excel data with exceljs
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Rekap Nilai');
         
-        // Headers
+        const namaBulanStr = startOfMonth.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+        
         const staticHeaders = ['No', 'NIS', 'Nama Siswa'];
         const pertemuanHeaders = maxPertemuan > 0 ? Array.from({ length: maxPertemuan }, (_, i) => `P${i + 1}`) : [];
         const finalHeaders = ['Rata-rata', 'Keterangan'];
         const headers = [...staticHeaders, ...pertemuanHeaders, ...finalHeaders];
-        
-        wsData.push([`REKAPITULASI NILAI - ${mata_pelajaran.toUpperCase()}`]);
-        wsData.push([`Kelas: ${kelas.nama} | Periode: ${namaBulan}`]);
-        wsData.push([]); // Spacer
-        wsData.push(headers);
 
-        // 4. Populate rows (one row per student)
+        // Title
+        worksheet.mergeCells(1, 1, 1, headers.length);
+        worksheet.getCell(1, 1).value = `REKAPITULASI NILAI - ${mata_pelajaran.toUpperCase()}`;
+        worksheet.getCell(1, 1).font = { bold: true, size: 14 };
+        worksheet.getCell(1, 1).alignment = { horizontal: 'center' };
+
+        worksheet.mergeCells(2, 1, 2, headers.length);
+        worksheet.getCell(2, 1).value = `Kelas: ${kelas.nama} | Periode: ${namaBulanStr}`;
+        worksheet.getCell(2, 1).alignment = { horizontal: 'center' };
+
+        // Table Header
+        const headerRow = worksheet.addRow(headers);
+        headerRow.font = { bold: true };
+        headerRow.eachCell(cell => {
+            cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+            cell.fill = { type: 'pattern', pattern:'solid', fgColor: { argb: 'FFE0E0E0' } };
+        });
+
+        // 4. Populate rows
         let noSiswa = 1;
         for (const siswa of kelas.Siswas) {
             const siswaData = dataBySiswa.get(siswa.id);
@@ -641,36 +670,30 @@ router.get('/export/nilai-bulanan/excel', authMiddleware, async (req, res) => {
             const totalNilai = scores.reduce((sum, score) => sum + score, 0);
             const rataRata = scores.length > 0 ? (totalNilai / scores.length).toFixed(2) : 0;
             
-            const row = [noSiswa++, siswa.nis, siswa.nama];
+            const rowValues = [noSiswa++, siswa.nis, siswa.nama];
 
-            // Add scores, padding with '' if less than maxPertemuan
             for (let i = 0; i < maxPertemuan; i++) {
-                row.push(scores[i] !== undefined ? scores[i] : '');
+                rowValues.push(scores[i] !== undefined ? scores[i] : '');
             }
             
-            row.push(rataRata, siswaData.keterangan.join(', '));
-            wsData.push(row);
+            rowValues.push(rataRata, siswaData.keterangan.join(', '));
+            const row = worksheet.addRow(rowValues);
+            row.eachCell(cell => {
+                cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+            });
         }
 
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        // Column Widths
+        const colWidths = [{ width: 5 }, { width: 15 }, { width: 30 }];
+        for (let i = 0; i < maxPertemuan; i++) colWidths.push({ width: 5 });
+        colWidths.push({ width: 10 }, { width: 40 });
+        worksheet.columns = colWidths;
 
-        // Merges & Column Widths
-        ws['!merges'] = [
-            { s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } },
-            { s: { r: 1, c: 0 }, e: { r: 1, c: headers.length - 1 } }
-        ];
-        
-        const colWidths = [{ wch: 5 }, { wch: 15 }, { wch: 30 }]; // No, NIS, Nama
-        for (let i = 0; i < maxPertemuan; i++) colWidths.push({ wch: 5 }); // P1, P2...
-        colWidths.push({ wch: 10 }, { wch: 40 }); // Rata-rata, Keterangan
-        ws['!cols'] = colWidths;
-        
-        XLSX.utils.book_append_sheet(wb, ws, `Rekap Nilai`);
-
-        const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename=rekap_nilai_${kelas.nama}_${mata_pelajaran}_${year}_${month.toString().padStart(2, '0')}.xlsx`);
-        res.send(buffer);
+        
+        await workbook.xlsx.write(res);
+        res.end();
 
     } catch (error) {
         console.error('Export rekap nilai error:', error);
@@ -684,34 +707,45 @@ router.get('/export/bulanan/excel', authMiddleware, adminOnly, async (req, res) 
         const { bulan, tahun, kelas_id, jurusan_id } = req.query;
         const { targetMonth, targetYear, daysInMonth, kelasList, absensiList } = await getRekapBulananData(bulan, tahun, kelas_id, jurusan_id);
 
-        const wb = XLSX.utils.book_new();
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Rekap Bulanan');
         const namaBulan = new Date(targetYear, targetMonth - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 
-        // --- Headers ---
         const staticHeaders = ['No', 'Kelas', 'NIS', 'Nama Siswa'];
         const dateHeaders = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString());
         const totalHeaders = ['Jml Hadir', 'Jml Izin', 'Jml Alpha'];
-        const headers = [...staticHeaders, ...dateHeaders, ...totalHeaders];
+        const allHeaders = [...staticHeaders, ...dateHeaders, ...totalHeaders];
 
-        // --- Add day names for each date column ---
+        // Title
+        worksheet.mergeCells(1, 1, 1, allHeaders.length);
+        worksheet.getCell(1, 1).value = 'REKAP ABSENSI BULANAN';
+        worksheet.getCell(1, 1).font = { bold: true, size: 14 };
+        worksheet.getCell(1, 1).alignment = { horizontal: 'center' };
+
+        worksheet.mergeCells(2, 1, 2, allHeaders.length);
+        worksheet.getCell(2, 1).value = `Periode: ${namaBulan}`;
+        worksheet.getCell(2, 1).alignment = { horizontal: 'center' };
+
+        // Day Name Row
         const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
-        const dayNameRow = Array(staticHeaders.length).fill(''); // Empty cells for static headers
+        const dayNameRowValues = Array(staticHeaders.length).fill('');
         for (let i = 1; i <= daysInMonth; i++) {
             const date = new Date(targetYear, targetMonth - 1, i);
-            dayNameRow.push(dayNames[date.getDay()]);
+            dayNameRowValues.push(dayNames[date.getDay()]);
         }
-        dayNameRow.push(...Array(totalHeaders.length).fill('')); // Empty cells for total headers
+        dayNameRowValues.push(...Array(totalHeaders.length).fill(''));
+        const dayRow = worksheet.addRow(dayNameRowValues);
+        dayRow.font = { bold: true };
 
-        // --- Data Rows ---
-        const rekapData = [
-            ['REKAP ABSENSI BULANAN'],
-            [`Periode: ${namaBulan}`],
-            dayNameRow, // New row for day names
-            headers
-        ];
+        // Headers Row
+        const headerRow = worksheet.addRow(allHeaders);
+        headerRow.font = { bold: true };
+        headerRow.eachCell(cell => {
+            cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+            cell.fill = { type: 'pattern', pattern:'solid', fgColor: { argb: 'FFE0E0E0' } };
+        });
 
         let noSiswa = 1;
-        
         kelasList.forEach((kelas) => {
             const siswaList = kelas.Siswas || [];
             if (siswaList.length === 0) return;
@@ -722,74 +756,45 @@ router.get('/export/bulanan/excel', authMiddleware, adminOnly, async (req, res) 
                 const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === siswa.id);
                 const absensiPerTanggal = new Map();
                 absensiSiswa.forEach(a => {
-                    const tanggalJurnal = new Date(a.Jurnal.tanggal);
-                    const tgl = tanggalJurnal.getDate(); // Get day of the month (1-31)
+                    const tgl = new Date(a.Jurnal.tanggal).getDate();
                     if (!absensiPerTanggal.has(tgl)) absensiPerTanggal.set(tgl, []);
                     absensiPerTanggal.get(tgl).push(a);
                 });
 
-                const dateRow = Array(daysInMonth).fill(''); // Array for dates 1 to 31
-                let totalHadir = 0;
-                let totalIzin = 0;
-                let totalAlpha = 0;
+                const dateValues = Array(daysInMonth).fill('');
+                let totalHadir = 0; let totalIzin = 0; let totalAlpha = 0;
 
                 absensiPerTanggal.forEach((absensiHari, tgl) => {
                     let statusHari = '';
-                    if (absensiHari.some(a => a.status === 'tanpa_ket')) {
-                        statusHari = 'A';
-                        totalAlpha++;
-                    } else if (absensiHari.some(a => a.status === 'izin')) {
-                        statusHari = 'I';
-                        totalIzin++;
-                    } else {
-                        statusHari = 'H';
-                        totalHadir++;
-                    }
-                    if (tgl > 0 && tgl <= daysInMonth) {
-                        dateRow[tgl - 1] = statusHari;
-                    }
+                    if (absensiHari.some(a => a.status === 'tanpa_ket')) { statusHari = 'A'; totalAlpha++; }
+                    else if (absensiHari.some(a => a.status === 'izin')) { statusHari = 'I'; totalIzin++; }
+                    else { statusHari = 'H'; totalHadir++; }
+                    if (tgl > 0 && tgl <= daysInMonth) dateValues[tgl - 1] = statusHari;
                 });
 
-                const studentRow = [
-                    noSiswa++,
-                    kelas.nama,
-                    siswa.nis,
-                    siswa.nama
-                ];
-                
-                rekapData.push([...studentRow, ...dateRow, totalHadir, totalIzin, totalAlpha]);
+                const rowValues = [noSiswa++, kelas.nama, siswa.nis, siswa.nama, ...dateValues, totalHadir, totalIzin, totalAlpha];
+                const row = worksheet.addRow(rowValues);
+                row.eachCell(cell => {
+                    cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+                    if (cell.value === 'A') cell.font = { color: { argb: 'FFFF0000' }, bold: true };
+                    if (cell.value === 'I') cell.font = { color: { argb: 'FFFFA500' }, bold: true };
+                });
             });
         });
 
-        // --- Create and Send Workbook ---
-        const ws = XLSX.utils.aoa_to_sheet(rekapData);
-
-        // Styling
+        // Widths
         const colWidths = [
-            { wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: 30 }, 
-            ...Array(daysInMonth).fill({ wch: 3 }), // Width for date columns
-            { wch: 10 }, { wch: 10 }, { wch: 10 } // Width for total columns
+            { width: 5 }, { width: 15 }, { width: 15 }, { width: 30 }, 
+            ...Array(daysInMonth).fill({ width: 4 }),
+            { width: 10 }, { width: 10 }, { width: 10 }
         ];
-        ws['!cols'] = colWidths;
-        ws['!merges'] = [ 
-            { s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 + staticHeaders.length -1 } }, // Adjust merge for title to span all columns
-            { s: { r: 1, c: 0 }, e: { r: 1, c: headers.length - 1 + staticHeaders.length -1 } }  // Adjust merge for period to span all columns
-        ];
-        // The headers variable already includes staticHeaders.length in its size.
-        // So headers.length - 1 is the index of the last header column.
-        // The total number of columns is headers.length.
-        // The original merges used headers.length - 1 for the end column.
-        // Now, we added a new row, and the headers array already accounts for all headers.
-        // The length of the headers array is staticHeaders.length + dateHeaders.length + totalHeaders.length.
-        // So, the last column index is headers.length - 1.
-        // The merge should span to headers.length - 1.
+        worksheet.columns = colWidths;
 
-        XLSX.utils.book_append_sheet(wb, ws, 'Rekap Bulanan');
-        
-        const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename=rekap_bulanan_detail_${targetYear}_${targetMonth.toString().padStart(2, '0')}.xlsx`);
-        res.send(buffer);
+        
+        await workbook.xlsx.write(res);
+        res.end();
 
     } catch (error) {
         console.error('Export bulanan Excel error:', error);

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
 const path = require('path');
 const fs = require('fs');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
@@ -153,36 +153,44 @@ router.post('/parse', authMiddleware, adminOnly, upload.single('file'), async (r
         }
 
         const entityType = req.body.entity_type || 'siswa';
-        // Normalize path untuk Windows
         const filePath = path.normalize(req.file.path);
 
         console.log('Reading file:', filePath);
 
-        // Verify file exists
         if (!fs.existsSync(filePath)) {
             return res.status(400).json({ success: false, error: 'File tidak ditemukan di server' });
         }
 
-        // Read Excel file
-        const workbook = XLSX.readFile(filePath, { type: 'file' });
-        const sheetNames = workbook.SheetNames;
+        // Read Excel file with exceljs
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.readFile(filePath);
+        
+        const worksheet = req.body.sheet_name ? 
+            workbook.getWorksheet(req.body.sheet_name) : 
+            workbook.worksheets[0];
 
-        // Get first sheet by default or specified sheet
-        const sheetName = req.body.sheet_name || sheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
+        if (!worksheet) {
+            fs.unlinkSync(filePath);
+            return res.status(400).json({ success: false, error: 'Sheet tidak ditemukan' });
+        }
 
-        // Convert to JSON
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        const jsonData = [];
+        worksheet.eachRow((row, rowNumber) => {
+            const rowValues = [];
+            // row.values returns 1-indexed array, first element is undefined
+            for (let i = 1; i <= worksheet.columnCount; i++) {
+                rowValues.push(row.getCell(i).text || '');
+            }
+            jsonData.push(rowValues);
+        });
 
         if (jsonData.length === 0) {
             fs.unlinkSync(filePath);
             return res.status(400).json({ success: false, error: 'File Excel kosong' });
         }
 
-        // Get headers (first row)
         const headers = jsonData[0].map(h => String(h || '').trim());
 
-        // Get preview data (next 10 rows)
         const previewData = jsonData.slice(1, 11).map(row => {
             const rowData = {};
             headers.forEach((header, index) => {
@@ -191,13 +199,9 @@ router.post('/parse', authMiddleware, adminOnly, upload.single('file'), async (r
             return rowData;
         });
 
-        // Auto-detect column mapping
         const autoMapping = autoDetectMapping(headers, entityType);
-
-        // Get available fields for mapping
         const availableFields = fieldMappings[entityType] || {};
 
-        // Get list of kelas for reference (if importing siswa)
         let kelasList = [];
         if (entityType === 'siswa') {
             kelasList = await Kelas.findAll({
@@ -206,12 +210,11 @@ router.post('/parse', authMiddleware, adminOnly, upload.single('file'), async (r
             });
         }
 
-        // Store file path in session/temp for later use
         const importSession = {
             filePath: filePath,
             fileName: req.file.originalname,
-            sheetName: sheetName,
-            totalRows: jsonData.length - 1, // Exclude header
+            sheetName: worksheet.name,
+            totalRows: jsonData.length - 1,
             entityType: entityType
         };
 
@@ -219,7 +222,7 @@ router.post('/parse', authMiddleware, adminOnly, upload.single('file'), async (r
             success: true,
             data: {
                 importSession,
-                sheetNames,
+                sheetNames: workbook.worksheets.map(ws => ws.name),
                 headers,
                 previewData,
                 autoMapping,
@@ -248,16 +251,7 @@ router.post('/parse', authMiddleware, adminOnly, upload.single('file'), async (r
 router.post('/process', authMiddleware, adminOnly, async (req, res) => {
     try {
         const { filePath, entityType, mapping, options } = req.body;
-
-        console.log('=== PROCESS IMPORT ===');
-        console.log('filePath received:', filePath);
-        console.log('mapping received:', JSON.stringify(mapping, null, 2));
-
-        // Normalize path untuk Windows
         const normalizedPath = path.normalize(filePath);
-
-        console.log('normalizedPath:', normalizedPath);
-        console.log('exists:', fs.existsSync(normalizedPath));
 
         if (!normalizedPath || !fs.existsSync(normalizedPath)) {
             return res.status(400).json({ success: false, error: 'File tidak ditemukan atau sudah expired' });
@@ -266,14 +260,21 @@ router.post('/process', authMiddleware, adminOnly, async (req, res) => {
         const skipDuplicate = options?.skipDuplicate !== false;
         const updateExisting = options?.updateExisting === true;
 
-        // Read Excel file
-        const workbook = XLSX.readFile(normalizedPath, { type: 'file' });
-        const sheetName = req.body.sheetName || workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.readFile(normalizedPath);
+        
+        const worksheet = req.body.sheetName ? 
+            workbook.getWorksheet(req.body.sheetName) : 
+            workbook.worksheets[0];
 
-        console.log('Headers in file:', jsonData[0]);
-        console.log('Total data rows:', jsonData.length - 1);
+        const jsonData = [];
+        worksheet.eachRow((row, rowNumber) => {
+            const rowValues = [];
+            for (let i = 1; i <= worksheet.columnCount; i++) {
+                rowValues.push(row.getCell(i).text || '');
+            }
+            jsonData.push(rowValues);
+        });
 
         const headers = jsonData[0];
         const dataRows = jsonData.slice(1);
@@ -287,28 +288,17 @@ router.post('/process', authMiddleware, adminOnly, async (req, res) => {
             errors: []
         };
 
-        // Get kelas mapping for both siswa and guru import
         let kelasMap = {};
         const kelasList = await Kelas.findAll();
-        console.log('Kelas yang tersedia:', kelasList.map(k => ({ nama: k.nama, id: k.id })));
         kelasList.forEach(k => {
             kelasMap[k.nama.toLowerCase().trim()] = k.id;
         });
-        console.log('Kelas Map:', kelasMap);
 
-
-        console.log('Mapping yang diterima:', mapping);
-        console.log('Total baris data:', dataRows.length);
-
-        // Process each row
         for (let i = 0; i < dataRows.length; i++) {
             const row = dataRows[i];
-            const rowNumber = i + 2; // Excel row number (1-indexed + header)
-
-            console.log(`Processing row ${rowNumber}:`, row);
+            const rowNumber = i + 2;
 
             try {
-                // Build data object from mapping
                 const data = {};
                 let hasRequiredFields = true;
                 const missingFields = [];
@@ -321,9 +311,6 @@ router.post('/process', authMiddleware, adminOnly, async (req, res) => {
                     }
                 }
 
-                console.log(`Row ${rowNumber} - Mapped data:`, data);
-
-                // Validate required fields
                 const fields = fieldMappings[entityType];
                 for (const [fieldKey, fieldConfig] of Object.entries(fields)) {
                     if (fieldConfig.required && (!data[fieldKey] || data[fieldKey] === '')) {
@@ -339,13 +326,10 @@ router.post('/process', authMiddleware, adminOnly, async (req, res) => {
                         error: `Field wajib kosong: ${missingFields.join(', ')}`,
                         data: data
                     });
-                    console.log(`Row ${rowNumber} - Gagal: Field wajib kosong`);
                     continue;
                 }
 
-                // Process based on entity type
                 if (entityType === 'siswa') {
-                    // Find kelas_id
                     const kelasName = data.kelas?.toLowerCase().trim();
                     const kelas_id = kelasMap[kelasName];
 
@@ -353,47 +337,23 @@ router.post('/process', authMiddleware, adminOnly, async (req, res) => {
                         results.failed++;
                         results.errors.push({
                             row: rowNumber,
-                            error: `Kelas "${data.kelas}" tidak ditemukan di database. Pastikan kelas sudah dibuat!`,
+                            error: `Kelas "${data.kelas}" tidak ditemukan di database.`,
                             data: data
                         });
                         continue;
                     }
 
-                    // Validate email - jika bukan format email, set ke null
-                    let emailValue = data.email || null;
-                    if (emailValue && (!emailValue.includes('@') || !emailValue.includes('.'))) {
-                        console.log(`Row ${rowNumber} - Email "${emailValue}" tidak valid, di-set ke null`);
-                        emailValue = null;
-                    }
-
-                    // Check for existing
-                    let existing = null;
-                    let isDuplicate = false;
-                    try {
-                        existing = await Siswa.findOne({ where: { nis: data.nis } });
-                    } catch (e) {
-                        console.error(`Row ${rowNumber} - Error checking existing:`, e);
-                    }
+                    let existing = await Siswa.findOne({ where: { nis: data.nis } });
 
                     if (existing) {
                         if (updateExisting) {
-                            try {
-                                await existing.update({
-                                    nama: data.nama,
-                                    kelas_id: kelas_id,
-                                    kelamin: data.kelamin || existing.kelamin,
-                                    status: data.status || existing.status
-                                });
-                                results.updated++;
-                            } catch (e) {
-                                results.failed++;
-                                results.errors.push({
-                                    row: rowNumber,
-                                    error: `Update failed: ${e.message}`,
-                                    data: data
-                                });
-                                continue;
-                            }
+                            await existing.update({
+                                nama: data.nama,
+                                kelas_id: kelas_id,
+                                kelamin: data.kelamin || existing.kelamin,
+                                status: data.status || existing.status
+                            });
+                            results.updated++;
                         } else if (skipDuplicate) {
                             results.skipped++;
                         } else {
@@ -405,63 +365,44 @@ router.post('/process', authMiddleware, adminOnly, async (req, res) => {
                             });
                         }
                     } else {
-                        try {
-                            await Siswa.create({
-                                nis: data.nis,
-                                nama: data.nama,
-                                kelas_id: kelas_id,
-                                kelamin: data.kelamin || null,
-                                status: data.status || 'aktif'
-                            });
-                            results.success++;
-                            console.log(`Row ${rowNumber} - Berhasil: ${data.nama}`);
-                        } catch (e) {
-                            results.failed++;
-                            results.errors.push({
-                                row: rowNumber,
-                                error: `Create failed: ${e.message}`,
-                                data: data
-                            });
-                            continue;
-                        }
+                        await Siswa.create({
+                            nis: data.nis,
+                            nama: data.nama,
+                            kelas_id: kelas_id,
+                            kelamin: data.kelamin || null,
+                            status: data.status || 'aktif'
+                        });
+                        results.success++;
                     }
                 } else if (entityType === 'guru') {
-                    // This logic processes one teaching assignment (GuruKelas) per row.
-                    
-                    // 1. Find or Create the Guru
                     const [guru, created] = await Guru.findOrCreate({
                         where: { nip: data.nip },
                         defaults: {
                             nama: data.nama,
                             username: data.username,
-                            password: data.password || 'guru123', // Default password if needed
-                            mapel: '-', // Default value, as mapel is now per-assignment
+                            password: data.password || 'guru123',
+                            mapel: '-',
                             role: 'guru'
                         }
                     });
 
-                    // If a new guru was created, hash the password
                     if (created) {
                         if (!data.username) {
                             results.failed++;
-                            results.errors.push({ row: rowNumber, error: `Username wajib diisi untuk guru baru dengan NIP ${data.nip}.` });
-                            // Rollback guru creation by destroying it
+                            results.errors.push({ row: rowNumber, error: `Username wajib diisi untuk guru baru.` });
                             await guru.destroy();
                             continue;
                         }
                         const bcrypt = require('bcryptjs');
                         guru.password = await bcrypt.hash(guru.password, 10);
                         await guru.save();
-                        results.success++; // Count guru creation as a success
+                        results.success++;
                     } else {
-                        // If guru exists, optionally update their name
                         if (updateExisting && data.nama && guru.nama !== data.nama) {
                            await guru.update({ nama: data.nama });
-                           // We don't count this as an "update" in the results unless the assignment is also updated.
                         }
                     }
 
-                    // 2. Find the Kelas
                     const kelasName = data.kelas?.toLowerCase().trim();
                     const kelas_id = kelasMap[kelasName];
 
@@ -470,14 +411,6 @@ router.post('/process', authMiddleware, adminOnly, async (req, res) => {
                         results.errors.push({ row: rowNumber, error: `Kelas "${data.kelas}" tidak ditemukan.` });
                         continue;
                     }
-
-                    // 3. Create the GuruKelas assignment
-                    const assignmentData = {
-                        guru_id: guru.id,
-                        kelas_id: kelas_id,
-                        jam_mulai: data.jam_mulai,
-                        mata_pelajaran: data.mapel
-                    };
 
                     const existingAssignment = await GuruKelas.findOne({
                         where: {
@@ -495,11 +428,15 @@ router.post('/process', authMiddleware, adminOnly, async (req, res) => {
                             results.skipped++;
                         } else {
                              results.failed++;
-                             results.errors.push({ row: rowNumber, error: `Jadwal mengajar untuk guru ini di kelas dan jam yang sama sudah ada.` });
+                             results.errors.push({ row: rowNumber, error: `Jadwal mengajar sudah ada.` });
                         }
                     } else {
-                        await GuruKelas.create(assignmentData);
-                        // Only count as success if the guru wasn't just created (as that was already counted)
+                        await GuruKelas.create({
+                            guru_id: guru.id,
+                            kelas_id: kelas_id,
+                            jam_mulai: data.jam_mulai,
+                            mata_pelajaran: data.mapel
+                        });
                         if (!created) results.success++;
                     }
                 }
@@ -514,7 +451,6 @@ router.post('/process', authMiddleware, adminOnly, async (req, res) => {
             }
         }
 
-        // Clean up uploaded file
         if (fs.existsSync(normalizedPath)) {
             fs.unlinkSync(normalizedPath);
         }
@@ -557,13 +493,12 @@ router.get('/template/:entityType', authMiddleware, adminOnly, async (req, res) 
             return res.status(400).json({ success: false, error: 'Tipe entity tidak valid' });
         }
 
-        // Create workbook with template
-        const wb = XLSX.utils.book_new();
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Data');
 
-        // Create headers
         const headers = Object.values(fields).map(f => f.label);
+        worksheet.addRow(headers);
 
-        // Sample data
         let sampleData = [];
         if (entityType === 'siswa') {
             const kelasList = await Kelas.findAll({ limit: 3 });
@@ -579,32 +514,32 @@ router.get('/template/:entityType', authMiddleware, adminOnly, async (req, res) 
             const kelasContoh3 = kelasList[2]?.nama || 'XI TJKT A';
 
             sampleData = [
-                // nip, nama, username, password, kelas, mapel, jam_mulai
                 ['198501012010011001', 'Sari Indah, S.Pd', 'sari.indah', 'guru123', kelasContoh1, 'Matematika', '07:00'],
                 ['198501012010011001', 'Sari Indah, S.Pd', '', '', kelasContoh2, 'Matematika', '09:00'],
                 ['198601012010011002', 'Budi Hartono, M.Pd', 'budi.hartono', '', kelasContoh3, 'Bahasa Inggris', '08:00'],
             ];
         }
 
-        const wsData = [headers, ...sampleData];
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-        // Set column widths
-        ws['!cols'] = headers.map(() => ({ wch: 20 }));
-
-        XLSX.utils.book_append_sheet(wb, ws, 'Data');
-
-        // Generate buffer
-        const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+        sampleData.forEach(row => worksheet.addRow(row));
+        
+        // Auto-fit column width
+        worksheet.columns.forEach(column => {
+            column.width = 20;
+        });
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename=template_${entityType}.xlsx`);
-        res.send(buffer);
+
+        await workbook.xlsx.write(res);
+        res.end();
 
     } catch (error) {
         console.error('Template error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
+module.exports = router;
+
 
 module.exports = router;

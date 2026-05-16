@@ -254,8 +254,7 @@ router.post('/nilai', authMiddleware, async (req, res) => {
   }
 });
 
-const { Op } = require('sequelize');
-const xlsx = require('xlsx');
+const ExcelJS = require('exceljs');
 
 // ... (existing router code)
 
@@ -324,32 +323,52 @@ router.get('/export-nilai', authMiddleware, async (req, res) => {
     const reportDate = jenis === 'harian' ? tanggal : bulan;
     const fileName = `Rekap_Nilai_${kelasNama}_${reportDate}.xlsx`;
 
-    // Prepare data for Excel
-    const dataForExcel = nilaiData.map(n => ({
-      'NIS': n.Siswa.nis,
-      'Nama Siswa': n.Siswa.nama,
-      'Mata Pelajaran': n.mata_pelajaran,
-      'Keterangan': n.keterangan,
-      'Nilai': n.nilai,
-      'Tanggal': new Date(n.tanggal).toLocaleDateString('id-ID')
-    }));
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Rekap Nilai');
 
-    const worksheet = xlsx.utils.json_to_sheet(dataForExcel);
-    const workbook = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(workbook, worksheet, 'Rekap Nilai');
-    
-    // Auto-fit column width
-    const cols = Object.keys(dataForExcel[0]);
-    const colWidths = cols.map(col => ({
-        wch: Math.max(...dataForExcel.map(row => (row[col] || '').toString().length), col.length)
-    }));
-    worksheet['!cols'] = colWidths;
+    // Add Headers
+    worksheet.columns = [
+      { header: 'NIS', key: 'nis', width: 15 },
+      { header: 'Nama Siswa', key: 'nama_siswa', width: 30 },
+      { header: 'Mata Pelajaran', key: 'mapel', width: 25 },
+      { header: 'Keterangan', key: 'keterangan', width: 30 },
+      { header: 'Nilai', key: 'nilai', width: 10 },
+      { header: 'Tanggal', key: 'tanggal', width: 15 }
+    ];
 
-    const buffer = xlsx.write(workbook, { bookType: 'xlsx', type: 'buffer' });
+    // Add Rows
+    nilaiData.forEach(n => {
+      worksheet.addRow({
+        nis: n.Siswa.nis,
+        nama_siswa: n.Siswa.nama,
+        mapel: n.mata_pelajaran,
+        keterangan: n.keterangan,
+        nilai: n.nilai,
+        tanggal: new Date(n.tanggal).toLocaleDateString('id-ID')
+      });
+    });
+
+    // Styling Headers
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).eachCell(cell => {
+      cell.fill = { type: 'pattern', pattern:'solid', fgColor: { argb: 'FFE0E0E0' } };
+      cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+    });
+
+    // Add Borders to all cells
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) {
+        row.eachCell(cell => {
+          cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+        });
+      }
+    });
 
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.send(buffer);
+    
+    await workbook.xlsx.write(res);
+    res.end();
 
   } catch (error) {
     console.error('Error exporting nilai:', error);
