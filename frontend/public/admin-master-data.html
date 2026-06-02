@@ -381,6 +381,18 @@
                 <form id="siswa-form">
                     <div class="modal-body p-4">
                         <input type="hidden" id="siswa-id">
+                        <div class="text-center mb-3">
+                            <div class="position-relative d-inline-block">
+                                <div class="stat-icon bg-light border mx-auto" style="width:100px;height:100px;overflow:hidden;border-radius:10px;">
+                                    <i id="siswa-photo-preview-icon" class="bi bi-person text-muted" style="font-size: 3rem;"></i>
+                                    <img id="siswa-photo-preview-img" src="" alt="Preview" class="d-none" style="width:100%;height:100%;object-fit:cover;">
+                                </div>
+                                <label for="siswa-foto" class="position-absolute bottom-0 end-0 btn btn-primary btn-sm rounded-circle shadow" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+                                    <i class="bi bi-camera-fill" style="font-size: 0.8rem;"></i>
+                                </label>
+                            </div>
+                            <input type="file" id="siswa-foto" accept="image/*" class="d-none" onchange="previewPhoto(this, 'siswa')">
+                        </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">NIS</label>
@@ -1092,6 +1104,11 @@
             importType = type;
             document.getElementById('import-modal-title').textContent = `Import Data ${type.charAt(0).toUpperCase() + type.slice(1)}`;
             document.getElementById('import-file').value = '';
+            
+            // Update template download link
+            const templateLink = document.getElementById('download-template-link');
+            templateLink.href = `/api/import/template/${type}?token=${token}`;
+            
             modals.import.show();
         }
 
@@ -1122,6 +1139,11 @@
             finally {
                 btn.disabled = false;
                 btn.textContent = 'Proses Import';
+            }
+        }
+    </script>
+</body>
+</html>';
             }
         }
     </script>
