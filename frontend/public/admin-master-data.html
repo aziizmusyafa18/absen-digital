@@ -257,10 +257,9 @@
         </main>
     </div>
 
-    <!-- Modals (Jurusan, Kelas, Siswa, Guru, Import) -->
-    <!-- (Konten modal tetap dipertahankan fungsionalitasnya dengan styling card-pro) -->
+    <!-- Modals -->
     
-    <!-- Profile Modal (Edit Foto Profil) -->
+    <!-- Profile Modal -->
     <div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg" style="border-radius: var(--radius-lg);">
@@ -304,15 +303,15 @@
                         <input type="hidden" id="jurusan-id">
                         <div class="mb-3">
                             <label class="form-label">Nama Jurusan</label>
-                            <input type="text" class="form-control" id="jurusan-nama" required placeholder="Contoh: Teknik Komputer dan Jaringan">
+                            <input type="text" class="form-control" id="jurusan-nama" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Singkatan</label>
-                            <input type="text" class="form-control" id="jurusan-singkat" placeholder="Contoh: TKJ">
+                            <input type="text" class="form-control" id="jurusan-singkat">
                         </div>
                         <div class="mb-0">
                             <label class="form-label">Deskripsi</label>
-                            <textarea class="form-control" id="jurusan-deskripsi" rows="3" placeholder="Deskripsi singkat..."></textarea>
+                            <textarea class="form-control" id="jurusan-deskripsi" rows="3"></textarea>
                         </div>
                     </div>
                     <div class="modal-footer border-0 p-4 pt-0">
@@ -337,7 +336,7 @@
                         <input type="hidden" id="kelas-id">
                         <div class="mb-3">
                             <label class="form-label">Nama Kelas</label>
-                            <input type="text" class="form-control" id="kelas-nama" required placeholder="Contoh: XII TKJ A">
+                            <input type="text" class="form-control" id="kelas-nama" required>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -351,7 +350,7 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Tahun Ajaran</label>
-                                <input type="text" class="form-control" id="kelas-tahun" required placeholder="2024/2025">
+                                <input type="text" class="form-control" id="kelas-tahun" required>
                             </div>
                         </div>
                         <div class="mb-0">
@@ -470,7 +469,6 @@
                                 </select>
                             </div>
                         </div>
-                        
                         <div class="p-3 bg-light rounded-3 mt-3">
                             <h6 class="fw-bold mb-3 small text-muted text-uppercase">Pengaturan Kelas Mengajar</h6>
                             <div class="row g-2 align-items-end">
@@ -514,6 +512,11 @@
                         <p class="mb-0">Pilih file Excel yang ingin diimport</p>
                         <input type="file" id="import-file" class="form-control mt-3" accept=".xlsx, .xls">
                     </div>
+                    <div class="d-grid mb-3">
+                        <a id="download-template-link" href="#" class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-download me-2"></i>Unduh Template Excel
+                        </a>
+                    </div>
                     <div class="alert alert-info border-0 shadow-sm small">
                         <i class="bi bi-info-circle-fill me-2"></i>
                         Gunakan format kolom yang sesuai dengan template.
@@ -527,9 +530,9 @@
         </div>
     </div>
 
-    <!-- Toast Notification -->
+    <!-- Toast -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3">
-        <div id="notification" class="toast border-0 shadow-lg" role="alert" style="border-radius: var(--radius-md);">
+        <div id="notification" class="toast border-0 shadow-lg" role="alert">
             <div class="toast-body d-flex align-items-center gap-2 p-3">
                 <i class="bi bi-check-circle-fill text-success fs-5" id="notification-icon"></i>
                 <span id="notification-message" class="fw-medium"></span>
@@ -539,16 +542,14 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // State & Initial Data
         const token = localStorage.getItem('token');
         const userData = JSON.parse(localStorage.getItem('userData') || '{}');
         let currentTab = 'jurusan';
         let dataStore = { jurusan: [], kelas: [], siswa: [], guru: [] };
-        let guruKelasList = []; // Temp storage for editing guru's classes
+        let guruKelasList = [];
 
         if (!token || userData.role !== 'admin') window.location.href = 'index.html';
 
-        // UI Setup
         document.getElementById('user-name').textContent = userData.nama || 'Admin';
         
         function updateAvatarUI(nama, foto) {
@@ -556,25 +557,17 @@
             const avatarImg = document.getElementById('user-avatar-img');
             const previewInitial = document.getElementById('profile-preview-initial');
             const previewImg = document.getElementById('profile-preview-img');
-
             const initial = (nama || 'A').charAt(0).toUpperCase();
             if (avatarInitial) avatarInitial.textContent = initial;
             if (previewInitial) previewInitial.textContent = initial;
-
             if (foto) {
                 const photoUrl = foto.startsWith('http') ? foto : `/${foto}`;
                 if (avatarImg) { avatarImg.src = photoUrl; avatarImg.classList.remove('d-none'); }
                 if (avatarInitial) avatarInitial.classList.add('d-none');
                 if (previewImg) { previewImg.src = photoUrl; previewImg.classList.remove('d-none'); }
                 if (previewInitial) previewInitial.classList.add('d-none');
-            } else {
-                if (avatarImg) avatarImg.classList.add('d-none');
-                if (avatarInitial) avatarInitial.classList.remove('d-none');
-                if (previewImg) previewImg.classList.add('d-none');
-                if (previewInitial) previewInitial.classList.remove('d-none');
             }
         }
-
         updateAvatarUI(userData.nama, userData.foto);
 
         const toast = new bootstrap.Toast(document.getElementById('notification'));
@@ -586,126 +579,28 @@
             import: new bootstrap.Modal(document.getElementById('import-modal'))
         };
 
-        // Sidebar Mini & Mobile Logic
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const mainContent = document.querySelector('.main-content');
-            const overlay = document.getElementById('sidebar-overlay');
             const isMobile = window.innerWidth <= 992;
-
             if (isMobile) {
-                const willOpen = !sidebar.classList.contains('open');
-                sidebar.classList.toggle('open', willOpen);
-                if (overlay) overlay.classList.toggle('show', willOpen);
+                sidebar.classList.toggle('open');
+                document.getElementById('sidebar-overlay').classList.toggle('show');
             } else {
                 sidebar.classList.toggle('collapsed');
                 mainContent.classList.toggle('expanded');
-                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
             }
         }
 
-        function closeSidebarMobile() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            sidebar.classList.remove('open');
-            if (overlay) overlay.classList.remove('show');
-        }
-
-        document.addEventListener('click', (e) => {
-            const sidebar = document.getElementById('sidebar');
-            if (!sidebar.classList.contains('open')) return;
-            if (window.innerWidth > 992) return;
-            const toggleBtn = e.target.closest('[onclick*="toggleSidebar"]');
-            if (sidebar.contains(e.target) || toggleBtn) return;
-            closeSidebarMobile();
-        });
-        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSidebarMobile(); });
-        window.addEventListener('resize', () => { if (window.innerWidth > 992) closeSidebarMobile(); });
-
-        if (window.innerWidth > 992 && localStorage.getItem('sidebarCollapsed') === 'true') {
-            document.getElementById('sidebar').classList.add('collapsed');
-            document.querySelector('.main-content').classList.add('expanded');
-        }
-
-        // Tab Management
         function switchTab(tab) {
             currentTab = tab;
             document.querySelectorAll('.tab-content-item').forEach(el => el.classList.add('d-none'));
             document.getElementById(`tab-${tab}`).classList.remove('d-none');
-            
             document.querySelectorAll('[id^="btn-tab-"]').forEach(el => el.classList.remove('active'));
             document.getElementById(`btn-tab-${tab}`).classList.add('active');
-            
             loadData(tab);
         }
 
-        function previewProfilePhoto(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const previewImg = document.getElementById('profile-preview-img');
-                    const previewInitial = document.getElementById('profile-preview-initial');
-                    previewImg.src = e.target.result;
-                    previewImg.classList.remove('d-none');
-                    previewInitial.classList.add('d-none');
-                }
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        document.getElementById('profileForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = e.target.querySelector('button[type="submit"]');
-            const originalText = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
-
-            const fotoInput = document.getElementById('foto-input');
-            if (!fotoInput.files[0]) {
-                showNotification('Silakan pilih foto terlebih dahulu', 'error');
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('foto', fotoInput.files[0]);
-
-            try {
-                const res = await fetch('/api/auth/profile', {
-                    method: 'PUT',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: formData
-                });
-                const result = await res.json();
-                if (result.success) {
-                    showNotification('Profil berhasil diperbarui');
-                    const updatedUser = { ...userData, ...result.user };
-                    localStorage.setItem('userData', JSON.stringify(updatedUser));
-                    document.getElementById('user-name').textContent = updatedUser.nama;
-                    updateAvatarUI(updatedUser.nama, updatedUser.foto);
-                    bootstrap.Modal.getInstance(document.getElementById('profileModal')).hide();
-                    fotoInput.value = '';
-                } else {
-                    showNotification(result.error || 'Gagal memperbarui profil', 'error');
-                }
-            } catch (error) {
-                showNotification('Terjadi kesalahan koneksi', 'error');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            }
-        });
-
-        function logout() { localStorage.clear(); window.location.href = 'index.html'; }
-
-        function showNotification(message, type = 'success') {
-            document.getElementById('notification-message').textContent = message;
-            document.getElementById('notification-icon').className = type === 'error' ? 'bi bi-x-circle-fill text-danger fs-5' : 'bi bi-check-circle-fill text-success fs-5';
-            toast.show();
-        }
-
-        // API Calls & Data Loading
         async function apiCall(endpoint, method = 'GET', body = null) {
             const options = {
                 method,
@@ -715,8 +610,6 @@
                 options.headers['Content-Type'] = 'application/json';
                 options.body = JSON.stringify(body);
             }
-            
-            // Fix Endpoint: Master data routes are under /api/master-data
             const res = await fetch(`/api/master-data/${endpoint}`, options);
             if (!res.ok) throw new Error(await res.text());
             return await res.json();
@@ -724,7 +617,6 @@
 
         async function loadData(type) {
             try {
-                // Use /all for getting all records as defined in adminCrud.js
                 const data = await apiCall(type + '/all');
                 dataStore[type] = data;
                 renderTable(type, data);
@@ -741,70 +633,28 @@
             });
         }
 
-        // Table Rendering
         function renderTable(type, data) {
             const tbody = document.getElementById(`${type}-tbody`);
             tbody.innerHTML = '';
-            
             if (data.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="10" class="text-center p-5 text-muted">Belum ada data</td></tr>`;
                 return;
             }
-
             data.forEach((item, index) => {
                 const tr = document.createElement('tr');
                 if (type === 'jurusan') {
-                    tr.innerHTML = `
-                        <td>${index + 1}</td>
-                        <td class="fw-bold">${item.nama}</td>
-                        <td><span class="badge badge-info">${item.singkatan || '-'}</span></td>
-                        <td class="text-muted small">${item.deskripsi || '-'}</td>
-                        <td class="text-center">
-                            <button class="btn btn-outline btn-sm py-1 px-2 me-1" onclick="editJurusan(${item.id})"><i class="bi bi-pencil"></i></button>
-                            <button class="btn btn-outline btn-sm py-1 px-2 text-danger" onclick="deleteItem('jurusan', ${item.id})"><i class="bi bi-trash"></i></button>
-                        </td>`;
+                    tr.innerHTML = `<td>${index + 1}</td><td class="fw-bold">${item.nama}</td><td>${item.singkatan || '-'}</td><td>${item.deskripsi || '-'}</td><td class="text-center"><button class="btn btn-outline btn-sm me-1" onclick="editJurusan(${item.id})"><i class="bi bi-pencil"></i></button><button class="btn btn-outline btn-sm text-danger" onclick="deleteItem('jurusan', ${item.id})"><i class="bi bi-trash"></i></button></td>`;
                 } else if (type === 'kelas') {
-                    tr.innerHTML = `
-                        <td>${index + 1}</td>
-                        <td class="fw-bold">${item.nama}</td>
-                        <td><span class="badge badge-primary">${item.tingkat}</span></td>
-                        <td>${item.Jurusan ? item.Jurusan.nama : '-'}</td>
-                        <td>${item.tahun_ajaran}</td>
-                        <td class="text-center">
-                            <button class="btn btn-outline btn-sm py-1 px-2 me-1" onclick="editKelas(${item.id})"><i class="bi bi-pencil"></i></button>
-                            <button class="btn btn-outline btn-sm py-1 px-2 text-danger" onclick="deleteItem('kelas', ${item.id})"><i class="bi bi-trash"></i></button>
-                        </td>`;
+                    tr.innerHTML = `<td>${index + 1}</td><td class="fw-bold">${item.nama}</td><td>${item.tingkat}</td><td>${item.Jurusan ? item.Jurusan.nama : '-'}</td><td>${item.tahun_ajaran}</td><td class="text-center"><button class="btn btn-outline btn-sm me-1" onclick="editKelas(${item.id})"><i class="bi bi-pencil"></i></button><button class="btn btn-outline btn-sm text-danger" onclick="deleteItem('kelas', ${item.id})"><i class="bi bi-trash"></i></button></td>`;
                 } else if (type === 'siswa') {
-                    tr.innerHTML = `
-                        <td>${index + 1}</td>
-                        <td class="fw-medium">${item.nis}</td>
-                        <td class="fw-bold">${item.nama}</td>
-                        <td><span class="badge badge-info">${item.Kelas ? item.Kelas.nama : '-'}</span></td>
-                        <td>${item.kelamin || '-'}</td>
-                        <td class="text-center">
-                            <button class="btn btn-outline btn-sm py-1 px-2 me-1" onclick="editSiswa(${item.id})"><i class="bi bi-pencil"></i></button>
-                            <button class="btn btn-outline btn-sm py-1 px-2 text-danger" onclick="deleteItem('siswa', ${item.id})"><i class="bi bi-trash"></i></button>
-                        </td>`;
+                    tr.innerHTML = `<td>${index + 1}</td><td>${item.nis}</td><td class="fw-bold">${item.nama}</td><td>${item.Kelas ? item.Kelas.nama : '-'}</td><td>${item.kelamin || '-'}</td><td class="text-center"><button class="btn btn-outline btn-sm me-1" onclick="editSiswa(${item.id})"><i class="bi bi-pencil"></i></button><button class="btn btn-outline btn-sm text-danger" onclick="deleteItem('siswa', ${item.id})"><i class="bi bi-trash"></i></button></td>`;
                 } else if (type === 'guru') {
-                    tr.innerHTML = `
-                        <td>${index + 1}</td>
-                        <td class="fw-medium">${item.nip}</td>
-                        <td class="fw-bold">${item.nama}</td>
-                        <td>${item.mapel || item.mata_pelajaran_utama}</td>
-                        <td><span class="badge ${item.role === 'admin' ? 'badge-danger' : 'badge-primary'}">${item.role}</span></td>
-                        <td class="text-center">
-                            <button class="btn btn-outline btn-sm py-1 px-2 me-1" onclick="editGuru(${item.id})"><i class="bi bi-pencil"></i></button>
-                            <button class="btn btn-outline btn-sm py-1 px-2 text-danger" onclick="deleteItem('guru', ${item.id})"><i class="bi bi-trash"></i></button>
-                        </td>`;
+                    tr.innerHTML = `<td>${index + 1}</td><td>${item.nip}</td><td class="fw-bold">${item.nama}</td><td>${item.mapel || item.mata_pelajaran_utama}</td><td>${item.role}</td><td class="text-center"><button class="btn btn-outline btn-sm me-1" onclick="editGuru(${item.id})"><i class="bi bi-pencil"></i></button><button class="btn btn-outline btn-sm text-danger" onclick="deleteItem('guru', ${item.id})"><i class="bi bi-trash"></i></button></td>`;
                 }
                 tbody.appendChild(tr);
             });
         }
 
-        // Specific CRUD Implementations
-        // (Lanjutkan implementasi fungsi modal dan simpan sesuai logika file lama)
-        // ... (Fungsi-fungsi seperti openJurusanModal, editJurusan, loadJurusan, dll)
-        
         async function deleteItem(type, id) {
             if (!confirm('Yakin ingin menghapus data ini?')) return;
             try {
@@ -814,7 +664,6 @@
             } catch (error) { showNotification('Gagal menghapus data', 'error'); }
         }
 
-        // Init
         window.addEventListener('DOMContentLoaded', () => {
             loadData('jurusan');
             loadData('kelas');
@@ -822,37 +671,15 @@
             loadData('guru');
         });
 
-        // Search Handlers
-        function searchJurusan() { const val = document.getElementById('search-jurusan').value.toLowerCase(); renderTable('jurusan', dataStore.jurusan.filter(i => i.nama.toLowerCase().includes(val) || (i.singkatan || '').toLowerCase().includes(val))); }
-        function searchKelas() { const val = document.getElementById('search-kelas').value.toLowerCase(); renderTable('kelas', dataStore.kelas.filter(i => i.nama.toLowerCase().includes(val))); }
-        function searchSiswa() { const val = document.getElementById('search-siswa').value.toLowerCase(); renderTable('siswa', dataStore.siswa.filter(i => i.nama.toLowerCase().includes(val) || i.nis.toLowerCase().includes(val))); }
-        function searchGuru() { const val = document.getElementById('search-guru').value.toLowerCase(); renderTable('guru', dataStore.guru.filter(i => i.nama.toLowerCase().includes(val) || i.nip.toLowerCase().includes(val))); }
-
-        // Modal Form Handlers
-        document.getElementById('jurusan-form').onsubmit = async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('jurusan-id').value;
-            const body = {
-                nama: document.getElementById('jurusan-nama').value,
-                singkatan: document.getElementById('jurusan-singkat').value,
-                deskripsi: document.getElementById('jurusan-deskripsi').value
-            };
-            try {
-                await apiCall(id ? `jurusan/${id}` : 'jurusan', id ? 'PUT' : 'POST', body);
-                modals.jurusan.hide();
-                loadData('jurusan');
-                showNotification('Data jurusan berhasil disimpan');
-            } catch (error) { showNotification('Gagal menyimpan data', 'error'); }
-        };
-
-        function openJurusanModal() {
-            document.getElementById('jurusan-form').reset();
-            document.getElementById('jurusan-id').value = '';
-            document.getElementById('jurusan-modal-title').textContent = 'Tambah Jurusan';
-            modals.jurusan.show();
+        function showNotification(message, type = 'success') {
+            document.getElementById('notification-message').textContent = message;
+            document.getElementById('notification-icon').className = type === 'error' ? 'bi bi-x-circle-fill text-danger fs-5' : 'bi bi-check-circle-fill text-success fs-5';
+            toast.show();
         }
 
-        function editJurusan(id) {
+        // Modal Handlers
+        function openJurusanModal() { document.getElementById('jurusan-form').reset(); document.getElementById('jurusan-id').value = ''; document.getElementById('jurusan-modal-title').textContent = 'Tambah Jurusan'; modals.jurusan.show(); }
+        function editJurusan(id) { 
             const item = dataStore.jurusan.find(i => i.id === id);
             if (!item) return;
             document.getElementById('jurusan-id').value = item.id;
@@ -863,54 +690,27 @@
             modals.jurusan.show();
         }
 
-        // Helper for Class select
+        document.getElementById('jurusan-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('jurusan-id').value;
+            const body = { nama: document.getElementById('jurusan-nama').value, singkatan: document.getElementById('jurusan-singkat').value, deskripsi: document.getElementById('jurusan-deskripsi').value };
+            try { await apiCall(id ? `jurusan/${id}` : 'jurusan', id ? 'PUT' : 'POST', body); modals.jurusan.hide(); loadData('jurusan'); showNotification('Data disimpan'); } catch (e) { showNotification('Gagal menyimpan', 'error'); }
+        };
+
         function populateJurusanSelects() {
-            const selects = ['kelas-jurusan'];
-            selects.forEach(id => {
-                const el = document.getElementById(id);
-                if (!el) return;
-                el.innerHTML = '<option value="">Pilih Jurusan...</option>' + 
-                    dataStore.jurusan.map(j => `<option value="${j.id}">${j.nama}</option>`).join('');
-            });
+            const el = document.getElementById('kelas-jurusan');
+            if (el) el.innerHTML = '<option value="">Pilih Jurusan...</option>' + dataStore.jurusan.map(j => `<option value="${j.id}">${j.nama}</option>`).join('');
         }
 
         function populateSelects() {
-            const selects = ['siswa-kelas', 'guru-kelas-select', 'filter-siswa-kelas'];
-            selects.forEach(id => {
+            ['siswa-kelas', 'guru-kelas-select', 'filter-siswa-kelas'].forEach(id => {
                 const el = document.getElementById(id);
                 if (!el) return;
-                const prev = el.value;
-                el.innerHTML = (id.includes('filter') ? '<option value="">Semua Kelas</option>' : '<option value="">Pilih Kelas...</option>') + 
-                    dataStore.kelas.map(k => `<option value="${k.id}">${k.nama}</option>`).join('');
-                el.value = prev;
+                el.innerHTML = (id.includes('filter') ? '<option value="">Semua Kelas</option>' : '<option value="">Pilih Kelas...</option>') + dataStore.kelas.map(k => `<option value="${k.id}">${k.nama}</option>`).join('');
             });
         }
 
-        // Form Kelas
-        document.getElementById('kelas-form').onsubmit = async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('kelas-id').value;
-            const body = {
-                nama: document.getElementById('kelas-nama').value,
-                tingkat: document.getElementById('kelas-tingkat').value,
-                tahun_ajaran: document.getElementById('kelas-tahun').value,
-                jurusan_id: document.getElementById('kelas-jurusan').value || null
-            };
-            try {
-                await apiCall(id ? `kelas/${id}` : 'kelas', id ? 'PUT' : 'POST', body);
-                modals.kelas.hide();
-                loadData('kelas');
-                showNotification('Data kelas berhasil disimpan');
-            } catch (error) { showNotification('Gagal menyimpan data', 'error'); }
-        };
-
-        function openKelasModal() {
-            document.getElementById('kelas-form').reset();
-            document.getElementById('kelas-id').value = '';
-            document.getElementById('kelas-modal-title').textContent = 'Tambah Kelas';
-            modals.kelas.show();
-        }
-
+        function openKelasModal() { document.getElementById('kelas-form').reset(); document.getElementById('kelas-id').value = ''; document.getElementById('kelas-modal-title').textContent = 'Tambah Kelas'; modals.kelas.show(); }
         function editKelas(id) {
             const item = dataStore.kelas.find(i => i.id === id);
             if (!item) return;
@@ -923,10 +723,17 @@
             modals.kelas.show();
         }
 
+        document.getElementById('kelas-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('kelas-id').value;
+            const body = { nama: document.getElementById('kelas-nama').value, tingkat: document.getElementById('kelas-tingkat').value, tahun_ajaran: document.getElementById('kelas-tahun').value, jurusan_id: document.getElementById('kelas-jurusan').value || null };
+            try { await apiCall(id ? `kelas/${id}` : 'kelas', id ? 'PUT' : 'POST', body); modals.kelas.hide(); loadData('kelas'); showNotification('Data disimpan'); } catch (e) { showNotification('Gagal menyimpan', 'error'); }
+        };
+
         function previewPhoto(input, type) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = (e) => {
                     const img = document.getElementById(`${type}-photo-preview-img`);
                     const icon = document.getElementById(`${type}-photo-preview-icon`);
                     img.src = e.target.result;
@@ -937,61 +744,7 @@
             }
         }
 
-        function resetPhotoPreview(type, fotoUrl = null) {
-            const img = document.getElementById(`${type}-photo-preview-img`);
-            const icon = document.getElementById(`${type}-photo-preview-icon`);
-            const input = document.getElementById(`${type}-foto`);
-            
-            if (input) input.value = '';
-            
-            if (fotoUrl) {
-                img.src = fotoUrl.startsWith('http') ? fotoUrl : `/${fotoUrl}`;
-                img.classList.remove('d-none');
-                icon.classList.add('d-none');
-            } else {
-                img.classList.add('d-none');
-                icon.classList.remove('d-none');
-            }
-        }
-
-        // Form Siswa
-        document.getElementById('siswa-form').onsubmit = async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('siswa-id').value;
-            
-            const formData = new FormData();
-            formData.append('nis', document.getElementById('siswa-nis').value);
-            formData.append('nama', document.getElementById('siswa-nama').value);
-            formData.append('kelamin', document.getElementById('siswa-kelamin').value);
-            formData.append('kelas_id', document.getElementById('siswa-kelas').value);
-            
-            const fotoInput = document.getElementById('siswa-foto');
-            if (fotoInput.files[0]) {
-                formData.append('foto', fotoInput.files[0]);
-            }
-
-            try {
-                const res = await fetch(`/api/master-data/siswa${id ? `/${id}` : ''}`, {
-                    method: id ? 'PUT' : 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: formData
-                });
-                if (!res.ok) throw new Error(await res.text());
-                
-                modals.siswa.hide();
-                loadData('siswa');
-                showNotification('Data siswa berhasil disimpan');
-            } catch (error) { showNotification('Gagal menyimpan data', 'error'); }
-        };
-
-        function openSiswaModal() {
-            document.getElementById('siswa-form').reset();
-            document.getElementById('siswa-id').value = '';
-            resetPhotoPreview('siswa');
-            document.getElementById('siswa-modal-title').textContent = 'Tambah Siswa';
-            modals.siswa.show();
-        }
-
+        function openSiswaModal() { document.getElementById('siswa-form').reset(); document.getElementById('siswa-id').value = ''; resetPhotoPreview('siswa'); document.getElementById('siswa-modal-title').textContent = 'Tambah Siswa'; modals.siswa.show(); }
         function editSiswa(id) {
             const item = dataStore.siswa.find(i => i.id === id);
             if (!item) return;
@@ -1005,147 +758,101 @@
             modals.siswa.show();
         }
 
-        // Form Guru & GuruKelas Logic
-        function renderGuruKelasList() {
-            const container = document.getElementById('guru-kelas-list');
-            container.innerHTML = guruKelasList.map((gk, idx) => `
-                <div class="d-flex justify-content-between align-items-center p-2 border-bottom small">
-                    <div>
-                        <span class="fw-bold">${gk.kelas_nama}</span> - <span class="text-primary">${gk.mata_pelajaran}</span>
-                    </div>
-                    <button type="button" class="btn btn-link btn-sm text-danger p-0" onclick="removeGuruKelas(${idx})"><i class="bi bi-x-circle"></i></button>
-                </div>
-            `).join('');
+        function resetPhotoPreview(type, fotoUrl = null) {
+            const img = document.getElementById(`${type}-photo-preview-img`);
+            const icon = document.getElementById(`${type}-photo-preview-icon`);
+            if (fotoUrl) { img.src = fotoUrl.startsWith('http') ? fotoUrl : `/${fotoUrl}`; img.classList.remove('d-none'); icon.classList.add('d-none'); }
+            else { img.classList.add('d-none'); icon.classList.remove('d-none'); }
         }
 
-        function addGuruKelas() {
-            const kelasId = document.getElementById('guru-kelas-select').value;
-            const mapel = document.getElementById('guru-kelas-mapel').value;
-            if (!kelasId || !mapel) return showNotification('Pilih kelas dan masukkan mata pelajaran', 'error');
-            
-            const kelas = dataStore.kelas.find(k => k.id == kelasId);
-            guruKelasList.push({ kelas_id: kelasId, kelas_nama: kelas.nama, mata_pelajaran: mapel });
-            renderGuruKelasList();
-            document.getElementById('guru-kelas-mapel').value = '';
-        }
-
-        function removeGuruKelas(idx) {
-            guruKelasList.splice(idx, 1);
-            renderGuruKelasList();
-        }
-
-        document.getElementById('guru-form').onsubmit = async (e) => {
+        document.getElementById('siswa-form').onsubmit = async (e) => {
             e.preventDefault();
-            const id = document.getElementById('guru-id').value;
-            const body = {
-                username: document.getElementById('guru-username').value,
-                nama: document.getElementById('guru-nama').value,
-                nip: document.getElementById('guru-nip').value,
-                mapel: document.getElementById('guru-mapel').value,
-                role: document.getElementById('guru-role').value
-            };
-            if (document.getElementById('guru-password').value) body.password = document.getElementById('guru-password').value;
-            
+            const id = document.getElementById('siswa-id').value;
+            const formData = new FormData();
+            formData.append('nis', document.getElementById('siswa-nis').value);
+            formData.append('nama', document.getElementById('siswa-nama').value);
+            formData.append('kelamin', document.getElementById('siswa-kelamin').value);
+            formData.append('kelas_id', document.getElementById('siswa-kelas').value);
+            const fotoInput = document.getElementById('siswa-foto');
+            if (fotoInput.files[0]) formData.append('foto', fotoInput.files[0]);
             try {
-                // Save Guru basic info
-                const res = await apiCall(id ? `guru/${id}` : 'guru', id ? 'PUT' : 'POST', body);
-                const guruId = id || res.data.id;
-
-                // Sync classes
-                await apiCall(`guru/sync-kelas/${guruId}`, 'POST', {
-                    kelas_list: guruKelasList
-                });
-                
-                modals.guru.hide();
-                loadData('guru');
-                showNotification('Data guru berhasil disimpan');
-            } catch (error) { showNotification('Gagal menyimpan data', 'error'); }
+                const res = await fetch(`/api/master-data/siswa${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
+                if (!res.ok) throw new Error();
+                modals.siswa.hide(); loadData('siswa'); showNotification('Data disimpan');
+            } catch (e) { showNotification('Gagal menyimpan', 'error'); }
         };
 
-        function openGuruModal() {
-            document.getElementById('guru-form').reset();
-            document.getElementById('guru-id').value = '';
-            guruKelasList = [];
-            renderGuruKelasList();
-            document.getElementById('guru-modal-title').textContent = 'Tambah Guru';
-            modals.guru.show();
-        }
-
+        function openGuruModal() { document.getElementById('guru-form').reset(); document.getElementById('guru-id').value = ''; guruKelasList = []; renderGuruKelasList(); document.getElementById('guru-modal-title').textContent = 'Tambah Guru'; modals.guru.show(); }
         async function editGuru(id) {
             const item = dataStore.guru.find(i => i.id === id);
             if (!item) return;
-            
             document.getElementById('guru-id').value = item.id;
             document.getElementById('guru-username').value = item.username;
             document.getElementById('guru-nama').value = item.nama;
             document.getElementById('guru-nip').value = item.nip;
             document.getElementById('guru-mapel').value = item.mapel || item.mata_pelajaran_utama;
             document.getElementById('guru-role').value = item.role;
-            document.getElementById('guru-password').value = '';
-            
-            // Load GuruKelas for this guru
             try {
                 const relations = await apiCall(`guru-kelas/guru/${id}`);
-                guruKelasList = relations.map(gk => ({
-                    kelas_id: gk.kelas_id,
-                    kelas_nama: gk.Kelas ? gk.Kelas.nama : 'N/A',
-                    mata_pelajaran: gk.mata_pelajaran
-                }));
+                guruKelasList = relations.map(gk => ({ kelas_id: gk.kelas_id, kelas_nama: gk.Kelas ? gk.Kelas.nama : 'N/A', mata_pelajaran: gk.mata_pelajaran }));
                 renderGuruKelasList();
             } catch (e) { guruKelasList = []; renderGuruKelasList(); }
-
             document.getElementById('guru-modal-title').textContent = 'Edit Guru';
             modals.guru.show();
         }
 
-        // Import
+        function renderGuruKelasList() {
+            document.getElementById('guru-kelas-list').innerHTML = guruKelasList.map((gk, idx) => `<div class="d-flex justify-content-between align-items-center p-2 border-bottom small"><div><span class="fw-bold">${gk.kelas_nama}</span> - ${gk.mata_pelajaran}</div><button type="button" class="btn btn-link btn-sm text-danger p-0" onclick="removeGuruKelas(${idx})"><i class="bi bi-x-circle"></i></button></div>`).join('');
+        }
+        function addGuruKelas() {
+            const kelasId = document.getElementById('guru-kelas-select').value;
+            const mapel = document.getElementById('guru-kelas-mapel').value;
+            if (!kelasId || !mapel) return;
+            const kelas = dataStore.kelas.find(k => k.id == kelasId);
+            guruKelasList.push({ kelas_id: kelasId, kelas_nama: kelas.nama, mata_pelajaran: mapel });
+            renderGuruKelasList();
+        }
+        function removeGuruKelas(idx) { guruKelasList.splice(idx, 1); renderGuruKelasList(); }
+
+        document.getElementById('guru-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('guru-id').value;
+            const body = { username: document.getElementById('guru-username').value, nama: document.getElementById('guru-nama').value, nip: document.getElementById('guru-nip').value, mapel: document.getElementById('guru-mapel').value, role: document.getElementById('guru-role').value };
+            if (document.getElementById('guru-password').value) body.password = document.getElementById('guru-password').value;
+            try {
+                const res = await apiCall(id ? `guru/${id}` : 'guru', id ? 'PUT' : 'POST', body);
+                const guruId = id || res.data.id;
+                await apiCall(`guru/sync-kelas/${guruId}`, 'POST', { kelas_list: guruKelasList });
+                modals.guru.hide(); loadData('guru'); showNotification('Data disimpan');
+            } catch (e) { showNotification('Gagal menyimpan', 'error'); }
+        };
+
         let importType = '';
         function openImportModal(type) {
             importType = type;
             document.getElementById('import-modal-title').textContent = `Import Data ${type.charAt(0).toUpperCase() + type.slice(1)}`;
             document.getElementById('import-file').value = '';
-            
-            // Update template download link
-            const templateLink = document.getElementById('download-template-link');
-            templateLink.href = `/api/import/template/${type}?token=${token}`;
-            
+            document.getElementById('download-template-link').href = `/api/import/template/${type}?token=${token}`;
             modals.import.show();
         }
 
         async function handleImport() {
             const file = document.getElementById('import-file').files[0];
-            if (!file) return showNotification('Pilih file terlebih dahulu', 'error');
-            
+            if (!file) return showNotification('Pilih file', 'error');
             const formData = new FormData();
             formData.append('file', file);
-            
             const btn = document.getElementById('btn-do-import');
-            btn.disabled = true;
-            btn.textContent = 'Mengimport...';
-            
+            btn.disabled = true; btn.textContent = 'Mengimport...';
             try {
-                const res = await fetch(`/api/import/${importType}`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: formData
-                });
+                const res = await fetch(`/api/import/${importType}`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
                 const result = await res.json();
-                if (res.ok) {
-                    showNotification(`Import berhasil: ${result.imported} data.`);
-                    modals.import.hide();
-                    loadData(importType);
-                } else { throw new Error(result.error); }
-            } catch (error) { showNotification('Gagal mengimport: ' + error.message, 'error'); }
-            finally {
-                btn.disabled = false;
-                btn.textContent = 'Proses Import';
-            }
+                if (res.ok) { showNotification(`Import berhasil: ${result.imported} data.`); modals.import.hide(); loadData(importType); }
+                else throw new Error(result.error);
+            } catch (e) { showNotification('Gagal: ' + e.message, 'error'); }
+            finally { btn.disabled = false; btn.textContent = 'Proses Import'; }
         }
-    </script>
-</body>
-</html>';
-            }
-        }
+
+        function logout() { localStorage.clear(); window.location.href = 'index.html'; }
     </script>
 </body>
 </html>
