@@ -11,6 +11,7 @@
 **Absen Digital** adalah platform manajemen kehadiran siswa yang dirancang untuk mempermudah proses absensi di sekolah (SMK/SMA). Sistem ini menggabungkan kemudahan input data oleh guru dengan transparansi rekapitulasi bagi admin dan orang tua secara real-time.
 
 ### Highlights
+* **WhatsApp Gateway** - Notifikasi instan via WhatsApp ke orang tua untuk siswa absen/izin.
 * **Real-time Notifications** - Notifikasi absensi langsung via Socket.io.
 * **Modern UI** - Antarmuka responsif menggunakan Bootstrap 5 dan CSS kustom.
 * **Automated Recap** - Rekapitulasi harian dan bulanan otomatis dengan fitur export Excel.
@@ -35,6 +36,7 @@
 | Fitur | Deskripsi |
 | :--- | :--- |
 | **Input Absensi** | Melakukan absensi siswa per mata pelajaran |
+| **Notifikasi Otomatis** | Pesan WhatsApp otomatis ke ortu jika siswa Alpa/Izin/Sakit |
 | **Jurnal Harian** | Mencatat jurnal kegiatan belajar mengajar |
 | **Input Nilai** | Manajemen nilai siswa untuk setiap kelas |
 | **Dashboard Guru** | Ringkasan jadwal dan riwayat mengajar |
@@ -43,6 +45,7 @@
 ### 👨‍👩‍👦 Orang Tua / Publik
 | Fitur | Deskripsi |
 | :--- | :--- |
+| **Pesan WhatsApp** | Menerima peringatan otomatis jika anak tidak hadir |
 | **Cek Kehadiran** | Pencarian status kehadiran siswa berdasarkan NIS/Nama |
 | **Dashboard Ortu** | Melihat riwayat kehadiran anak secara real-time |
 
@@ -57,6 +60,7 @@
 | **Express.js** | Web framework untuk API |
 | **Sequelize** | ORM untuk interaksi database MySQL |
 | **Socket.io** | Komunikasi real-time dua arah |
+| **WhatsApp-Web.js** | Library gateway WhatsApp pihak ketiga |
 | **JWT** | Mekanisme keamanan autentikasi |
 
 ### Frontend
@@ -145,19 +149,19 @@ Aplikasi ini diimplementasikan dengan standar keamanan modern untuk melindungi d
 │ password     │      │ tingkat      │      │ singkatan  │
 │ role         │      │ jurusan_id   │◄─────┤ deskripsi  │
 └──────────────┘      └─────────────┘      └────────────┘
-       │                     ▲
-       ▼                     │
-┌──────────────┐      ┌────────────┐
-│     Guru     │      │    Siswa   │
-├──────────────┤      ├────────────┤
-│ id (PK)      │      │ id (PK)    │
-│ user_id (FK) │      │ nis        │
-│ nip          │      │ nama       │
-│ nama         │      │ kelas_id   │─────┐
-│ mapel        │      └────────────┘     │
-└──────────────┘             │           │
-       │                     │           │
-       ▼                     ▼           ▼
+       │                     ▲                    
+       ▼                     │                    
+┌──────────────┐      ┌────────────┐       ┌────────────────┐
+│     Guru     │      │    Siswa   │       │ LogNotifikasi  │
+├──────────────┤      ├────────────┤       ├────────────────┤
+│ id (PK)      │      │ id (PK)    │       │ id (PK)        │
+│ user_id (FK) │      │ nis        │       │ pesan          │
+│ nip          │      │ nama       │       │ no_tujuan      │
+│ nama         │      │ kelas_id   │─────┐ │ status         │
+│ mapel        │      │ no_hp_ortu │     │ │ siswa_id (FK)  │
+└──────────────┘      └────────────┘     │ └────────────────┘
+       │                     │           │          ▲
+       ▼                     ▼           ▼          │
 ┌──────────────┐      ┌────────────┐      ┌────────────┐
 │    Jurnal    │      │   Absensi  │      │    Nilai   │
 ├──────────────┤      ├────────────┤      ├────────────┤
