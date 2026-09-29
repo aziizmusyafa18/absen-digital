@@ -170,8 +170,45 @@ router.post('/absen', authMiddleware, async (req, res) => {
       message: 'Absen berhasil disubmit'
     });
 
+    // --- BACKGROUND TASK: WHATSAPP NOTIFICATION ---
+    setImmediate(async () => {
+      try {
+        const { sendWhatsAppMessage } = require('../utils/whatsapp');
+        
+        // Filter yang bermasalah (alpa/izin/sakit dsb)
+        // Note: status from frontend: hadir, izin, sakit, tanpa_ket
+        const bermasalah = siswa_list.filter(s => s.status !== 'hadir');
+        
+        if (bermasalah.length > 0) {
+          const bermasalahIds = bermasalah.map(s => s.siswa_id);
+          const siswaData = await Siswa.findAll({
+            where: { id: bermasalahIds }
+          });
+          
+          const now = new Date();
+          const tanggal = now.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+          
+          siswaData.forEach(siswa => {
+            if (siswa.no_hp_ortu) {
+              const absenRecord = bermasalah.find(b => b.siswa_id === siswa.id);
+              let statusText = absenRecord.status.toUpperCase();
+              if (statusText === 'TANPA_KET') statusText = 'ALPA';
+              
+              const pesan = `Yth. Orang Tua dari ${siswa.nama}, kami menginformasikan bahwa pada tanggal ${tanggal}, siswa yang bersangkutan tercatat [STATUS: ${statusText}] pada mata pelajaran ${jurnal_data.mata_pelajaran} (Guru: ${req.user.nama}). Harap hubungi pihak sekolah jika terdapat kekeliruan.`;
+              
+              sendWhatsAppMessage(siswa.no_hp_ortu, pesan, siswa.id);
+            }
+          });
+        }
+      } catch (waError) {
+        console.error('❌ Error in WhatsApp background task:', waError);
+      }
+    });
+
   } catch (error) {
-    await t.rollback();
+    if (!t.finished) {
+        await t.rollback();
+    }
     console.error('=== ABSEN SUBMISSION ERROR ===', error);
     res.status(500).json({ error: error.message });
   }

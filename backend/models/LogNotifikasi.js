@@ -1,43 +1,35 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const Siswa = sequelize.define('Siswa', {
+const LogNotifikasi = sequelize.define('LogNotifikasi', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true
   },
-  nis: {
-    type: DataTypes.STRING,
-    unique: true,
+  pesan: {
+    type: DataTypes.TEXT,
     allowNull: false
   },
-  nama: {
+  no_tujuan: {
     type: DataTypes.STRING,
     allowNull: false
-  },
-  kelamin: {
-    type: DataTypes.STRING
   },
   status: {
     type: DataTypes.STRING,
-    defaultValue: 'aktif'
+    defaultValue: 'pending' // pending, sent, delivered, failed
   },
-  foto: {
+  keterangan: {
     type: DataTypes.STRING,
     allowNull: true
   },
-  no_hp_ortu: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  nama_ortu: {
-    type: DataTypes.STRING,
+  siswa_id: {
+    type: DataTypes.INTEGER,
     allowNull: true
   }
 }, {
-  tableName: 'siswa',
+  tableName: 'log_notifikasi',
   timestamps: true
 });
 
-module.exports = Siswa;
+module.exports = LogNotifikasi;

@@ -5,6 +5,9 @@ const { sequelize } = require('./models');
 const setupSocket = require('./socket/socketHandler');
 require('dotenv').config();
 
+// Inisialisasi WhatsApp Gateway (otomatis terpicu karena index file mengeksekusi client.initialize())
+require('./utils/whatsapp');
+
 const server = http.createServer(app);
 
 // Setup Socket.io

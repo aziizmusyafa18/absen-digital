@@ -9,6 +9,7 @@ const GuruKelas = require('./GuruKelas');
 const Jurusan = require('./Jurusan');
 const Nilai = require('./Nilai');
 const MataPelajaran = require('./MataPelajaran');
+const LogNotifikasi = require('./LogNotifikasi');
 
 // Define Associations
 // Kelas - Siswa (one-to-many)
@@ -65,6 +66,10 @@ Nilai.belongsTo(Kelas, { foreignKey: 'kelas_id', as: 'Kelas' });
 GuruKelas.belongsTo(MataPelajaran, { foreignKey: 'mapel_id' });
 MataPelajaran.hasMany(GuruKelas, { foreignKey: 'mapel_id' });
 
+// Siswa - LogNotifikasi (one-to-many)
+Siswa.hasMany(LogNotifikasi, { foreignKey: 'siswa_id', onDelete: 'CASCADE' });
+LogNotifikasi.belongsTo(Siswa, { foreignKey: 'siswa_id' });
+
 
 module.exports = {
   sequelize,
@@ -77,5 +82,6 @@ module.exports = {
   GuruKelas,
   Jurusan,
   Nilai,
-  MataPelajaran
+  MataPelajaran,
+  LogNotifikasi
 };
