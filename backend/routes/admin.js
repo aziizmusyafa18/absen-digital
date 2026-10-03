@@ -1,6 +1,7 @@
 const express = require('express');
 const { authMiddleware, adminOnly } = require('../middleware/auth');
 const { Jurnal, Absensi, Siswa, Kelas, Guru, OrangTua, sequelize } = require('../models');
+const { getWaStatus } = require('../utils/whatsapp');
 const { Op } = require('sequelize');
 const router = express.Router();
 
@@ -71,6 +72,16 @@ router.get('/dashboard', authMiddleware, adminOnly, async (req, res) => {
     });
   } catch (error) {
     console.error('Dashboard error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET WA Status
+router.get('/whatsapp/status', authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const status = getWaStatus();
+    res.json(status);
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });

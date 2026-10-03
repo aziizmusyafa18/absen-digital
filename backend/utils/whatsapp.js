@@ -13,28 +13,37 @@ const client = new Client({
 });
 
 let isReady = false;
+let waStatus = 'INITIALIZING';
+let waQrCode = null;
 
 client.on('qr', (qr) => {
-    console.log('🔄 Memerlukan otentikasi WhatsApp. Silakan scan QR code berikut:');
-    qrcode.generate(qr, { small: true });
+    console.log('🔄 Memerlukan otentikasi WhatsApp. Silakan scan QR code di Dashboard Admin.');
+    waStatus = 'QR_READY';
+    waQrCode = qr;
 });
 
 client.on('ready', () => {
     console.log('✅ WhatsApp Gateway berhasil terhubung dan siap.');
     isReady = true;
+    waStatus = 'READY';
+    waQrCode = null;
 });
 
 client.on('authenticated', () => {
     console.log('✅ WhatsApp terotentikasi.');
+    waStatus = 'AUTHENTICATED';
 });
 
 client.on('auth_failure', msg => {
     console.error('❌ Gagal otentikasi WhatsApp:', msg);
+    waStatus = 'AUTH_FAILURE';
 });
 
 client.on('disconnected', (reason) => {
     console.log('❌ WhatsApp Gateway terputus:', reason);
     isReady = false;
+    waStatus = 'DISCONNECTED';
+    waQrCode = null;
 });
 
 client.on('message_ack', async (msg, ack) => {
@@ -153,7 +162,12 @@ const sendWhatsAppMessage = (phone, message, siswaId = null) => {
     processQueue().catch(console.error);
 };
 
+const getWaStatus = () => {
+    return { status: waStatus, qr: waQrCode };
+};
+
 module.exports = {
     client,
-    sendWhatsAppMessage
+    sendWhatsAppMessage,
+    getWaStatus
 };

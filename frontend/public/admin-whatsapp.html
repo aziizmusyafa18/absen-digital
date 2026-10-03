@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absen Digital - Status WhatsApp</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="css/style.css?v=1.2" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/tab-sync.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo" style="background: transparent;">
+                    <img src="img/logo.png" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;">
+                </div>
+                <div class="sidebar-brand text-white">
+                    <h5>Absen Digital</h5>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-label">Main Menu</div>
+                <div class="nav-item">
+                    <a href="admin.html" class="nav-link">
+                        <i class="bi bi-grid-1x2"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="admin-master-data.html" class="nav-link">
+                        <i class="bi bi-database"></i>
+                        <span>Master Data</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="admin-rekap.html" class="nav-link">
+                        <i class="bi bi-clipboard-data"></i>
+                        <span>Rekap Absensi</span>
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="admin-whatsapp.html" class="nav-link active">
+                        <i class="bi bi-whatsapp"></i>
+                        <span>Status WhatsApp</span>
+                    </a>
+                </div>
+                
+                <div class="nav-label">Account</div>
+                <div class="nav-item">
+                    <a href="#" class="nav-link" onclick="logout()">
+                        <i class="bi bi-box-arrow-left"></i>
+                        <span>Logout</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn btn-outline" onclick="toggleSidebar()">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <div class="page-info">
+                        <h4 class="fw-bold">Status WhatsApp</h4>
+                        <p id="current-date">Memuat tanggal...</p>
+                    </div>
+                </div>
+                <div class="user-profile d-flex align-items-center gap-3">
+                    <div class="text-end d-none d-sm-block">
+                        <div class="fw-bold" id="user-name">Admin</div>
+                        <small class="text-muted">Administrator</small>
+                    </div>
+                    <div class="stat-icon primary m-0" id="user-avatar" style="width:40px;height:40px;font-size:1rem;font-weight:700;overflow:hidden;">
+                        <span id="user-avatar-initial">A</span>
+                        <img id="user-avatar-img" src="" alt="Profile" class="d-none" style="width:100%;height:100%;object-fit:cover;">
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="p-4">
+                <div class="card shadow-sm border-0" style="border-radius: var(--radius-md);">
+                    <div class="card-header border-0 bg-transparent pt-4 pb-0 text-center">
+                        <h4 class="card-title mb-0">
+                            <i class="bi bi-whatsapp text-success me-2"></i>
+                            WhatsApp Gateway
+                        </h4>
+                    </div>
+                    <div class="card-body text-center p-5">
+                        <div id="wa-status-container">
+                            <h4 id="wa-status-text" class="mb-4">Memeriksa status...</h4>
+                            
+                            <div id="wa-qrcode" class="d-flex justify-content-center mb-4"></div>
+                            
+                            <p id="wa-instruction" class="text-muted d-none" style="max-width: 500px; margin: 0 auto;">
+                                Buka WhatsApp di HP Anda, tap menu (titik tiga) > <b>Perangkat tertaut</b> > <b>Tautkan perangkat</b>. Kemudian scan QR code di atas untuk menautkan akun admin.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+
+        if (!token || userData.role !== 'admin') {
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('user-name').textContent = userData.nama || 'Admin';
+        
+        function updateAvatarUI(nama, foto) {
+            const avatarInitial = document.getElementById('user-avatar-initial');
+            const avatarImg = document.getElementById('user-avatar-img');
+
+            const initial = (nama || 'A').charAt(0).toUpperCase();
+            if (avatarInitial) avatarInitial.textContent = initial;
+
+            if (foto) {
+                const photoUrl = foto.startsWith('http') ? foto : `/${foto}`;
+                if (avatarImg) { avatarImg.src = photoUrl; avatarImg.classList.remove('d-none'); }
+                if (avatarInitial) avatarInitial.classList.add('d-none');
+            }
+        }
+
+        updateAvatarUI(userData.nama, userData.foto);
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.querySelector('.main-content');
+            const overlay = document.getElementById('sidebar-overlay');
+            const isMobile = window.innerWidth <= 992;
+
+            if (isMobile) {
+                const willOpen = !sidebar.classList.contains('open');
+                sidebar.classList.toggle('open', willOpen);
+                if (overlay) overlay.classList.toggle('show', willOpen);
+            } else {
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+            }
+        }
+
+        function closeSidebarMobile() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.remove('open');
+            if (overlay) overlay.classList.remove('show');
+        }
+
+        document.addEventListener('click', (e) => {
+            const sidebar = document.getElementById('sidebar');
+            if (!sidebar.classList.contains('open')) return;
+            if (window.innerWidth > 992) return;
+            const toggleBtn = e.target.closest('[onclick*="toggleSidebar"]');
+            if (sidebar.contains(e.target) || toggleBtn) return;
+            closeSidebarMobile();
+        });
+
+        if (window.innerWidth > 992 && localStorage.getItem('sidebarCollapsed') === 'true') {
+            document.getElementById('sidebar').classList.add('collapsed');
+            document.querySelector('.main-content').classList.add('expanded');
+        }
+
+        const now = new Date();
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', options);
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        let qrcode = null;
+        let lastStatus = null;
+
+        async function checkWaStatus() {
+            try {
+                const response = await fetch('/api/admin/whatsapp/status', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                
+                const statusText = document.getElementById('wa-status-text');
+                const qrContainer = document.getElementById('wa-qrcode');
+                const instruction = document.getElementById('wa-instruction');
+                
+                // Show SweetAlert if just got connected
+                if ((data.status === 'READY' || data.status === 'AUTHENTICATED') && lastStatus !== 'READY' && lastStatus !== 'AUTHENTICATED' && lastStatus !== null) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil Terhubung!',
+                        text: 'WhatsApp Gateway sudah aktif dan siap mengirim pesan.',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                }
+                
+                lastStatus = data.status;
+
+                if (data.status === 'READY' || data.status === 'AUTHENTICATED') {
+                    qrContainer.innerHTML = ''; // clear previous qr
+                    statusText.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill"></i> WhatsApp Terhubung</span>';
+                    instruction.classList.add('d-none');
+                } else if (data.status === 'QR_READY' && data.qr) {
+                    qrContainer.innerHTML = '';
+                    statusText.innerHTML = '<span class="text-warning"><i class="bi bi-qr-code-scan"></i> Silakan Scan QR Code</span>';
+                    qrcode = new QRCode(qrContainer, {
+                        text: data.qr,
+                        width: 256,
+                        height: 256
+                    });
+                    instruction.classList.remove('d-none');
+                } else if (data.status === 'INITIALIZING') {
+                    qrContainer.innerHTML = '';
+                    statusText.innerHTML = '<span class="text-info"><i class="bi bi-hourglass-split"></i> Sedang menginisialisasi WhatsApp...</span>';
+                    instruction.classList.add('d-none');
+                } else {
+                    qrContainer.innerHTML = '';
+                    statusText.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle-fill"></i> WhatsApp Terputus (${data.status})</span>`;
+                    instruction.classList.add('d-none');
+                }
+            } catch (error) {
+                console.error('Error fetching WA status:', error);
+            }
+        }
+
+        // Initialize WA Status check
+        checkWaStatus();
+        // Poll every 3 seconds for fast response
+        setInterval(checkWaStatus, 3000);
+    </script>
+</body>
+</html>
