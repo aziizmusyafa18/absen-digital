@@ -451,7 +451,7 @@ router.get('/siswa/:id', authMiddleware, adminOnly, async (req, res) => {
 // Create new siswa
 router.post('/siswa', authMiddleware, adminOnly, upload.single('foto'), async (req, res) => {
   try {
-    const { nis, nama, kelamin, status, kelas_id } = req.body;
+    const { nis, nama, kelamin, status, kelas_id, nama_ortu, no_hp_ortu } = req.body;
 
     // Check if nis already exists
     const existingSiswa = await Siswa.findOne({ where: { nis } });
@@ -477,7 +477,9 @@ router.post('/siswa', authMiddleware, adminOnly, upload.single('foto'), async (r
       nama,
       kelamin,
       status,
-      kelas_id
+      kelas_id,
+      nama_ortu: nama_ortu || null,
+      no_hp_ortu: no_hp_ortu || null
     };
 
     if (req.file) {
@@ -510,7 +512,7 @@ router.post('/siswa', authMiddleware, adminOnly, upload.single('foto'), async (r
 router.put('/siswa/:id', authMiddleware, adminOnly, upload.single('foto'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { nis, nama, kelamin, status, kelas_id } = req.body;
+    const { nis, nama, kelamin, status, kelas_id, nama_ortu, no_hp_ortu } = req.body;
 
     const siswa = await Siswa.findByPk(id);
 
@@ -554,6 +556,8 @@ router.put('/siswa/:id', authMiddleware, adminOnly, upload.single('foto'), async
     if (kelamin !== undefined) updateData.kelamin = kelamin;
     if (status !== undefined) updateData.status = status;
     if (kelas_id) updateData.kelas_id = kelas_id;
+    if (nama_ortu !== undefined) updateData.nama_ortu = nama_ortu || null;
+    if (no_hp_ortu !== undefined) updateData.no_hp_ortu = no_hp_ortu || null;
 
     if (req.file) {
       if (siswa.foto) {

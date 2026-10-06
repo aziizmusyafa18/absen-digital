@@ -208,9 +208,14 @@
                 <!-- Export & Content -->
                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                     <h5 class="fw-bold m-0"><i class="bi bi-journal-text me-2 text-primary"></i>Data Hasil Rekapitulasi</h5>
-                    <button class="btn btn-success btn-sm" id="btn-export" onclick="activeTab === 'harian' ? exportExcel() : exportExcelBulanan()">
-                        <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
-                    </button>
+                    <div>
+                        <button class="btn btn-warning btn-sm me-2 d-none" id="btn-early-warning" onclick="triggerEarlyWarning()">
+                            <i class="bi bi-robot me-1"></i> Peringatan Dini AI
+                        </button>
+                        <button class="btn btn-success btn-sm" id="btn-export" onclick="activeTab === 'harian' ? exportExcel() : exportExcelBulanan()">
+                            <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
+                        </button>
+                    </div>
                 </div>
 
                 <div id="rekap-content">
@@ -371,8 +376,69 @@
             document.getElementById('filter-bulanan').classList.toggle('d-none', tab !== 'bulanan');
             document.getElementById('stats-grid-harian').classList.toggle('d-none', tab !== 'harian');
             document.getElementById('stats-grid-bulanan').classList.toggle('d-none', tab !== 'bulanan');
+            
+            // Toggle Early Warning Button
+            const btnEarlyWarning = document.getElementById('btn-early-warning');
+            if (btnEarlyWarning) {
+                if (tab === 'bulanan') {
+                    btnEarlyWarning.classList.remove('d-none');
+                } else {
+                    btnEarlyWarning.classList.add('d-none');
+                }
+            }
+
             document.getElementById('header-title').textContent = tab === 'harian' ? 'Rekap Harian' : 'Rekap Bulanan';
             tab === 'harian' ? loadRekap() : loadRekapBulanan();
+        }
+
+        async function triggerEarlyWarning() {
+            const bulan = document.getElementById('filter-bulan').value;
+            const tahun = document.getElementById('filter-tahun').value;
+            const jurId = document.getElementById('filter-jurusan-bulanan').value;
+            const kelId = document.getElementById('filter-kelas-bulanan').value;
+
+            if (!confirm(`Apakah Anda yakin ingin memicu Peringatan Dini Akademik (AI)? \n\nIni akan menganalisis data bulan ${bulan}-${tahun} dan mengirimkan WhatsApp ke orang tua yang persentase kehadiran anaknya di bawah 75%.`)) {
+                return;
+            }
+
+            const btn = document.getElementById('btn-early-warning');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Memproses...`;
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/rekap/peringatan-dini/bulanan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        bulan,
+                        tahun,
+                        kelas_id: kelId || undefined,
+                        jurusan_id: jurId || undefined
+                    })
+                });
+
+                const res = await response.json();
+                if (res.success) {
+                    let msg = res.message + '\n';
+                    if (res.warnings && res.warnings.length > 0) {
+                        msg += `\nDitemukan ${res.warnings.length} siswa di bawah 75%.`;
+                    } else {
+                        msg += `\nSemua siswa aman (kehadiran >= 75%).`;
+                    }
+                    alert(msg);
+                } else {
+                    alert('Gagal memicu peringatan dini: ' + res.error);
+                }
+            } catch (err) {
+                alert('Terjadi kesalahan sistem: ' + err.message);
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
         }
 
         async function loadFilterOptions() {

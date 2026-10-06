@@ -1129,4 +1129,74 @@ router.get('/per-kelas/:kelas_id', authMiddleware, adminOnly, async (req, res) =
     }
 });
 
+// POST: Kirim Peringatan Dini Bulanan (Kehadiran < 75%)
+router.post('/peringatan-dini/bulanan', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const { bulan, tahun, kelas_id, jurusan_id } = req.body;
+        const { targetMonth, targetYear, kelasList, absensiList } = await getRekapBulananData(bulan, tahun, kelas_id, jurusan_id);
+        
+        const { sendWhatsAppMessage } = require('../utils/whatsapp');
+        
+        let dikirim = 0;
+        let warnings = [];
+
+        for (const kelas of kelasList) {
+            const siswaList = kelas.Siswas || [];
+            const kelasAbsensi = absensiList.filter(a => a.kelas_id_saat_absen === kelas.id);
+            
+            for (const siswa of siswaList) {
+                const absensiSiswa = kelasAbsensi.filter(a => a.siswa_id === siswa.id);
+                
+                // Group absensi per tanggal
+                const absensiPerTanggal = {};
+                absensiSiswa.forEach(a => {
+                    const tgl = new Date(a.Jurnal.tanggal).toISOString().split('T')[0];
+                    if (!absensiPerTanggal[tgl]) absensiPerTanggal[tgl] = [];
+                    absensiPerTanggal[tgl].push(a);
+                });
+                
+                let totalHadir = 0;
+                let totalHariAktif = Object.keys(absensiPerTanggal).length;
+                
+                Object.keys(absensiPerTanggal).forEach(tgl => {
+                    const absensiHari = absensiPerTanggal[tgl];
+                    const hasAlpha = absensiHari.some(a => a.status === 'tanpa_ket');
+                    const hasIzin = absensiHari.some(a => a.status === 'izin');
+                    if (!hasAlpha && !hasIzin) totalHadir++;
+                });
+                
+                const persentaseHadir = totalHariAktif > 0 ? Math.round((totalHadir / totalHariAktif) * 100) : 0;
+                
+                // Jika kehadiran di bawah ambang batas 75%
+                if (totalHariAktif > 0 && persentaseHadir < 75) {
+                    warnings.push({
+                        siswa_id: siswa.id,
+                        nama: siswa.nama,
+                        persentase: persentaseHadir
+                    });
+
+                    const dataSiswa = await Siswa.findByPk(siswa.id);
+                    if (dataSiswa && dataSiswa.no_hp_ortu) {
+                        const { generateWarningKehadiran } = require('../utils/gemini');
+                        const pesan = await generateWarningKehadiran(siswa.nama, persentaseHadir, targetMonth, targetYear);
+                        
+                        sendWhatsAppMessage(dataSiswa.no_hp_ortu, pesan, siswa.id);
+                        dikirim++;
+                    }
+                }
+            }
+        }
+        
+        res.json({
+            success: true,
+            message: `Peringatan dini berhasil diproses. ${dikirim} pesan dikirim ke antrean WhatsApp.`,
+            warnings: warnings
+        });
+
+    } catch (error) {
+        console.error('Error early warning:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;

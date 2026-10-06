@@ -576,6 +576,205 @@
             window.open(url, '_blank');
         }
 
+        // ========================================
+        // SOCKET.IO - SESSION LOCKING MECHANISM
+        // ========================================
+        const socket = io();
+        let currentLockedKelas = null;
+        let sessionLocks = {}; // Track all active locks
+
+        // Connect and join room
+        socket.on('connect', () => {
+            console.log('Socket connected:', socket.id);
+            socket.emit('join-role', {
+                role: userData.role || 'guru',
+                userId: userData.id,
+                userName: userData.nama
+            });
+        });
+
+        // Lock acquired successfully
+        socket.on('lock-acquired', (data) => {
+            console.log('Lock acquired for kelas:', data.kelasId);
+            currentLockedKelas = data.kelasId;
+            enableAbsenForm();
+        });
+
+        // Lock denied (someone else is using it)
+        socket.on('lock-denied', (data) => {
+            console.log('Lock denied for kelas:', data.kelasId, 'by', data.lockedBy);
+            showNotification(`⚠️ Kelas sedang dikelola oleh ${data.lockedBy}. Silakan tunggu hingga selesai.`, 'error');
+            disableAbsenForm(data.lockedBy);
+        });
+
+        // Lock released
+        socket.on('lock-released', (data) => {
+            console.log('Lock released for kelas:', data.kelasId);
+            if (currentLockedKelas === data.kelasId) {
+                currentLockedKelas = null;
+            }
+        });
+
+        // Another user locked a session
+        socket.on('session-locked', (data) => {
+            console.log('Session locked by another user:', data);
+            sessionLocks[data.kelasId] = data;
+            
+            // If current viewing kelas is locked by someone else, disable form
+            const selectedKelas = parseInt(document.getElementById('kelas-select-absen').value);
+            if (selectedKelas === data.kelasId && data.userId !== userData.id) {
+                disableAbsenForm(data.lockedBy);
+            }
+        });
+
+        // Another user unlocked a session
+        socket.on('session-unlocked', (data) => {
+            console.log('Session unlocked:', data.kelasId);
+            delete sessionLocks[data.kelasId];
+            
+            // If current viewing kelas is now free, enable form
+            const selectedKelas = parseInt(document.getElementById('kelas-select-absen').value);
+            if (selectedKelas === data.kelasId) {
+                enableAbsenForm();
+                showNotification('✅ Kelas sudah bebas. Anda bisa input absensi sekarang.', 'success');
+            }
+        });
+
+        // Session is available (no lock)
+        socket.on('session-available', (data) => {
+            console.log('Session available for kelas:', data.kelasId);
+            enableAbsenForm();
+        });
+
+        // Modified loadSiswaForAbsen to include session locking
+        const originalLoadSiswaForAbsen = loadSiswaForAbsen;
+        loadSiswaForAbsen = async function() {
+            const kelasId = parseInt(document.getElementById('kelas-select-absen').value);
+            if (!kelasId) {
+                // Release lock if user deselects kelas
+                if (currentLockedKelas) {
+                    socket.emit('unlock-session', {
+                        kelasId: currentLockedKelas,
+                        userId: userData.id
+                    });
+                    currentLockedKelas = null;
+                }
+                return document.getElementById('absen-section').classList.add('d-none');
+            }
+
+            // Check if kelas is already locked
+            socket.emit('check-session-lock', { kelasId });
+
+            // Wait a bit for socket response
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            // If not locked by others, try to acquire lock
+            if (!sessionLocks[kelasId] || sessionLocks[kelasId].userId === userData.id) {
+                socket.emit('lock-session', {
+                    kelasId,
+                    userId: userData.id,
+                    userName: userData.nama
+                });
+            }
+
+            // Call original function
+            await originalLoadSiswaForAbsen();
+        };
+
+        // Modified submitAbsen to release lock after submit
+        const originalSubmitAbsen = submitAbsen;
+        submitAbsen = async function() {
+            const kelasId = parseInt(document.getElementById('kelas-select-absen').value);
+            
+            // Call original submit function
+            await originalSubmitAbsen();
+
+            // Release lock after successful submit
+            if (currentLockedKelas) {
+                socket.emit('unlock-session', {
+                    kelasId: currentLockedKelas,
+                    userId: userData.id
+                });
+                currentLockedKelas = null;
+            }
+        };
+
+        // Helper functions for UI control
+        function disableAbsenForm(lockedByUser) {
+            const submitBtn = document.querySelector('#absen-section button[onclick="submitAbsen()"]');
+            const inputs = document.querySelectorAll('#absen-section input, #absen-section select, #absen-section button');
+            
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<i class="bi bi-lock-fill me-2"></i>Sedang Dikelola oleh ${lockedByUser}`;
+                submitBtn.classList.add('btn-secondary');
+                submitBtn.classList.remove('btn-primary');
+            }
+
+            inputs.forEach(el => {
+                if (el !== submitBtn) {
+                    el.disabled = true;
+                    el.style.opacity = '0.5';
+                }
+            });
+
+            // Show warning banner
+            let banner = document.getElementById('lock-warning-banner');
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'lock-warning-banner';
+                banner.className = 'alert alert-warning d-flex align-items-center mb-3';
+                banner.innerHTML = `
+                    <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                    <div>
+                        <strong>Kelas sedang dikelola oleh ${lockedByUser}</strong><br>
+                        <small>Form absensi akan aktif setelah ${lockedByUser} selesai.</small>
+                    </div>
+                `;
+                document.getElementById('absen-section').insertBefore(banner, document.getElementById('absen-section').firstChild);
+            }
+        }
+
+        function enableAbsenForm() {
+            const submitBtn = document.querySelector('#absen-section button[onclick="submitAbsen()"]');
+            const inputs = document.querySelectorAll('#absen-section input, #absen-section select, #absen-section button');
+            
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-send-check me-2"></i>Kirim Absensi & Jurnal';
+                submitBtn.classList.remove('btn-secondary');
+                submitBtn.classList.add('btn-primary');
+            }
+
+            inputs.forEach(el => {
+                el.disabled = false;
+                el.style.opacity = '1';
+            });
+
+            // Remove warning banner
+            const banner = document.getElementById('lock-warning-banner');
+            if (banner) banner.remove();
+        }
+
+        // Release lock when user leaves page or closes tab
+        window.addEventListener('beforeunload', () => {
+            if (currentLockedKelas) {
+                socket.emit('unlock-session', {
+                    kelasId: currentLockedKelas,
+                    userId: userData.id
+                });
+            }
+        });
+
+        // Handle disconnect
+        socket.on('disconnect', () => {
+            console.log('Socket disconnected');
+        });
+
+        // ========================================
+        // END SOCKET.IO INTEGRATION
+        // ========================================
+
         function logout() { localStorage.clear(); window.location.href = 'index.html'; }
         function showNotification(message, type = 'success') {
             document.getElementById('notification-message').textContent = message;

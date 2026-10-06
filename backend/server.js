@@ -8,6 +8,9 @@ require('dotenv').config();
 // Inisialisasi WhatsApp Gateway (otomatis terpicu karena index file mengeksekusi client.initialize())
 require('./utils/whatsapp');
 
+// Inisialisasi Cron Jobs (Peringatan Harian)
+require('./utils/cron');
+
 const server = http.createServer(app);
 
 // Setup Socket.io

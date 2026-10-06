@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
 
+# WhatsApp Session (do not commit)
+.wwebjs_auth/
+.wwebjs_cache/
+
 # Environment variables
 .env
 .env.local
@@ -28,3 +32,6 @@ build/
 # Temporary files
 *.tmp
 *.temp
+
+# Uploads (optional - uncomment if you don't want to commit user uploads)
+# backend/uploads/

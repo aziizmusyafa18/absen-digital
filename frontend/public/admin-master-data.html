@@ -415,11 +415,24 @@
                             <label class="form-label">Nama Lengkap</label>
                             <input type="text" class="form-control" id="siswa-nama" required>
                         </div>
-                        <div class="mb-0">
+                        <div class="mb-3">
                             <label class="form-label">Kelas</label>
                             <select class="form-select" id="siswa-kelas" required>
                                 <option value="">Pilih Kelas...</option>
                             </select>
+                        </div>
+                        <!-- Data Orang Tua -->
+                        <div class="border-top pt-3 mt-2">
+                            <h6 class="fw-bold mb-3 small text-muted"><i class="bi bi-person-fill-check me-2"></i>DATA ORANG TUA / WALI</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Nama Orang Tua / Wali</label>
+                                <input type="text" class="form-control" id="siswa-nama-ortu" placeholder="Nama lengkap orang tua/wali">
+                            </div>
+                            <div class="mb-0">
+                                <label class="form-label">No. HP Orang Tua / Wali</label>
+                                <input type="tel" class="form-control" id="siswa-no-hp-ortu" placeholder="08xxxxxxxxxx">
+                                <small class="text-muted"><i class="bi bi-whatsapp text-success"></i> Untuk notifikasi WhatsApp otomatis jika siswa tidak hadir</small>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer border-0 p-4 pt-0">
@@ -761,6 +774,8 @@
             document.getElementById('siswa-nama').value = item.nama;
             document.getElementById('siswa-kelamin').value = item.kelamin;
             document.getElementById('siswa-kelas').value = item.kelas_id;
+            document.getElementById('siswa-nama-ortu').value = item.nama_ortu || '';
+            document.getElementById('siswa-no-hp-ortu').value = item.no_hp_ortu || '';
             resetPhotoPreview('siswa', item.foto);
             document.getElementById('siswa-modal-title').textContent = 'Edit Siswa';
             modals.siswa.show();
@@ -781,6 +796,8 @@
             formData.append('nama', document.getElementById('siswa-nama').value);
             formData.append('kelamin', document.getElementById('siswa-kelamin').value);
             formData.append('kelas_id', document.getElementById('siswa-kelas').value);
+            formData.append('nama_ortu', document.getElementById('siswa-nama-ortu').value);
+            formData.append('no_hp_ortu', document.getElementById('siswa-no-hp-ortu').value);
             const fotoInput = document.getElementById('siswa-foto');
             if (fotoInput.files[0]) formData.append('foto', fotoInput.files[0]);
             try {
