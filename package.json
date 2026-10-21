@@ -1,7 +1,7 @@
 {
-  "name": "absen-digital",
+  "name": "adinda",
   "version": "1.0.0",
-  "description": "Sistem absensi digital untuk SMK",
+  "description": "ADINDA - Absensi Digital, Informasi Nilai, & Dokumentasi Agenda untuk SMK",
   "main": "backend/server.js",
   "engines": {
     "node": ">=18.0.0"

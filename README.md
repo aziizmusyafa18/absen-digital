@@ -1,6 +1,6 @@
-# Absen Digital - Sistem Absensi SMK
+# ADINDA - Absensi Digital, Informasi Nilai, & Dokumentasi Agenda
 
-**Sistem Absensi Digital Modern Berbasis Web untuk Sekolah**
+**Sistem Administrasi Digital, Kehadiran Siswa, Informasi Nilai, dan Agenda Guru untuk SMK/SMA**
 
 [Fitur](#fitur) • [Tech Stack](#tech-stack) • [Instalasi](#instalasi) • [Konfigurasi](#konfigurasi) • [Struktur Proyek](#struktur-proyek) • [Kontribusi](#kontribusi)
 
@@ -8,7 +8,7 @@
 
 ## 📝 Overview
 
-**Absen Digital** adalah platform manajemen kehadiran siswa yang dirancang untuk mempermudah proses absensi di sekolah (SMK/SMA). Sistem ini menggabungkan kemudahan input data oleh guru dengan transparansi rekapitulasi bagi admin dan orang tua secara real-time.
+**ADINDA** (*Absensi Digital, Informasi Nilai, & Dokumentasi Agenda*) adalah platform komprehensif manajemen kehadiran, rekapitulasi penilaian, dan jurnal guru yang dirancang untuk mempermudah proses administrasi sekolah (SMK/SMA). Sistem ini menggabungkan kemudahan input data oleh guru dengan transparansi rekapitulasi bagi admin serta notifikasi WhatsApp otomatis ke orang tua secara real-time.
 
 ### Highlights
 * **WhatsApp Gateway** - Notifikasi instan via WhatsApp ke orang tua untuk siswa absen/izin.

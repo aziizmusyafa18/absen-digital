@@ -56,7 +56,7 @@ app.get('/', (req, res) => {
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Absen Digital Server is running' });
+  res.json({ status: 'OK', message: 'ADINDA Server is running' });
 });
 
 // Error handling middleware

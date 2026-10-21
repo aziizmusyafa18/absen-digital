@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Absen Digital - Master Data</title>
+    <title>ADINDA - Master Data</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -21,7 +21,7 @@
                      <img src="img/logo.png" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;">
                 </div>
                 <div class="sidebar-brand text-white">
-                    <h5>Absen Digital</h5>
+                    <h5>ADINDA</h5>
                 </div>
             </div>
             <nav class="sidebar-nav">
@@ -642,7 +642,10 @@
                 updateCounts();
                 if (type === 'kelas') populateSelects();
                 if (type === 'jurusan') populateJurusanSelects();
-            } catch (error) { showNotification(`Gagal memuat data ${type}`, 'error'); }
+            } catch (error) { 
+                console.error(`Error loading data ${type}:`, error);
+                showNotification(`Gagal memuat data ${type}`, 'error'); 
+            }
         }
 
         function updateCounts() {
@@ -667,7 +670,13 @@
                     tr.innerHTML = `<td>${index + 1}</td><td class="fw-bold">${item.nama}</td><td>${item.tingkat}</td><td>${item.Jurusan ? item.Jurusan.nama : '-'}</td><td>${item.tahun_ajaran}</td><td class="text-center"><button class="btn btn-outline btn-sm me-1" onclick="editKelas(${item.id})"><i class="bi bi-pencil"></i></button><button class="btn btn-outline btn-sm text-danger" onclick="deleteItem('kelas', ${item.id})"><i class="bi bi-trash"></i></button></td>`;
                 } else if (type === 'siswa') {
                     const kelasNama = item.Kelas?.nama || item.kelas?.nama || item.Kela?.nama || item.kela?.nama || '-';
-                    const jenisKelamin = (item.kelamin && item.kelamin !== item.nis) ? item.kelamin : '-';
+                    let jenisKelamin = '-';
+                    if (item.kelamin) {
+                        const kLower = String(item.kelamin).toLowerCase().trim();
+                        if (kLower === 'l' || kLower === 'laki-laki') jenisKelamin = 'Laki-laki';
+                        else if (kLower === 'p' || kLower === 'perempuan') jenisKelamin = 'Perempuan';
+                        else if (!/^\d+$/.test(item.kelamin) && item.kelamin !== item.nis) jenisKelamin = item.kelamin;
+                    }
                     tr.innerHTML = `<td>${index + 1}</td><td>${item.nis}</td><td class="fw-bold">${item.nama}</td><td>${kelasNama}</td><td>${jenisKelamin}</td><td class="text-center"><button class="btn btn-outline btn-sm me-1" onclick="editSiswa(${item.id})"><i class="bi bi-pencil"></i></button><button class="btn btn-outline btn-sm text-danger" onclick="deleteItem('siswa', ${item.id})"><i class="bi bi-trash"></i></button></td>`;
                 } else if (type === 'guru') {
                     tr.innerHTML = `<td>${index + 1}</td><td>${item.nip}</td><td class="fw-bold">${item.nama}</td><td>${item.mapel || item.mata_pelajaran_utama}</td><td>${item.role}</td><td class="text-center"><button class="btn btn-outline btn-sm me-1" onclick="editGuru(${item.id})"><i class="bi bi-pencil"></i></button><button class="btn btn-outline btn-sm text-danger" onclick="deleteItem('guru', ${item.id})"><i class="bi bi-trash"></i></button></td>`;
@@ -683,6 +692,54 @@
                 showNotification('Data berhasil dihapus');
                 loadData(type);
             } catch (error) { showNotification('Gagal menghapus data', 'error'); }
+        }
+
+        // Search and Filter Handlers
+        function searchJurusan() {
+            const kw = (document.getElementById('search-jurusan')?.value || '').toLowerCase().trim();
+            const filtered = (dataStore.jurusan || []).filter(j => 
+                (j.nama && j.nama.toLowerCase().includes(kw)) ||
+                (j.singkatan && j.singkatan.toLowerCase().includes(kw)) ||
+                (j.deskripsi && j.deskripsi.toLowerCase().includes(kw))
+            );
+            renderTable('jurusan', filtered);
+        }
+
+        function loadKelas() { filterKelas(); }
+        function searchKelas() { filterKelas(); }
+        function filterKelas() {
+            const tingkat = document.getElementById('filter-kelas-tingkat')?.value;
+            const kw = (document.getElementById('search-kelas')?.value || '').toLowerCase().trim();
+            let filtered = dataStore.kelas || [];
+            if (tingkat) filtered = filtered.filter(k => k.tingkat === tingkat);
+            if (kw) filtered = filtered.filter(k => (k.nama && k.nama.toLowerCase().includes(kw)));
+            renderTable('kelas', filtered);
+        }
+
+        function loadSiswa() { filterSiswa(); }
+        function searchSiswa() { filterSiswa(); }
+        function filterSiswa() {
+            const kelasId = document.getElementById('filter-siswa-kelas')?.value;
+            const kw = (document.getElementById('search-siswa')?.value || '').toLowerCase().trim();
+            let filtered = dataStore.siswa || [];
+            if (kelasId) filtered = filtered.filter(s => s.kelas_id == kelasId);
+            if (kw) {
+                filtered = filtered.filter(s => 
+                    (s.nama && s.nama.toLowerCase().includes(kw)) ||
+                    (s.nis && s.nis.toLowerCase().includes(kw))
+                );
+            }
+            renderTable('siswa', filtered);
+        }
+
+        function searchGuru() {
+            const kw = (document.getElementById('search-guru')?.value || '').toLowerCase().trim();
+            const filtered = (dataStore.guru || []).filter(g => 
+                (g.nama && g.nama.toLowerCase().includes(kw)) ||
+                (g.nip && g.nip.toLowerCase().includes(kw)) ||
+                (g.mapel && g.mapel.toLowerCase().includes(kw))
+            );
+            renderTable('guru', filtered);
         }
 
         window.addEventListener('DOMContentLoaded', () => {

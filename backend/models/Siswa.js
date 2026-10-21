@@ -23,6 +23,10 @@ const Siswa = sequelize.define('Siswa', {
     type: DataTypes.STRING,
     defaultValue: 'aktif'
   },
+  kelas_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
   foto: {
     type: DataTypes.STRING,
     allowNull: true

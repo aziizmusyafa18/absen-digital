@@ -44,6 +44,20 @@ const initializeDatabase = async () => {
       console.log('ℹ️  Skipping database sync in production mode.');
     }
 
+    // Pastikan kolom no_hp_ortu dan nama_ortu ada di tabel siswa
+    try {
+      const [colsNoHpOrtu] = await sequelize.query("SHOW COLUMNS FROM `siswa` LIKE 'no_hp_ortu'");
+      if (colsNoHpOrtu.length === 0) {
+        await sequelize.query("ALTER TABLE `siswa` ADD COLUMN `no_hp_ortu` VARCHAR(255) NULL");
+      }
+      const [colsNamaOrtu] = await sequelize.query("SHOW COLUMNS FROM `siswa` LIKE 'nama_ortu'");
+      if (colsNamaOrtu.length === 0) {
+        await sequelize.query("ALTER TABLE `siswa` ADD COLUMN `nama_ortu` VARCHAR(255) NULL");
+      }
+    } catch (colErr) {
+      console.warn('⚠️ Warning checking/adding siswa columns:', colErr.message);
+    }
+
   } catch (error) {
     console.error('❌ Unable to connect to the database:', error);
     process.exit(1);
