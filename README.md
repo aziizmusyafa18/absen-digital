@@ -8,71 +8,88 @@
 
 ## 📝 Overview
 
-**ADINDA** (*Absensi Digital, Informasi Nilai, & Dokumentasi Agenda*) adalah platform komprehensif manajemen kehadiran, rekapitulasi penilaian, dan jurnal guru yang dirancang untuk mempermudah proses administrasi sekolah (SMK/SMA). Sistem ini menggabungkan kemudahan input data oleh guru dengan transparansi rekapitulasi bagi admin serta notifikasi WhatsApp otomatis ke orang tua secara real-time.
+**ADINDA** (_Absensi Digital, Informasi Nilai, & Dokumentasi Agenda_) adalah platform komprehensif manajemen kehadiran, rekapitulasi penilaian, dan jurnal guru yang dirancang untuk mempermudah proses administrasi sekolah (SMK/SMA). Sistem ini menggabungkan kemudahan input data oleh guru dengan transparansi rekapitulasi bagi admin serta notifikasi WhatsApp otomatis ke orang tua secara real-time.
 
 ### Highlights
-* **WhatsApp Gateway** - Notifikasi instan via WhatsApp ke orang tua untuk siswa absen/izin.
-* **Real-time Notifications** - Notifikasi absensi langsung via Socket.io.
-* **Modern UI** - Antarmuka responsif menggunakan Bootstrap 5 dan CSS kustom.
-* **Automated Recap** - Rekapitulasi harian dan bulanan otomatis dengan fitur export Excel.
-* **Easy Import** - Migrasi data guru dan siswa dengan cepat melalui file Excel.
-* **Secure Auth** - Autentikasi menggunakan JWT (JSON Web Token) dan enkripsi Bcrypt.
+
+- **AI-Powered WhatsApp Notifications** - Integrasi Google Gemini AI untuk merangkum dan mengirim rekap absensi harian yang dipersonalisasi ke orang tua setiap jam 14:00.
+- **Smart Monitoring** - Deteksi otomatis siswa yang tidak hadir (Alpa) selama 3 kali berturut-turut pada mata pelajaran yang sama.
+- **Session Locking** - Sistem penguncian sesi absen untuk memastikan integritas data kehadiran real-time.
+- **Comprehensive Reporting** - Rekapitulasi nilai dan absensi (harian/bulanan) dengan ekspor Excel yang detail per mata pelajaran.
+- **Modern UI** - Antarmuka responsif menggunakan Bootstrap 5 dan CSS kustom dengan fitur Scan QR Code yang diperbarui.
+- **Secure Auth** - Autentikasi menggunakan JWT (JSON Web Token) dan enkripsi Bcrypt.
 
 ---
 
-## ✨ Fitur
+## ✨ Fitur Terbaru (Update)
 
-### 👨‍💼 Administrator
-| Fitur | Deskripsi |
-| :--- | :--- |
-| **Dashboard** | Statistik kehadiran harian, total guru, dan aktivitas real-time |
-| **Master Data** | Manajemen data Jurusan, Kelas, Siswa, dan Guru |
-| **Import Excel** | Batch import data siswa dan guru dari file .xlsx |
-| **Rekapitulasi** | Laporan kehadiran harian & bulanan per kelas/jurusan |
-| **Export Laporan** | Cetak laporan rekapitulasi langsung ke format Excel |
-| **Manajemen Akun** | Pengaturan profil admin dan ganti foto profil |
+### 🤖 Kecerdasan Buatan (AI) & WhatsApp
+
+| Fitur                 | Deskripsi                                                                                                        |
+| :-------------------- | :--------------------------------------------------------------------------------------------------------------- |
+| **Rekap Harian AI**   | Otomatis merangkum ketidakhadiran siswa menggunakan Google Gemini AI dan mengirimnya ke orang tua jam 14:00 WIB. |
+| **Peringatan Dini**   | Notifikasi khusus jika siswa terdeteksi Alpa 3x berturut-turut pada mata pelajaran tertentu.                     |
+| **Warning Kehadiran** | Fitur "Early Warning" bulanan untuk siswa dengan tingkat kehadiran di bawah 75%.                                 |
+| **Queue System**      | Sistem antrean pengiriman pesan WhatsApp untuk menghindari pemblokiran akun.                                     |
+
+### 📊 Manajemen Data & Laporan
+
+| Fitur                    | Deskripsi                                                                                     |
+| :----------------------- | :-------------------------------------------------------------------------------------------- |
+| **Eksport Nilai Detail** | Rekap nilai bulanan per mata pelajaran dengan perhitungan rata-rata otomatis ke format Excel. |
+| **Locking Session**      | Penguncian sesi absensi guru untuk mencegah manipulasi atau duplikasi data kehadiran.         |
+| **Filter Canggih**       | Filter rekapitulasi berdasarkan Jurusan, Kelas, Bulan, dan Mata Pelajaran.                    |
+| **Contact Management**   | Manajemen nomor WhatsApp orang tua terintegrasi dalam data master siswa.                      |
 
 ### 👨‍🏫 Guru
-| Fitur | Deskripsi |
-| :--- | :--- |
-| **Input Absensi** | Melakukan absensi siswa per mata pelajaran |
+
+| Fitur                   | Deskripsi                                                  |
+| :---------------------- | :--------------------------------------------------------- |
+| **Input Absensi**       | Melakukan absensi siswa per mata pelajaran                 |
 | **Notifikasi Otomatis** | Pesan WhatsApp otomatis ke ortu jika siswa Alpa/Izin/Sakit |
-| **Jurnal Harian** | Mencatat jurnal kegiatan belajar mengajar |
-| **Input Nilai** | Manajemen nilai siswa untuk setiap kelas |
-| **Dashboard Guru** | Ringkasan jadwal dan riwayat mengajar |
-| **Edit Profil** | Personalisasi identitas dan foto profil guru |
+| **Jurnal Harian**       | Mencatat jurnal kegiatan belajar mengajar                  |
+| **Input Nilai**         | Manajemen nilai siswa untuk setiap kelas                   |
+| **Dashboard Guru**      | Ringkasan jadwal dan riwayat mengajar                      |
+| **Edit Profil**         | Personalisasi identitas dan foto profil guru               |
 
 ### 👨‍👩‍👦 Orang Tua / Publik
-| Fitur | Deskripsi |
-| :--- | :--- |
-| **Pesan WhatsApp** | Menerima peringatan otomatis jika anak tidak hadir |
-| **Cek Kehadiran** | Pencarian status kehadiran siswa berdasarkan NIS/Nama |
-| **Dashboard Ortu** | Melihat riwayat kehadiran anak secara real-time |
+
+| Fitur              | Deskripsi                                             |
+| :----------------- | :---------------------------------------------------- |
+| **Pesan WhatsApp** | Menerima peringatan otomatis jika anak tidak hadir    |
+| **Cek Kehadiran**  | Pencarian status kehadiran siswa berdasarkan NIS/Nama |
+| **Dashboard Ortu** | Melihat riwayat kehadiran anak secara real-time       |
 
 ---
 
 ## 🛠️ Tech Stack
 
 ### Backend
-| Teknologi | Deskripsi |
-| :--- | :--- |
-| **Node.js** | Runtime environment JavaScript |
-| **Express.js** | Web framework untuk API |
-| **Sequelize** | ORM untuk interaksi database MySQL |
-| **Socket.io** | Komunikasi real-time dua arah |
-| **WhatsApp-Web.js** | Library gateway WhatsApp pihak ketiga |
-| **JWT** | Mekanisme keamanan autentikasi |
+
+| Teknologi            | Deskripsi                                               |
+| :------------------- | :------------------------------------------------------ |
+| **Node.js**          | Runtime environment JavaScript                          |
+| **Express.js**       | Web framework untuk API                                 |
+| **Sequelize**        | ORM untuk interaksi database MySQL                      |
+| **Socket.io**        | Komunikasi real-time dua arah                           |
+| **WhatsApp-Web.js**  | Library gateway WhatsApp                                |
+| **Google Gemini AI** | Pembangkit pesan notifikasi otomatis yang natural       |
+| **Node-Cron**        | Penjadwal tugas otomatis (Rekap harian jam 14:00)       |
+| **ExcelJS**          | Library untuk export data ke format .xlsx yang kompleks |
+| **JWT**              | Mekanisme keamanan autentikasi                          |
 
 ### Frontend
-| Teknologi | Deskripsi |
-| :--- | :--- |
-| **Bootstrap 5** | Framework CSS untuk desain responsif |
-| **Vanilla JS** | Logika frontend tanpa framework berat |
-| **Socket.io Client** | Penerima notifikasi real-time |
+
+| Teknologi            | Deskripsi                             |
+| :------------------- | :------------------------------------ |
+| **Bootstrap 5**      | Framework CSS untuk desain responsif  |
+| **Vanilla JS**       | Logika frontend tanpa framework berat |
+| **Socket.io Client** | Penerima notifikasi real-time         |
 
 ### Database
-| Teknologi | Deskripsi |
-| :--- | :--- |
+
+| Teknologi | Deskripsi                            |
+| :-------- | :----------------------------------- |
 | **MySQL** | Sistem manajemen database relasional |
 
 ---
@@ -80,11 +97,13 @@
 ## 🚀 Instalasi
 
 ### Prasyarat
-* Node.js v18 atau lebih tinggi
-* MySQL / MariaDB
-* npm (Node Package Manager)
+
+- Node.js v18 atau lebih tinggi
+- MySQL / MariaDB
+- npm (Node Package Manager)
 
 ### Langkah Cepat
+
 ```bash
 # 1. Clone repositori
 git clone <repository-url>
@@ -113,6 +132,7 @@ npm run dev
 ## ⚙️ Konfigurasi
 
 ### Environment Variables (.env)
+
 Pastikan Anda mengatur file `.env` di folder `backend/` atau root sesuai kebutuhan:
 
 ```dotenv
@@ -122,24 +142,28 @@ DB_USER=root
 DB_PASS=
 DB_NAME=absen_digital
 JWT_SECRET=rahasia_super_kuat
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 ---
 
 ## 🔐 Sistem Keamanan
+
 Aplikasi ini diimplementasikan dengan standar keamanan modern untuk melindungi data sensitif:
-* **JWT (JSON Web Token)** - Autentikasi stateless untuk mengamankan API endpoint.
-* **Bcrypt Hashing** - Semua password disimpan dalam format hash yang tidak dapat didekripsi.
-* **Role-Based Access Control (RBAC)** - Pembatasan akses fitur berdasarkan peran (Admin, Guru, Orang Tua).
-* **CORS Protection** - Membatasi permintaan API hanya dari domain yang diizinkan.
-* **Input Validation & Sanitization** - Melindungi aplikasi dari serangan SQL Injection dan XSS.
-* **Multer File Filter** - Validasi tipe file dan ukuran pada upload foto profil untuk mencegah eksekusi file berbahaya.
+
+- **JWT (JSON Web Token)** - Autentikasi stateless untuk mengamankan API endpoint.
+- **Bcrypt Hashing** - Semua password disimpan dalam format hash yang tidak dapat didekripsi.
+- **Role-Based Access Control (RBAC)** - Pembatasan akses fitur berdasarkan peran (Admin, Guru, Orang Tua).
+- **CORS Protection** - Membatasi permintaan API hanya dari domain yang diizinkan.
+- **Input Validation & Sanitization** - Melindungi aplikasi dari serangan SQL Injection dan XSS.
+- **Multer File Filter** - Validasi tipe file dan ukuran pada upload foto profil untuk mencegah eksekusi file berbahaya.
 
 ---
 
 ## 📊 Database Schema
 
 ### Core Tables Structure
+
 ```text
 ┌──────────────┐      ┌─────────────┐      ┌────────────┐
 │    Users     │      │    Kelas    │      │   Jurusan  │
@@ -149,8 +173,8 @@ Aplikasi ini diimplementasikan dengan standar keamanan modern untuk melindungi d
 │ password     │      │ tingkat      │      │ singkatan  │
 │ role         │      │ jurusan_id   │◄─────┤ deskripsi  │
 └──────────────┘      └─────────────┘      └────────────┘
-       │                     ▲                    
-       ▼                     │                    
+       │                     ▲
+       ▼                     │
 ┌──────────────┐      ┌────────────┐       ┌────────────────┐
 │     Guru     │      │    Siswa   │       │ LogNotifikasi  │
 ├──────────────┤      ├────────────┤       ├────────────────┤
@@ -176,6 +200,7 @@ Aplikasi ini diimplementasikan dengan standar keamanan modern untuk melindungi d
 ---
 
 ## 📁 Struktur Proyek
+
 ```text
 absen-digital/
 ├── backend/
@@ -195,12 +220,13 @@ absen-digital/
 ---
 
 ## 🔑 Akun Default
+
 Setelah menjalankan database setup, Anda dapat masuk dengan:
 
-| Role | Username / NIP | Password |
-| :--- | :--- | :--- |
-| **Admin** | `admin` | `admin123` |
-| **Guru** | `123456` (Contoh NIP) | `password` |
+| Role      | Username / NIP        | Password   |
+| :-------- | :-------------------- | :--------- |
+| **Admin** | `admin`               | `admin123` |
+| **Guru**  | `123456` (Contoh NIP) | `password` |
 
 ---
 
@@ -215,6 +241,7 @@ Proyek ini dilisensikan di bawah [MIT License](LICENSE).
 Dikembangkan oleh **saya sendiri**
 
 ---
+
 <p align="center">
   Dibuat dengan ❤️ untuk kemajuan pendidikan Indonesia
 </p>
