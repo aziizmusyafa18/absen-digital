@@ -250,6 +250,7 @@
                                         <th>NIP</th>
                                         <th>Nama Lengkap</th>
                                         <th>Mata Pelajaran</th>
+                                        <th>Jam Wajib Masuk</th>
                                         <th>Role</th>
                                         <th style="width: 120px;" class="text-center">Aksi</th>
                                     </tr>
@@ -488,18 +489,28 @@
                                 </select>
                             </div>
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label">Jam Wajib Masuk</label>
+                            <input type="time" class="form-control" id="guru-jam-mulai" required>
+                            <small class="text-muted">Toleransi keterlambatan absensi adalah 10 menit dari jam ini.</small>
+                        </div>
                         <div class="p-3 bg-light rounded-3 mt-3">
                             <h6 class="fw-bold mb-3 small text-muted text-uppercase">Pengaturan Kelas Mengajar</h6>
+                            <small class="text-muted d-block mb-2">Jam wajib dapat berbeda untuk tiap kelas. Toleransi keterlambatan tetap 10 menit.</small>
                             <div class="row g-2 align-items-end">
-                                <div class="col-md-5">
+                                <div class="col-md-4">
                                     <label class="form-label small">Kelas</label>
                                     <select class="form-select form-select-sm" id="guru-kelas-select">
                                         <option value="">Pilih...</option>
                                     </select>
                                 </div>
-                                <div class="col-md-5">
+                                <div class="col-md-4">
                                     <label class="form-label small">Mapel di Kelas Ini</label>
                                     <input type="text" class="form-control form-control-sm" id="guru-kelas-mapel">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small">Jam Wajib Masuk</label>
+                                    <input type="time" class="form-control form-control-sm" id="guru-kelas-jam-mulai">
                                 </div>
                                 <div class="col-md-2">
                                     <button type="button" class="btn btn-primary btn-sm w-100" onclick="addGuruKelas()">Tambah</button>
@@ -679,7 +690,7 @@
                     }
                     tr.innerHTML = `<td>${index + 1}</td><td>${item.nis}</td><td class="fw-bold">${item.nama}</td><td>${kelasNama}</td><td>${jenisKelamin}</td><td class="text-center"><button class="btn btn-outline btn-sm me-1" onclick="editSiswa(${item.id})"><i class="bi bi-pencil"></i></button><button class="btn btn-outline btn-sm text-danger" onclick="deleteItem('siswa', ${item.id})"><i class="bi bi-trash"></i></button></td>`;
                 } else if (type === 'guru') {
-                    tr.innerHTML = `<td>${index + 1}</td><td>${item.nip}</td><td class="fw-bold">${item.nama}</td><td>${item.mapel || item.mata_pelajaran_utama}</td><td>${item.role}</td><td class="text-center"><button class="btn btn-outline btn-sm me-1" onclick="editGuru(${item.id})"><i class="bi bi-pencil"></i></button><button class="btn btn-outline btn-sm text-danger" onclick="deleteItem('guru', ${item.id})"><i class="bi bi-trash"></i></button></td>`;
+                    tr.innerHTML = `<td>${index + 1}</td><td>${item.nip}</td><td class="fw-bold">${item.nama}</td><td>${item.mapel || item.mata_pelajaran_utama}</td><td>${item.jam_mulai ? item.jam_mulai.slice(0, 5) : '-'}</td><td>${item.role}</td><td class="text-center"><button class="btn btn-outline btn-sm me-1" onclick="editGuru(${item.id})"><i class="bi bi-pencil"></i></button><button class="btn btn-outline btn-sm text-danger" onclick="deleteItem('guru', ${item.id})"><i class="bi bi-trash"></i></button></td>`;
                 }
                 tbody.appendChild(tr);
             });
@@ -864,7 +875,13 @@
             } catch (e) { showNotification('Gagal menyimpan', 'error'); }
         };
 
-        function openGuruModal() { document.getElementById('guru-form').reset(); document.getElementById('guru-id').value = ''; guruKelasList = []; renderGuruKelasList(); document.getElementById('guru-modal-title').textContent = 'Tambah Guru'; modals.guru.show(); }
+        function updateGuruTimeRequirement() {
+            document.getElementById('guru-jam-mulai').required = document.getElementById('guru-role').value === 'guru';
+        }
+
+        document.getElementById('guru-role').addEventListener('change', updateGuruTimeRequirement);
+
+        function openGuruModal() { document.getElementById('guru-form').reset(); document.getElementById('guru-id').value = ''; updateGuruTimeRequirement(); guruKelasList = []; renderGuruKelasList(); document.getElementById('guru-modal-title').textContent = 'Tambah Guru'; modals.guru.show(); }
         async function editGuru(id) {
             const item = dataStore.guru.find(i => i.id === id);
             if (!item) return;
@@ -873,10 +890,17 @@
             document.getElementById('guru-nama').value = item.nama;
             document.getElementById('guru-nip').value = item.nip;
             document.getElementById('guru-mapel').value = item.mapel || item.mata_pelajaran_utama;
+            document.getElementById('guru-jam-mulai').value = item.jam_mulai ? item.jam_mulai.slice(0, 5) : '';
             document.getElementById('guru-role').value = item.role;
+            updateGuruTimeRequirement();
             try {
                 const relations = await apiCall(`guru-kelas/guru/${id}`);
-                guruKelasList = relations.map(gk => ({ kelas_id: gk.kelas_id, kelas_nama: gk.Kelas ? gk.Kelas.nama : 'N/A', mata_pelajaran: gk.mata_pelajaran }));
+                guruKelasList = relations.map(gk => ({
+                    kelas_id: gk.kelas_id,
+                    kelas_nama: gk.Kelas ? gk.Kelas.nama : 'N/A',
+                    mata_pelajaran: gk.mata_pelajaran,
+                    jam_mulai: gk.jam_mulai ? gk.jam_mulai.slice(0, 5) : (item.jam_mulai ? item.jam_mulai.slice(0, 5) : '')
+                }));
                 renderGuruKelasList();
             } catch (e) { guruKelasList = []; renderGuruKelasList(); }
             document.getElementById('guru-modal-title').textContent = 'Edit Guru';
@@ -884,29 +908,44 @@
         }
 
         function renderGuruKelasList() {
-            document.getElementById('guru-kelas-list').innerHTML = guruKelasList.map((gk, idx) => `<div class="d-flex justify-content-between align-items-center p-2 border-bottom small"><div><span class="fw-bold">${gk.kelas_nama}</span> - ${gk.mata_pelajaran}</div><button type="button" class="btn btn-link btn-sm text-danger p-0" onclick="removeGuruKelas(${idx})"><i class="bi bi-x-circle"></i></button></div>`).join('');
+            document.getElementById('guru-kelas-list').innerHTML = guruKelasList.map((gk, idx) => `<div class="d-flex justify-content-between align-items-center p-2 border-bottom small"><div><span class="fw-bold">${gk.kelas_nama}</span> - ${gk.mata_pelajaran} <span class="text-muted">| Wajib ${gk.jam_mulai}, toleransi sampai ${getToleranceTime(gk.jam_mulai)}</span></div><button type="button" class="btn btn-link btn-sm text-danger p-0" onclick="removeGuruKelas(${idx})"><i class="bi bi-x-circle"></i></button></div>`).join('');
         }
         function addGuruKelas() {
             const kelasId = document.getElementById('guru-kelas-select').value;
             const mapel = document.getElementById('guru-kelas-mapel').value;
-            if (!kelasId || !mapel) return;
+            const jamMulai = document.getElementById('guru-kelas-jam-mulai').value || document.getElementById('guru-jam-mulai').value;
+            if (!kelasId || !mapel || !jamMulai) {
+                showNotification('Kelas, mata pelajaran, dan jam wajib masuk harus diisi', 'error');
+                return;
+            }
             const kelas = dataStore.kelas.find(k => k.id == kelasId);
-            guruKelasList.push({ kelas_id: kelasId, kelas_nama: kelas.nama, mata_pelajaran: mapel });
+            guruKelasList.push({ kelas_id: kelasId, kelas_nama: kelas.nama, mata_pelajaran: mapel, jam_mulai: jamMulai });
+            document.getElementById('guru-kelas-jam-mulai').value = '';
             renderGuruKelasList();
         }
         function removeGuruKelas(idx) { guruKelasList.splice(idx, 1); renderGuruKelasList(); }
 
+        function getToleranceTime(time) {
+            const [hours, minutes] = time.split(':').map(Number);
+            const batas = (hours * 60 + minutes + 10) % (24 * 60);
+            return `${String(Math.floor(batas / 60)).padStart(2, '0')}:${String(batas % 60).padStart(2, '0')}`;
+        }
+
         document.getElementById('guru-form').onsubmit = async (e) => {
             e.preventDefault();
             const id = document.getElementById('guru-id').value;
-            const body = { username: document.getElementById('guru-username').value, nama: document.getElementById('guru-nama').value, nip: document.getElementById('guru-nip').value, mapel: document.getElementById('guru-mapel').value, role: document.getElementById('guru-role').value };
+            const body = { username: document.getElementById('guru-username').value, nama: document.getElementById('guru-nama').value, nip: document.getElementById('guru-nip').value, mapel: document.getElementById('guru-mapel').value, jam_mulai: document.getElementById('guru-jam-mulai').value, role: document.getElementById('guru-role').value };
             if (document.getElementById('guru-password').value) body.password = document.getElementById('guru-password').value;
             try {
                 const res = await apiCall(id ? `guru/${id}` : 'guru', id ? 'PUT' : 'POST', body);
                 const guruId = id || res.data.id;
                 await apiCall(`guru/sync-kelas/${guruId}`, 'POST', { kelas_list: guruKelasList });
                 modals.guru.hide(); loadData('guru'); showNotification('Data disimpan');
-            } catch (e) { showNotification('Gagal menyimpan', 'error'); }
+            } catch (e) {
+                let message = 'Gagal menyimpan data guru';
+                try { message = JSON.parse(e.message).error || message; } catch (_) {}
+                showNotification(message, 'error');
+            }
         };
 
         let importType = '';

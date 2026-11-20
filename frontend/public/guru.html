@@ -91,9 +91,13 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Jam Selesai</label>
-                                    <input type="time" class="form-control" id="jam-selesai">
+                                    <input type="time" class="form-control" id="jam-selesai" required>
                                 </div>
-                                <input type="hidden" id="jam-mulai">
+                                <div class="col-12">
+                                    <div id="jam-wajib-info" class="alert alert-info py-2 mb-0 small">
+                                        Memuat pengaturan jam wajib masuk...
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -124,7 +128,7 @@
                                 <h6 class="fw-bold m-0 text-primary"><i class="bi bi-people me-2"></i>Daftar Kehadiran Siswa</h6>
                             </div>
                             <div id="siswa-list-absen"></div>
-                            <button class="btn btn-primary w-100 py-3 mt-4 fs-6" onclick="submitAbsen()">
+                            <button id="submit-absen-btn" class="btn btn-primary w-100 py-3 mt-4 fs-6" onclick="submitAbsen()" disabled>
                                 <i class="bi bi-send-check me-2"></i>Kirim Absensi & Jurnal
                             </button>
                         </div>
@@ -363,16 +367,59 @@
         const toast = new bootstrap.Toast(document.getElementById('notification'));
         let capturedImageData = null;
         let cameraStream = null;
+        let guruSettings = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             const now = new Date();
             document.getElementById('current-date').textContent = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
             loadKelas();
+            loadGuruSettings();
             loadRiwayatAbsen();
             
             const expMonth = document.getElementById('export-bulan');
             expMonth.value = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}`;
         });
+
+        function getSelectedJamWajib() {
+            const selectedClass = document.getElementById('kelas-select-absen').selectedOptions[0];
+            return selectedClass?.dataset.jamMulai || guruSettings?.jam_mulai || '';
+        }
+
+        function updateJamWajibInfo() {
+            const info = document.getElementById('jam-wajib-info');
+            const submitButton = document.getElementById('submit-absen-btn');
+            const jamWajib = getSelectedJamWajib();
+            if (!jamWajib) {
+                info.className = 'alert alert-warning py-2 mb-0 small';
+                info.textContent = 'Jam wajib masuk belum diatur admin untuk guru atau kelas ini.';
+                submitButton.disabled = true;
+                return;
+            }
+
+            const [hours, minutes] = jamWajib.slice(0, 5).split(':').map(Number);
+            const batasToleransi = (hours * 60 + minutes + 10) % (24 * 60);
+            const batas = `${String(Math.floor(batasToleransi / 60)).padStart(2, '0')}:${String(batasToleransi % 60).padStart(2, '0')}`;
+            info.className = 'alert alert-info py-2 mb-0 small';
+            info.textContent = `Jam wajib masuk kelas ini: ${jamWajib.slice(0, 5)}. Toleransi sampai ${batas}. Jam masuk dicatat otomatis saat mengirim absensi.`;
+            submitButton.disabled = Boolean(document.getElementById('lock-warning-banner'));
+        }
+
+        async function loadGuruSettings() {
+            try {
+                const response = await fetch('/api/guru/settings', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const settings = await response.json();
+                if (!response.ok) throw new Error(settings.error || 'Gagal memuat jam wajib masuk');
+
+                guruSettings = settings;
+                updateJamWajibInfo();
+            } catch (error) {
+                guruSettings = null;
+                updateJamWajibInfo();
+                showNotification(error.message, 'error');
+            }
+        }
 
         async function loadKelas() {
             try {
@@ -400,6 +447,7 @@
                         const opt = document.createElement('option');
                         opt.value = k.id; opt.textContent = k.nama;
                         if (k.mata_pelajaran) opt.dataset.mapel = k.mata_pelajaran;
+                        if (k.jam_mulai) opt.dataset.jamMulai = k.jam_mulai;
                         el.appendChild(opt);
                     });
                 });
@@ -415,7 +463,7 @@
             
             const sel = document.getElementById('kelas-select-absen').selectedOptions[0];
             document.getElementById('mata-pelajaran').value = sel.dataset.mapel || '';
-            document.getElementById('jam-mulai').value = new Date().toTimeString().slice(0,5);
+            updateJamWajibInfo();
             document.getElementById('jam-selesai').value = new Date(Date.now() + 2*3600000).toTimeString().slice(0,5);
 
             try {
@@ -477,7 +525,13 @@
         }
 
         async function submitAbsen() {
+            if (!getSelectedJamWajib()) {
+                return showNotification('Jam wajib masuk belum diatur admin', 'error');
+            }
             if (!capturedImageData) return showNotification('Foto kegiatan wajib diambil', 'error');
+            if (!document.getElementById('jam-selesai').value) {
+                return showNotification('Jam selesai wajib diisi', 'error');
+            }
             const body = {
                 kelas_id: parseInt(document.getElementById('kelas-select-absen').value),
                 siswa_list: Array.from(document.querySelectorAll('#siswa-list-absen select')).map(s => ({
@@ -487,7 +541,6 @@
                 jurnal_data: {
                     mata_pelajaran: document.getElementById('mata-pelajaran').value,
                     materi: document.getElementById('materi').value,
-                    jam_mulai: document.getElementById('jam-mulai').value,
                     jam_selesai: document.getElementById('jam-selesai').value,
                     foto_kegiatan: capturedImageData
                 }
@@ -501,8 +554,11 @@
                 if (res.ok) {
                     showNotification('Absen & Jurnal berhasil disimpan');
                     location.reload();
-                } else { showNotification('Gagal menyimpan absen', 'error'); }
-            } catch (e) {}
+                } else {
+                    const result = await res.json();
+                    showNotification(result.error || 'Gagal menyimpan absen', 'error');
+                }
+            } catch (e) { showNotification(e.message || 'Gagal menyimpan absen', 'error'); }
         }
 
         async function loadRiwayatAbsen() {
@@ -740,7 +796,7 @@
             const inputs = document.querySelectorAll('#absen-section input, #absen-section select, #absen-section button');
             
             if (submitBtn) {
-                submitBtn.disabled = false;
+                submitBtn.disabled = !getSelectedJamWajib();
                 submitBtn.innerHTML = '<i class="bi bi-send-check me-2"></i>Kirim Absensi & Jurnal';
                 submitBtn.classList.remove('btn-secondary');
                 submitBtn.classList.add('btn-primary');

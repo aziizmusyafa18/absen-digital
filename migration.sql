@@ -1,6 +1,6 @@
 -- =====================================================
 -- Absen Digital - Database Migration Script
--- Untuk menambahkan fitur baru (jam_mulai dan guru_kelas)
+-- Untuk pengaturan jam wajib masuk dan status keterlambatan absensi
 -- =====================================================
 
 USE absen_digital;
@@ -9,7 +9,11 @@ USE absen_digital;
 -- Kolom ini akan digunakan admin untuk mengatur jam mulai wajib guru
 ALTER TABLE guru ADD COLUMN IF NOT EXISTS jam_mulai TIME NULL DEFAULT NULL COMMENT 'Jam mulai wajib yang ditetapkan admin';
 
--- 2. Buat tabel guru_kelas untuk relasi guru dengan kelas
+-- 2. Simpan status keterlambatan hasil validasi server (toleransi 10 menit)
+ALTER TABLE jurnal ADD COLUMN IF NOT EXISTS status_masuk ENUM('tepat_waktu', 'terlambat') NULL DEFAULT NULL;
+ALTER TABLE jurnal ADD COLUMN IF NOT EXISTS menit_keterlambatan INT NOT NULL DEFAULT 0;
+
+-- 3. Buat tabel guru_kelas untuk relasi guru dengan kelas
 -- Tabel ini digunakan untuk auto-fill mata pelajaran berdasarkan kelas
 CREATE TABLE IF NOT EXISTS guru_kelas (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -23,7 +27,7 @@ CREATE TABLE IF NOT EXISTS guru_kelas (
     UNIQUE KEY unique_guru_kelas (guru_id, kelas_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 3. Contoh data relasi guru-kelas (jalankan sesuai kebutuhan)
+-- 4. Contoh data relasi guru-kelas (jalankan sesuai kebutuhan)
 -- INSERT INTO guru_kelas (guru_id, kelas_id, mata_pelajaran)
 -- SELECT g.id, k.id, g.mapel
 -- FROM guru g, kelas k

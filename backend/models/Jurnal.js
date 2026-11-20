@@ -30,6 +30,14 @@ const Jurnal = sequelize.define('Jurnal', {
   foto_kegiatan: {
     type: DataTypes.TEXT({ length: 'long' }),
     allowNull: true
+  },
+  status_masuk: {
+    type: DataTypes.ENUM('tepat_waktu', 'terlambat'),
+    defaultValue: 'tepat_waktu'
+  },
+  menit_keterlambatan: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
   }
 }, {
   tableName: 'jurnal',

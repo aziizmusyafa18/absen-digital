@@ -8,6 +8,10 @@ const { Guru, Kelas, Siswa, Jurnal, Absensi, GuruKelas, Jurusan, sequelize } = r
 const { Op } = require('sequelize');
 const router = express.Router();
 
+const isValidTime = (time) =>
+  typeof time === 'string' &&
+  /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(time);
+
 // Configure multer for photos
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -197,6 +201,11 @@ router.post('/guru', authMiddleware, adminOnly, upload.single('foto'), async (re
   try {
     const { username, password, nama, nip, mapel, jam_mulai, role = 'guru' } = req.body;
 
+    if ((jam_mulai && !isValidTime(jam_mulai)) || (role === 'guru' && !isValidTime(jam_mulai))) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'Jam wajib masuk guru harus diisi dengan format yang valid' });
+    }
+
     // Check if username or nip already exists
     const existingGuru = await Guru.findOne({
       where: {
@@ -259,6 +268,16 @@ router.put('/guru/:id', authMiddleware, adminOnly, upload.single('foto'), async 
     if (!guru) {
       if (req.file) fs.unlinkSync(req.file.path);
       return res.status(404).json({ error: 'Guru not found' });
+    }
+
+    const jamMulaiBerikutnya = jam_mulai !== undefined ? jam_mulai : guru.jam_mulai;
+    const roleBerikutnya = role || guru.role;
+    if (
+      (jam_mulai && !isValidTime(jam_mulai)) ||
+      (roleBerikutnya === 'guru' && !isValidTime(jamMulaiBerikutnya))
+    ) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'Jam wajib masuk guru harus diisi dengan format yang valid' });
     }
 
     // Check if username or nip already exists (exclude current guru)
@@ -371,12 +390,20 @@ router.post('/guru/sync-kelas/:id', authMiddleware, adminOnly, async (req, res) 
   try {
     const { id } = req.params;
     const guruId = parseInt(id);
-    const { kelas_list } = req.body; // Array of { kelas_id, mata_pelajaran }
+    const { kelas_list } = req.body; // Array of { kelas_id, mata_pelajaran, jam_mulai }
 
     const guru = await Guru.findByPk(guruId);
     if (!guru) {
       await t.rollback();
       return res.status(404).json({ error: 'Guru not found' });
+    }
+
+    if (
+      Array.isArray(kelas_list) &&
+      kelas_list.some(item => !item || (item.jam_mulai && !isValidTime(item.jam_mulai)))
+    ) {
+      await t.rollback();
+      return res.status(400).json({ error: 'Jam wajib masuk kelas tidak valid' });
     }
 
     // Delete existing relations
@@ -391,7 +418,7 @@ router.post('/guru/sync-kelas/:id', authMiddleware, adminOnly, async (req, res) 
         guru_id: guruId,
         kelas_id: parseInt(item.kelas_id),
         mata_pelajaran: item.mata_pelajaran,
-        jam_mulai: item.jam_mulai || '07:00:00' // Default jam_mulai if not provided
+        jam_mulai: item.jam_mulai || guru.jam_mulai || '07:00:00'
       }));
 
       await GuruKelas.bulkCreate(relations, { transaction: t });

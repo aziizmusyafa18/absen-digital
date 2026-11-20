@@ -44,8 +44,16 @@ const initializeDatabase = async () => {
       console.log('ℹ️  Skipping database sync in production mode.');
     }
 
-    // Pastikan kolom no_hp_ortu dan nama_ortu ada di tabel siswa
+    // Pastikan kolom status keterlambatan jurnal dan data orang tua tersedia
     try {
+      const [colsStatusMasuk] = await sequelize.query("SHOW COLUMNS FROM `jurnal` LIKE 'status_masuk'");
+      if (colsStatusMasuk.length === 0) {
+        await sequelize.query("ALTER TABLE `jurnal` ADD COLUMN `status_masuk` ENUM('tepat_waktu', 'terlambat') NULL DEFAULT NULL");
+      }
+      const [colsMenitKeterlambatan] = await sequelize.query("SHOW COLUMNS FROM `jurnal` LIKE 'menit_keterlambatan'");
+      if (colsMenitKeterlambatan.length === 0) {
+        await sequelize.query("ALTER TABLE `jurnal` ADD COLUMN `menit_keterlambatan` INT NOT NULL DEFAULT 0");
+      }
       const [colsNoHpOrtu] = await sequelize.query("SHOW COLUMNS FROM `siswa` LIKE 'no_hp_ortu'");
       if (colsNoHpOrtu.length === 0) {
         await sequelize.query("ALTER TABLE `siswa` ADD COLUMN `no_hp_ortu` VARCHAR(255) NULL");
