@@ -23,6 +23,32 @@
         @media (max-width: 576px) {
             .camera-box { aspect-ratio: 3/4; }
         }
+
+        /* Chatbot Widget */
+        .chat-widget { position: fixed; bottom: 20px; right: 20px; z-index: 1050; font-family: inherit; }
+        .chat-toggle { width: 60px; height: 60px; border-radius: 50%; background: var(--primary-color, #0d6efd); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: none; }
+        .chat-toggle:hover { opacity: 0.9; }
+        .chat-badge { position: absolute; top: 6px; right: 6px; background: #dc3545; color: #fff; border-radius: 50%; width: 22px; height: 22px; font-size: 0.7rem; display: none; align-items: center; justify-content: center; font-weight: bold; }
+        .chat-window { position: absolute; bottom: 80px; right: 0; width: 380px; height: 520px; background: #fff; border-radius: 12px; box-shadow: 0 6px 24px rgba(0,0,0,0.25); display: none; flex-direction: column; overflow: hidden; border: 1px solid #dee2e6; }
+        .chat-window.show { display: flex; }
+        .chat-header { background: var(--primary-color, #0d6efd); color: #fff; padding: 0.85rem 1rem; display: flex; justify-content: space-between; align-items: center; }
+        .chat-header span { font-weight: 600; font-size: 1rem; }
+        .chat-close { background: transparent; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; line-height: 1; padding: 0; }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; background: #f8f9fa; }
+        .chat-message { max-width: 88%; padding: 0.75rem 1rem; border-radius: 12px; font-size: 0.9rem; line-height: 1.45; word-wrap: break-word; white-space: pre-wrap; }
+        .chat-message.user { background: var(--primary-color, #0d6efd); color: #fff; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .chat-message.ai { background: #fff; color: #333; align-self: flex-start; border: 1px solid #dee2e6; border-bottom-left-radius: 2px; }
+        .chat-message.ai b { color: var(--primary-color, #0d6efd); }
+        .chat-input-area { padding: 0.85rem; border-top: 1px solid #dee2e6; display: flex; gap: 0.5rem; background: #fff; }
+        .chat-input-area input { flex: 1; padding: 0.75rem 1rem; border: 1px solid #dee2e6; border-radius: 8px; outline: none; font-size: 0.9rem; }
+        .chat-input-area input:focus { border-color: var(--primary-color, #0d6efd); }
+        .chat-send { padding: 0.75rem 1.25rem; background: var(--primary-color, #0d6efd); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+        .chat-send:hover { opacity: 0.9; }
+        .chat-send:disabled { opacity: 0.6; cursor: not-allowed; }
+        .chat-placeholder { text-align: center; color: #6c757d; font-size: 0.85rem; margin-top: 2rem; }
+        @media (max-width: 576px) {
+            .chat-window { width: calc(100vw - 32px); left: 16px; right: auto; bottom: 80px; height: 60vh; }
+        }
     </style>
 </head>
 <body class="bg-main">
@@ -88,6 +114,10 @@
                                 <div class="col-md-6">
                                     <label class="form-label">Materi Pembelajaran</label>
                                     <input type="text" class="form-control" id="materi" placeholder="Contoh: Pengenalan Array">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Kondisi Kelas / Catatan</label>
+                                    <textarea class="form-control" id="catatan-kelas" rows="2" placeholder="Contoh: Siswa antusias, kondisi kelas nyaman, tidak ada masalah khusus"></textarea>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Jam Selesai</label>
@@ -542,7 +572,8 @@
                     mata_pelajaran: document.getElementById('mata-pelajaran').value,
                     materi: document.getElementById('materi').value,
                     jam_selesai: document.getElementById('jam-selesai').value,
-                    foto_kegiatan: capturedImageData
+                    foto_kegiatan: capturedImageData,
+                    catatan: document.getElementById('catatan-kelas').value
                 }
             };
             try {
@@ -837,6 +868,147 @@
             document.getElementById('notification-icon').className = type === 'error' ? 'bi bi-x-circle-fill text-danger fs-5' : 'bi bi-check-circle-fill text-success fs-5';
             toast.show();
         }
+
+        // ========================================
+        // CHATBOT WIDGET
+        // ========================================
+        let chatUnreadCount = 0;
+
+        function toggleChat() {
+            const win = document.getElementById('chat-window');
+            const badge = document.getElementById('chat-badge');
+            const isOpen = win.classList.contains('show');
+            win.classList.toggle('show');
+            if (!isOpen) {
+                chatUnreadCount = 0;
+                badge.textContent = '0';
+                badge.style.display = 'none';
+            }
+        }
+
+        function addChatMessage(text, type, options = null) {
+            const container = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.className = `chat-message ${type}`;
+
+            if (type === 'ai') {
+                const safeText = (text || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                    .replace(/\*(.*?)\*/g, '<i>$1</i>');
+                div.innerHTML = safeText;
+
+                if (options && Array.isArray(options) && options.length > 0) {
+                    const optBox = document.createElement('div');
+                    optBox.style.cssText = 'margin-top: 0.65rem; display: flex; flex-direction: column; gap: 0.35rem;';
+                    options.forEach(opt => {
+                        const optBtn = document.createElement('button');
+                        optBtn.type = 'button';
+                        optBtn.textContent = '👉 ' + opt;
+                        optBtn.style.cssText = 'background: #f0f4ff; border: 1px solid #cce0ff; color: #0d6efd; padding: 0.35rem 0.65rem; border-radius: 6px; font-size: 0.8rem; text-align: left; cursor: pointer; transition: background 0.2s;';
+                        optBtn.onmouseover = () => { optBtn.style.background = '#e1ecff'; };
+                        optBtn.onmouseout = () => { optBtn.style.background = '#f0f4ff'; };
+                        optBtn.onclick = () => {
+                            document.getElementById('chat-input').value = opt;
+                            sendChatMessage();
+                        };
+                        optBox.appendChild(optBtn);
+                    });
+                    div.appendChild(optBox);
+                }
+            } else {
+                div.textContent = text;
+            }
+
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const btn = document.getElementById('chat-send');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const token = localStorage.getItem('token');
+            if (!token) {
+                addChatMessage('Silakan login terlebih dahulu', 'ai');
+                return;
+            }
+
+            addChatMessage(text, 'user');
+            input.value = '';
+            btn.disabled = true;
+
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'chat-message ai';
+            loadingDiv.textContent = 'Sedang menganalisis data akademik...';
+            loadingDiv.id = 'chat-loading';
+            document.getElementById('chat-messages').appendChild(loadingDiv);
+            document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+
+            try {
+                const body = { message: text };
+                const res = await fetch('/api/chatbot/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                const loadingEl = document.getElementById('chat-loading');
+                if (loadingEl) loadingEl.remove();
+
+                if (res.ok) {
+                    const data = await res.json();
+                    addChatMessage(data.reply, 'ai', data.options);
+                    if (!data.isAcademic) {
+                        chatUnreadCount++;
+                        document.getElementById('chat-badge').textContent = chatUnreadCount;
+                        document.getElementById('chat-badge').style.display = 'flex';
+                    }
+                } else {
+                    const err = await res.json();
+                    addChatMessage('Maaf, terjadi kesalahan: ' + (err.error || 'tidak diketahui'), 'ai');
+                }
+            } catch (e) {
+                const loadingEl = document.getElementById('chat-loading');
+                if (loadingEl) loadingEl.remove();
+                addChatMessage('Terjadi kesalahan koneksi ke server', 'ai');
+            } finally {
+                btn.disabled = false;
+                input.focus();
+            }
+        }
+
+        document.getElementById('chat-input')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendChatMessage();
+        });
     </script>
+    <!-- Chatbot Widget HTML -->
+    <div class="chat-widget">
+        <button class="chat-toggle" id="chat-toggle" onclick="toggleChat()" title="Buka Asisten AI">
+            <i class="bi bi-robot"></i>
+            <span class="chat-badge" id="chat-badge">0</span>
+        </button>
+        <div class="chat-window" id="chat-window">
+            <div class="chat-header">
+                <span><i class="bi bi-robot me-2"></i>Asisten AI Akademik</span>
+                <button class="chat-close" onclick="toggleChat()" aria-label="Tutup">&times;</button>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <div class="chat-message ai">Halo! Saya asisten AI akademik ADINDA. Saya bisa membantu menganalisis keaktifan belajar, kehadiran absensi, dan jurnal pembelajaran siswa. Contoh: <i>"atas nama Budi Santoso, berikan ringkasan keaktifan selama satu minggu"</i></div>
+                <div class="chat-placeholder">Ketik pertanyaan akademik Anda di bawah...</div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Ketik pertanyaan akademik..." autocomplete="off">
+                <button class="chat-send" id="chat-send" onclick="sendChatMessage()">Kirim</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

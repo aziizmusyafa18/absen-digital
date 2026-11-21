@@ -40,6 +40,7 @@ const adminCrudRoutes = require('./routes/adminCrud');
 const importRoutes = require('./routes/import');
 const rekapRoutes = require('./routes/rekap');
 const publicSearchRoutes = require('./routes/publicSearch');
+const chatbotRoutes = require('./routes/chatbot');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/guru', guruRoutes);
@@ -48,6 +49,7 @@ app.use('/api/master-data', adminCrudRoutes);
 app.use('/api/import', importRoutes);
 app.use('/api/rekap', rekapRoutes);
 app.use('/api/public', publicSearchRoutes);
+app.use('/api/chatbot', chatbotRoutes);
 
 // Serve index.html for root
 app.get('/', (req, res) => {

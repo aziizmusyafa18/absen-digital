@@ -38,6 +38,11 @@ const Jurnal = sequelize.define('Jurnal', {
   menit_keterlambatan: {
     type: DataTypes.INTEGER,
     defaultValue: 0
+  },
+  catatan: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Catatan kondisi kelas dari guru'
   }
 }, {
   tableName: 'jurnal',

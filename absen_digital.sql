@@ -167,7 +167,10 @@ CREATE TABLE `jurnal` (
   `createdAt` datetime NOT NULL,
   `updatedAt` datetime NOT NULL,
   `guru_id` int(11) DEFAULT NULL,
-  `kelas_id` int(11) DEFAULT NULL
+  `kelas_id` int(11) DEFAULT NULL,
+  `status_masuk` enum('tepat_waktu','terlambat') DEFAULT NULL,
+  `menit_keterlambatan` int(11) NOT NULL DEFAULT 0,
+  `catatan` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --

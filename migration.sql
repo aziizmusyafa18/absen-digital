@@ -13,6 +13,9 @@ ALTER TABLE guru ADD COLUMN IF NOT EXISTS jam_mulai TIME NULL DEFAULT NULL COMME
 ALTER TABLE jurnal ADD COLUMN IF NOT EXISTS status_masuk ENUM('tepat_waktu', 'terlambat') NULL DEFAULT NULL;
 ALTER TABLE jurnal ADD COLUMN IF NOT EXISTS menit_keterlambatan INT NOT NULL DEFAULT 0;
 
+-- 3. Tambah kolom catatan untuk kondisi kelas pada jurnal
+ALTER TABLE jurnal ADD COLUMN IF NOT EXISTS catatan TEXT NULL DEFAULT NULL COMMENT 'Catatan kondisi kelas dari guru';
+
 -- 3. Buat tabel guru_kelas untuk relasi guru dengan kelas
 -- Tabel ini digunakan untuk auto-fill mata pelajaran berdasarkan kelas
 CREATE TABLE IF NOT EXISTS guru_kelas (

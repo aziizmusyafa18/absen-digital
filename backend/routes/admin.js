@@ -339,7 +339,7 @@ router.post('/notifikasi/trigger', authMiddleware, adminOnly, async (req, res) =
     else if (jam >= 18) waktu = 'Malam';
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'dummy_key');
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite' });
 
     let dikirim = 0;
     for (const sId in absensiPerSiswa) {

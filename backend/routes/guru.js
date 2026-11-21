@@ -184,6 +184,7 @@ router.post("/absen", authMiddleware, async (req, res) => {
         foto_kegiatan: jurnal_data.foto_kegiatan,
         status_masuk: isTerlambat ? "terlambat" : "tepat_waktu",
         menit_keterlambatan: menitLewatBatasToleransi,
+        catatan: jurnal_data.catatan || null,
       },
       { transaction: t },
     );
